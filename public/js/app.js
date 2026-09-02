@@ -2027,21 +2027,44 @@ function closeAdminEditCategoryModal(e) {
   if (modal) modal.classList.add('hidden');
 }
 
+let currentCategoryThumbBase64 = null;
+
 function previewCategoryThumb(input) {
   if (input.files && input.files[0]) {
+    const file = input.files[0];
     const reader = new FileReader();
     reader.onload = function(e) {
+      currentCategoryThumbBase64 = e.target.result;
       const previewImg = document.getElementById('editCatThumbPreview');
-      if (previewImg) previewImg.src = e.target.result;
+      const emptyBox = document.getElementById('editCatThumbEmpty');
+      const btnRemove = document.getElementById('btnRemoveCatThumb');
+
+      if (previewImg) {
+        previewImg.src = e.target.result;
+        previewImg.classList.remove('hidden');
+      }
+      if (emptyBox) emptyBox.classList.add('hidden');
+      if (btnRemove) btnRemove.classList.remove('hidden');
+      categoryThumbRemoved = false;
+      showToast(`Image sélectionnée : ${file.name}`);
     };
-    reader.readAsDataURL(input.files[0]);
+    reader.readAsDataURL(file);
   }
 }
 
 function updateCatThumbFromUrl(url) {
+  const previewImg = document.getElementById('editCatThumbPreview');
+  const emptyBox = document.getElementById('editCatThumbEmpty');
+  const btnRemove = document.getElementById('btnRemoveCatThumb');
   if (url && url.trim().startsWith('http')) {
-    const previewImg = document.getElementById('editCatThumbPreview');
-    if (previewImg) previewImg.src = url.trim();
+    currentCategoryThumbBase64 = url.trim();
+    if (previewImg) {
+      previewImg.src = url.trim();
+      previewImg.classList.remove('hidden');
+    }
+    if (emptyBox) emptyBox.classList.add('hidden');
+    if (btnRemove) btnRemove.classList.remove('hidden');
+    categoryThumbRemoved = false;
   }
 }
 
@@ -2071,7 +2094,11 @@ async function saveAdminCategoryEdit(e) {
     if (categoryThumbRemoved) {
       formData.append('removeThumbnail', 'true');
     } else {
-      if (thumbUrl) formData.append('thumbnail', thumbUrl);
+      if (currentCategoryThumbBase64) {
+        formData.append('thumbnail', currentCategoryThumbBase64);
+      } else if (thumbUrl) {
+        formData.append('thumbnail', thumbUrl);
+      }
       if (fileInput && fileInput.files && fileInput.files[0]) {
         formData.append('thumbnailFile', fileInput.files[0]);
       }
@@ -2092,6 +2119,7 @@ async function saveAdminCategoryEdit(e) {
     }
 
     showToast(data.message || 'Catégorie et miniature mises à jour avec succès !');
+    currentCategoryThumbBase64 = null;
     closeAdminEditCategoryModal();
 
     await loadCategories();

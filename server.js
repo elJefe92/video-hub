@@ -45,6 +45,32 @@ async function uploadToSupabaseStorage(bucket, localFilePath, filename, contentT
   }
 }
 
+async function uploadBase64ToSupabaseStorage(bucket, base64Data, filename) {
+  if (!supabase || !base64Data || !base64Data.startsWith('data:')) return null;
+  try {
+    const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    if (!matches || matches.length !== 3) return null;
+    const contentType = matches[1];
+    const buffer = Buffer.from(matches[2], 'base64');
+    const ext = contentType.split('/')[1] || 'jpg';
+    const cleanFilename = (filename || ('thumb-' + Date.now())) + '.' + ext;
+
+    const { data, error } = await supabase.storage.from(bucket).upload(cleanFilename, buffer, {
+      contentType: contentType,
+      upsert: true
+    });
+    if (error) {
+      console.error(`Supabase base64 upload error (${bucket}):`, error);
+      return null;
+    }
+    const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(cleanFilename);
+    return publicData ? publicData.publicUrl : null;
+  } catch (err) {
+    console.error(`Error uploading base64 to Supabase (${bucket}):`, err);
+    return null;
+  }
+}
+
 // Multer config for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -343,14 +369,19 @@ app.put('/api/categories/:id', requireAdmin, upload.single('thumbnailFile'), asy
     cat.description = description.trim();
   }
 
-  // Handle uploaded thumbnail file or remove request
-  if (req.body.removeThumbnail === 'true') {
+  // Handle uploaded thumbnail file, base64 data, or remove request
+  if (req.body.removeThumbnail === 'true' || req.body.removeThumbnail === true) {
     cat.thumbnail = '';
   } else if (req.file) {
     const supabaseThumb = await uploadToSupabaseStorage('thumbnails', req.file.path, req.file.filename, req.file.mimetype);
     cat.thumbnail = supabaseThumb || `/uploads/${req.file.filename}`;
   } else if (thumbnail && thumbnail.trim()) {
-    cat.thumbnail = thumbnail.trim();
+    if (thumbnail.startsWith('data:image/')) {
+      const supabaseThumb = await uploadBase64ToSupabaseStorage('thumbnails', thumbnail, `cat-${cat.id}-${Date.now()}`);
+      cat.thumbnail = supabaseThumb || thumbnail.trim();
+    } else {
+      cat.thumbnail = thumbnail.trim();
+    }
   }
 
   saveDb(db);
