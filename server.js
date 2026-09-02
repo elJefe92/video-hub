@@ -110,6 +110,21 @@ function addLog(action, details) {
   saveDb(db);
 }
 
+// Reserved admin keywords protected for official administration only
+const RESERVED_ADMIN_TERMS = [
+  'admin', 'administrateur', 'administrator', 'moderateur', 'modérateur',
+  'moderation', 'modération', 'staff', 'root', 'support', 'videohub', 'officiel'
+];
+
+function isReservedAdminUsername(username, userEmail) {
+  if (!username) return false;
+  const lowerUser = username.toLowerCase().replace(/[^a-z0-9à-ÿ]/g, '');
+  const isOfficialAdmin = (userEmail || '').trim().toLowerCase() === 'ia.project.pro2k26@gmail.com';
+  if (isOfficialAdmin) return false;
+
+  return RESERVED_ADMIN_TERMS.some(term => lowerUser.includes(term.toLowerCase()));
+}
+
 // ---------------- AUTH ROUTES (Direct, No Google) ----------------
 app.post('/api/auth/register', (req, res) => {
   const { username, email, password, avatar } = req.body;
@@ -117,26 +132,44 @@ app.post('/api/auth/register', (req, res) => {
     return res.status(400).json({ error: 'Tous les champs sont requis.' });
   }
 
+  const trimmedUsername = username.trim();
+  const trimmedEmail = email.trim().toLowerCase();
+
+  // 1. Reserved admin usernames check
+  if (isReservedAdminUsername(trimmedUsername, trimmedEmail)) {
+    return res.status(400).json({ 
+      error: `Le pseudo "${trimmedUsername}" et les termes associés à l'administration sont strictement réservés au compte administrateur officiel.` 
+    });
+  }
+
   const db = loadDb();
-  const existingUser = db.users.find(u => u.email.toLowerCase() === email.toLowerCase() || u.username.toLowerCase() === username.toLowerCase());
-  if (existingUser) {
-    return res.status(400).json({ error: 'Cet email ou nom d’utilisateur est déjà utilisé.' });
+
+  // 2. Strict unique username check (case-insensitive)
+  const existingUsername = db.users.find(u => u.username && u.username.trim().toLowerCase() === trimmedUsername.toLowerCase());
+  if (existingUsername) {
+    return res.status(400).json({ error: `Le nom d'utilisateur "${trimmedUsername}" est déjà utilisé. Veuillez en choisir un autre.` });
+  }
+
+  // 3. Strict unique email check (case-insensitive)
+  const existingEmail = db.users.find(u => u.email && u.email.trim().toLowerCase() === trimmedEmail);
+  if (existingEmail) {
+    return res.status(400).json({ error: `L'adresse e-mail "${trimmedEmail}" est déjà associée à un compte.` });
   }
 
   const salt = bcrypt.genSaltSync(10);
   const passwordHash = bcrypt.hashSync(password, salt);
 
-  const isAdminEmail = email.trim().toLowerCase() === 'ia.project.pro2k26@gmail.com';
+  const isAdminEmail = trimmedEmail === 'ia.project.pro2k26@gmail.com';
 
   const newUser = {
     id: 'user_' + Date.now(),
-    username: username.trim(),
-    email: email.trim().toLowerCase(),
+    username: trimmedUsername,
+    email: trimmedEmail,
     passwordHash,
     role: isAdminEmail ? "admin" : "user",
     isVip: isAdminEmail,
     vipExpiry: isAdminEmail ? "2030-01-01" : null,
-    avatar: avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(username)}`,
+    avatar: avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(trimmedUsername)}`,
     bio: 'Membre créateur sur la plateforme !',
     createdAt: new Date().toISOString()
   };
@@ -208,9 +241,14 @@ app.put('/api/user/profile', authenticate, upload.single('avatarFile'), (req, re
 
   if (username && username.trim()) {
     const trimmedUser = username.trim();
-    const existing = db.users.find(u => u.id !== user.id && u.username.toLowerCase() === trimmedUser.toLowerCase());
+    if (isReservedAdminUsername(trimmedUser, user.email)) {
+      return res.status(400).json({ 
+        error: `Le pseudo "${trimmedUser}" et les termes associés à l'administration sont strictement réservés au compte administrateur officiel.` 
+      });
+    }
+    const existing = db.users.find(u => u.id !== user.id && u.username && u.username.trim().toLowerCase() === trimmedUser.toLowerCase());
     if (existing) {
-      return res.status(400).json({ error: 'Ce surnom/pseudo est déjà utilisé.' });
+      return res.status(400).json({ error: `Ce nom d'utilisateur/pseudo "${trimmedUser}" est déjà utilisé.` });
     }
     user.username = trimmedUser;
   }
