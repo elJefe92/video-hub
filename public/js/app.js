@@ -1409,7 +1409,7 @@ function toggleVipPerks() {
 
 // ==================== ADMIN PANEL (Shop Ton Partiel Inspired) ====================
 function switchAdminSection(sec) {
-  const tabs = ['videos', 'categories', 'users', 'logs'];
+  const tabs = ['videos', 'categories', 'users', 'logs', 'emails'];
   tabs.forEach(t => {
     const btn = document.getElementById(`adminTab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`);
     const secEl = document.getElementById(`adminSection${t.charAt(0).toUpperCase() + t.slice(1)}`);
@@ -1421,6 +1421,86 @@ function switchAdminSection(sec) {
   if (sec === 'categories') renderAdminCategoriesManager();
   if (sec === 'users') loadAdminUsers();
   if (sec === 'logs') loadAdminStats();
+  if (sec === 'emails') initAdminEmailTester();
+}
+
+function initAdminEmailTester() {
+  const input = document.getElementById('adminTestEmailTargetInput');
+  if (input && (!input.value || !input.value.trim())) {
+    if (AUTH.user && AUTH.user.email) {
+      input.value = AUTH.user.email;
+    } else {
+      input.value = 'ia.project.pro2k26@gmail.com';
+    }
+  }
+}
+
+function checkAllTestEmails() {
+  document.querySelectorAll('input[name="testEmailTpl"]').forEach(cb => {
+    cb.checked = true;
+  });
+}
+
+function uncheckAllTestEmails() {
+  document.querySelectorAll('input[name="testEmailTpl"]').forEach(cb => {
+    cb.checked = false;
+  });
+}
+
+async function sendSelectedTestEmails() {
+  if (!AUTH.isAdmin()) {
+    showToast('Action réservée aux administrateurs.');
+    return;
+  }
+
+  const selectedCbs = Array.from(document.querySelectorAll('input[name="testEmailTpl"]:checked'));
+  const templateKeys = selectedCbs.map(cb => cb.value);
+  const targetEmail = (document.getElementById('adminTestEmailTargetInput')?.value || '').trim();
+  const btn = document.getElementById('btnSendSelectedTestEmails');
+
+  if (templateKeys.length === 0) {
+    showToast("Veuillez cocher au moins un modèle d'e-mail.");
+    return;
+  }
+
+  if (!targetEmail || !targetEmail.includes('@')) {
+    showToast('Veuillez renseigner une adresse e-mail valide.');
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = `Envoi de ${templateKeys.length} e-mail(s)...`;
+  }
+
+  try {
+    const res = await fetch('/api/admin/test-emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${AUTH.token}`
+      },
+      body: JSON.stringify({
+        toEmail: targetEmail,
+        templateKeys: templateKeys
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || "Erreur lors de l'envoi des e-mails.");
+      return;
+    }
+
+    showToast(data.message || `${templateKeys.length} e-mail(s) de test envoyé(s) avec succès !`);
+  } catch (err) {
+    showToast("Erreur de connexion lors de l'envoi.");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Envoyer les e-mails sélectionnés';
+    }
+  }
 }
 
 function filterAdminVideosFromKpi(status) {

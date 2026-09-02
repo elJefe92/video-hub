@@ -194,6 +194,182 @@ async function sendPasswordResetEmail(toEmail, username, resetCode) {
   }
 }
 
+// Unified Email Templates Generator for VideoHub
+function generateEmailTemplate(type, data = {}) {
+  const siteUrl = 'https://video-hub-mu-nine.vercel.app';
+  const username = data.username || 'Cher Membre';
+  const toEmail = data.toEmail || 'contact@exemple.fr';
+
+  const baseHeader = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
+      <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 30px 24px; text-align: center;">
+        <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Video<span style="color: #0f172a; background: #ffffff; padding: 2px 8px; border-radius: 6px; margin-left: 4px;">Hub</span></h1>
+        <p style="margin: 8px 0 0; color: rgba(255,255,255,0.95); font-size: 14px; font-weight: 600;">Plateforme & Hub Vidéo Communautaire</p>
+      </div>
+      <div style="padding: 30px 24px; line-height: 1.6;">
+  `;
+
+  const baseFooter = `
+        <div style="margin-top: 30px; text-align: center;">
+          <a href="${siteUrl}" style="background-color: #f97316; color: #ffffff; text-decoration: none; padding: 13px 26px; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block;">
+            Accéder à VideoHub
+          </a>
+        </div>
+        <p style="color: #94a3b8; font-size: 12px; border-top: 1px solid #334155; padding-top: 18px; margin-top: 25px; margin-bottom: 0;">
+          E-mail de notification officiel • Destinataire : <strong>${toEmail}</strong><br>
+          VideoHub - Tous droits réservés.
+        </p>
+      </div>
+    </div>
+  `;
+
+  switch(type) {
+    case 'welcome':
+      return {
+        name: 'Bienvenue & Inscription',
+        subject: 'Bienvenue sur VideoHub - Votre compte a été créé avec succès',
+        html: baseHeader + `
+          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bienvenue sur VideoHub, ${username} !</h2>
+          <p style="color: #cbd5e1; font-size: 15px;">
+            Votre compte a bien été créé avec succès. Vous pouvez dès à présent vous connecter et profiter de tous nos services :
+          </p>
+          <div style="background: #1e293b; border-radius: 8px; padding: 18px; margin: 20px 0; border: 1px solid #334155;">
+            <ul style="color: #cbd5e1; font-size: 14px; margin: 0; padding-left: 18px; line-height: 1.9;">
+              <li><strong>Partager vos vidéos</strong> en haute définition avec la communauté</li>
+              <li><strong>Interagir :</strong> likes, commentaires et retours en direct</li>
+              <li><strong>Accéder aux sélections exclusives</strong> et profils créateurs</li>
+            </ul>
+          </div>
+        ` + baseFooter
+      };
+
+    case 'reset_pwd':
+      const code = data.code || '849201';
+      return {
+        name: 'Mot de passe oublié (Code 6 chiffres)',
+        subject: 'Réinitialisation de votre mot de passe VideoHub',
+        html: baseHeader + `
+          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bonjour ${username},</h2>
+          <p style="color: #cbd5e1; font-size: 15px;">
+            Vous avez demandé la réinitialisation de votre mot de passe sur <strong>VideoHub</strong>.
+          </p>
+          <p style="color: #cbd5e1; font-size: 15px;">
+            Voici votre code de sécurité temporaire (valable 15 minutes) :
+          </p>
+          <div style="background: #1e293b; border-radius: 8px; padding: 20px; text-align: center; margin: 24px 0; border: 1px dashed #f97316;">
+            <span style="font-size: 32px; font-weight: 900; letter-spacing: 6px; color: #f97316; font-family: monospace;">${code}</span>
+          </div>
+          <p style="color: #cbd5e1; font-size: 14px;">
+            Entrez ce code sur le site pour définir votre nouveau mot de passe.
+          </p>
+        ` + baseFooter
+      };
+
+    case 'video_approved':
+      return {
+        name: 'Vidéo validée & publiée',
+        subject: 'Votre vidéo a été validée et publiée sur VideoHub',
+        html: baseHeader + `
+          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Félicitations ${username} !</h2>
+          <p style="color: #cbd5e1; font-size: 15px;">
+            L'équipe de modération a examiné et validé votre vidéo intitulée :
+          </p>
+          <div style="background: #1e293b; border-radius: 8px; padding: 18px; margin: 20px 0; border: 1px solid #22c55e;">
+            <strong style="color: #22c55e; font-size: 16px;">${data.videoTitle || 'Ma Nouvelle Vidéo HD'}</strong>
+            <p style="color: #94a3b8; font-size: 13px; margin: 6px 0 0 0;">Catégorie : ${data.videoCategory || 'Général'} • Statut : En ligne</p>
+          </div>
+          <p style="color: #cbd5e1; font-size: 14px;">
+            Votre vidéo est désormais visible par tous les utilisateurs de la plateforme et commence à accumuler des vues !
+          </p>
+        ` + baseFooter
+      };
+
+    case 'video_rejected':
+      return {
+        name: 'Vidéo refusée (motif modération)',
+        subject: 'Notification de modération - Votre vidéo sur VideoHub',
+        html: baseHeader + `
+          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bonjour ${username},</h2>
+          <p style="color: #cbd5e1; font-size: 15px;">
+            Après examen par notre équipe de modération, votre vidéo intitulée <strong>"${data.videoTitle || 'Vidéo soumise'}"</strong> n'a pas pu être validée pour publication.
+          </p>
+          <div style="background: #1e293b; border-radius: 8px; padding: 18px; margin: 20px 0; border: 1px solid #ef4444;">
+            <strong style="color: #ef4444; font-size: 15px;">Motif de modération :</strong>
+            <p style="color: #cbd5e1; font-size: 13px; margin: 6px 0 0 0;">${data.reason || 'Non-respect des critères de qualité ou doublon détecté dans la catégorie.'}</p>
+          </div>
+          <p style="color: #cbd5e1; font-size: 14px;">
+            Vous pouvez à tout moment soumettre une nouvelle vidéo conforme aux conditions d'utilisation.
+          </p>
+        ` + baseFooter
+      };
+
+    case 'vip_activated':
+      return {
+        name: 'Abonnement VIP activé (9,99€)',
+        subject: 'Confirmation d\'adhésion - Votre Pass VIP VideoHub est actif',
+        html: baseHeader + `
+          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bienvenue dans le Club VIP, ${username} !</h2>
+          <p style="color: #cbd5e1; font-size: 15px;">
+            Votre abonnement <strong>Membre VIP (9,99€ / mois)</strong> a bien été activé avec succès.
+          </p>
+          <div style="background: #1e293b; border-radius: 8px; padding: 18px; margin: 20px 0; border: 1px solid #f59e0b;">
+            <strong style="color: #f59e0b; font-size: 15px;">Vos avantages VIP actifs :</strong>
+            <ul style="color: #cbd5e1; font-size: 13px; margin: 8px 0 0 0; padding-left: 18px; line-height: 1.8;">
+              <li>Accès immédiat et illimité à toutes les vidéos exclusives VIP</li>
+              <li>Badge VIP doré affiché sur votre profil et vos vidéos</li>
+              <li>Navigation fluide sans interruptions publicitaires</li>
+              <li>Traitement prioritaire de vos dépôts de vidéos</li>
+            </ul>
+          </div>
+        ` + baseFooter
+      };
+
+    case 'new_message':
+      return {
+        name: 'Nouveau message privé reçu',
+        subject: 'Nouveau message privé reçu sur VideoHub',
+        html: baseHeader + `
+          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bonjour ${username},</h2>
+          <p style="color: #cbd5e1; font-size: 15px;">
+            Vous avez reçu un nouveau message privé sur <strong>VideoHub</strong> de la part de <strong>${data.senderName || 'Alex'}</strong>.
+          </p>
+          <div style="background: #1e293b; border-radius: 8px; padding: 18px; margin: 20px 0; border: 1px solid #334155; font-style: italic; color: #cbd5e1;">
+            "${data.messagePreview || 'Salut ! J\'ai adoré ta dernière vidéo, bravo !'}"
+          </div>
+          <p style="color: #cbd5e1; font-size: 14px;">
+            Connectez-vous à votre espace messagerie pour lui répondre.
+          </p>
+        ` + baseFooter
+      };
+
+    case 'report_received':
+      return {
+        name: 'Signalement pris en compte (Takedown)',
+        subject: 'Prise en charge de votre signalement VideoHub',
+        html: baseHeader + `
+          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bonjour ${username},</h2>
+          <p style="color: #cbd5e1; font-size: 15px;">
+            Nous vous confirmons la bonne réception de votre signalement concernant le contenu :
+          </p>
+          <div style="background: #1e293b; border-radius: 8px; padding: 18px; margin: 20px 0; border: 1px solid #334155;">
+            <strong style="color: #f8fafc; font-size: 14px;">Référence : #${data.reportId || 'SIG-' + Math.floor(10000 + Math.random() * 90000)}</strong>
+            <p style="color: #94a3b8; font-size: 13px; margin: 6px 0 0 0;">Motif : ${data.reportReason || 'Demande de vérification de contenu'}</p>
+          </div>
+          <p style="color: #cbd5e1; font-size: 14px;">
+            Notre équipe de modération traite votre demande dans les plus brefs délais conformément à la législation.
+          </p>
+        ` + baseFooter
+      };
+
+    default:
+      return {
+        name: 'Notification générale',
+        subject: 'Notification VideoHub',
+        html: baseHeader + `<p>Notification VideoHub</p>` + baseFooter
+      };
+  }
+}
+
 // Multer config for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -1424,6 +1600,106 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
     totalLikes,
     totalVips,
     logs: db.logs || []
+  });
+});
+
+// ---------------- ADMIN EMAIL TEST & PREVIEW SUITE ----------------
+app.get('/api/admin/email-templates', requireAdmin, (req, res) => {
+  const templates = [
+    {
+      key: 'welcome',
+      title: 'Bienvenue & Inscription',
+      description: 'Envoyé automatiquement à chaque nouvel utilisateur dès la création de son compte.',
+      subject: 'Bienvenue sur VideoHub - Votre compte a été créé avec succès'
+    },
+    {
+      key: 'reset_pwd',
+      title: 'Mot de passe oublié (Code 6 chiffres)',
+      description: 'Envoyé lorsqu\'un utilisateur demande la réinitialisation de son mot de passe.',
+      subject: 'Réinitialisation de votre mot de passe VideoHub'
+    },
+    {
+      key: 'video_approved',
+      title: 'Vidéo validée & publiée',
+      description: 'Notification au créateur confirmant que sa vidéo a été approuvée par la modération.',
+      subject: 'Votre vidéo a été validée et publiée sur VideoHub'
+    },
+    {
+      key: 'video_rejected',
+      title: 'Vidéo refusée (motif modération)',
+      description: 'Notification au créateur expliquant le motif de rejet de sa vidéo.',
+      subject: 'Notification de modération - Votre vidéo sur VideoHub'
+    },
+    {
+      key: 'vip_activated',
+      title: 'Abonnement VIP activé (9,99€)',
+      description: 'Confirmation officielle de l\'activation du Pass VIP après paiement Stripe.',
+      subject: 'Confirmation d\'adhésion - Votre Pass VIP VideoHub est actif'
+    },
+    {
+      key: 'new_message',
+      title: 'Nouveau message privé reçu',
+      description: 'Notification par e-mail lors de la réception d\'un message dans la boîte privée.',
+      subject: 'Nouveau message privé reçu sur VideoHub'
+    },
+    {
+      key: 'report_received',
+      title: 'Signalement pris en compte (Takedown)',
+      description: 'Accusé de réception officiel suite à un signalement de contenu par un utilisateur.',
+      subject: 'Prise en charge de votre signalement VideoHub'
+    }
+  ];
+
+  res.json({ templates });
+});
+
+app.post('/api/admin/test-emails', requireAdmin, async (req, res) => {
+  const { toEmail, templateKeys } = req.body;
+  if (!toEmail || !templateKeys || !Array.isArray(templateKeys) || templateKeys.length === 0) {
+    return res.status(400).json({ error: 'Veuillez sélectionner au moins un modèle et renseigner une adresse e-mail valide.' });
+  }
+
+  const transporter = getMailTransporter();
+  const results = [];
+  const sender = process.env.SMTP_USER || 'ia.project.pro2k26@gmail.com';
+
+  for (const key of templateKeys) {
+    const template = generateEmailTemplate(key, {
+      username: req.user.username || 'Administrateur',
+      toEmail: toEmail.trim(),
+      videoTitle: 'Vortex Électronique (Exemple)',
+      videoCategory: 'Electronique',
+      reason: 'Qualité audio insuffisante ou doublon dans la thématique.',
+      senderName: 'Alex Créateur',
+      messagePreview: 'Bonjour, super contenu sur votre chaîne ! Au plaisir d\'échanger.',
+      code: Math.floor(100000 + Math.random() * 900000).toString(),
+      reportId: 'SIG-' + Math.floor(10000 + Math.random() * 90000),
+      reportReason: 'Demande de vérification de droits d\'auteur'
+    });
+
+    try {
+      await transporter.sendMail({
+        from: `"VideoHub" <${sender}>`,
+        to: toEmail.trim(),
+        subject: `[TEST] ${template.subject}`,
+        html: template.html
+      });
+      results.push({ key, name: template.name, status: 'sent' });
+    } catch (err) {
+      console.error(`[Email Test Error] Failed to send ${key} to ${toEmail}:`, err.message);
+      results.push({ key, name: template.name, status: 'error', error: err.message });
+    }
+  }
+
+  const successCount = results.filter(r => r.status === 'sent').length;
+  addLog('Test E-mails Admin', `${successCount} e-mail(s) de test expédié(s) à ${toEmail} par Admin`);
+
+  res.json({
+    success: true,
+    sentCount: successCount,
+    total: templateKeys.length,
+    results,
+    message: `${successCount} e-mail(s) de test expédié(s) avec succès à ${toEmail} !`
   });
 });
 

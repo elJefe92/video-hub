@@ -742,6 +742,9 @@
             <button class="admin-tab-btn" id="adminTabLogsBtn" onclick="switchAdminSection('logs')">
               Journal d'Audit
             </button>
+            <button class="admin-tab-btn" id="adminTabEmailsBtn" onclick="switchAdminSection('emails')">
+              Test & Aperçu E-mails
+            </button>
           </div>
 
           <!-- Section 1 : Modération Vidéos (Filtres & Liste) -->
@@ -805,6 +808,64 @@
             </div>
             <div id="adminLogsContainer" class="admin-logs-list">
               <!-- Dynamically populated logs -->
+            </div>
+          </div>
+
+          <!-- Section 5 : Test & Aperçu des E-mails Transactionnels -->
+          <div id="adminSectionEmails" class="admin-section-body hidden">
+            <div class="admin-email-tester-card">
+              <div class="email-tester-header">
+                <div>
+                  <h3 style="margin:0 0 6px 0;font-size:1.15rem;color:var(--text-main);">Test & Aperçu des e-mails VideoHub</h3>
+                  <p style="margin:0;font-size:0.88rem;color:var(--text-muted);">Cochez les modèles d'e-mails que vous souhaitez recevoir dans votre boîte mail pour vérifier leur rendu réel.</p>
+                </div>
+                <div class="email-tester-toggle-btns">
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="checkAllTestEmails()">Tout cocher</button>
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="uncheckAllTestEmails()">Tout décocher</button>
+                </div>
+              </div>
+
+              <!-- Checkbox Grid identical to user reference screenshot -->
+              <div class="email-templates-checkbox-grid" id="adminEmailCheckboxesGrid">
+                <label class="email-check-item">
+                  <input type="checkbox" name="testEmailTpl" value="welcome" checked>
+                  <span class="email-check-label">Bienvenue & Inscription</span>
+                </label>
+                <label class="email-check-item">
+                  <input type="checkbox" name="testEmailTpl" value="reset_pwd">
+                  <span class="email-check-label">Mot de passe oublié (Code 6 chiffres)</span>
+                </label>
+                <label class="email-check-item">
+                  <input type="checkbox" name="testEmailTpl" value="video_approved">
+                  <span class="email-check-label">Vidéo validée & publiée</span>
+                </label>
+                <label class="email-check-item">
+                  <input type="checkbox" name="testEmailTpl" value="video_rejected">
+                  <span class="email-check-label">Vidéo refusée (motif modération)</span>
+                </label>
+                <label class="email-check-item">
+                  <input type="checkbox" name="testEmailTpl" value="vip_activated">
+                  <span class="email-check-label">Abonnement VIP activé (9,99€)</span>
+                </label>
+                <label class="email-check-item">
+                  <input type="checkbox" name="testEmailTpl" value="new_message">
+                  <span class="email-check-label">Nouveau message privé reçu</span>
+                </label>
+                <label class="email-check-item">
+                  <input type="checkbox" name="testEmailTpl" value="report_received">
+                  <span class="email-check-label">Signalement pris en compte (Takedown)</span>
+                </label>
+              </div>
+
+              <!-- Recipient Email & Trigger Button Bar -->
+              <div class="email-tester-action-bar">
+                <div class="email-input-wrap">
+                  <input type="email" id="adminTestEmailTargetInput" class="form-input" placeholder="Saisissez votre adresse e-mail pour recevoir le test" value="ia.project.pro2k26@gmail.com">
+                </div>
+                <button type="button" id="btnSendSelectedTestEmails" class="btn btn-primary" onclick="sendSelectedTestEmails()">
+                  Envoyer les e-mails sélectionnés
+                </button>
+              </div>
             </div>
           </div>
 
