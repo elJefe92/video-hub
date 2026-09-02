@@ -2114,6 +2114,39 @@ async function handleSaveProfile(e) {
   }
 }
 
+async function resendMyWelcomeEmail() {
+  if (!AUTH || !AUTH.isLoggedIn()) {
+    showToast('Vous devez être connecté.');
+    return;
+  }
+  const btn = document.getElementById('btnResendWelcomeEmail');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Envoi en cours...';
+  }
+  try {
+    const res = await fetch('/api/auth/send-welcome-email', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${AUTH.token}`
+      }
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast(data.message || 'E-mail de bienvenue envoyé ! Vérifiez votre boîte de réception.');
+    } else {
+      showToast(data.error || "Erreur lors de l'envoi de l'e-mail.");
+    }
+  } catch (err) {
+    showToast("Erreur lors de l'envoi de l'e-mail.");
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "✉️ Renvoyer l'e-mail de bienvenue";
+    }
+  }
+}
+
 // ==================== CGU MODAL CONTROLLER ====================
 function openCguModal() {
   const modal = document.getElementById('cguModal');

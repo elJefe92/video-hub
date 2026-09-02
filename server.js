@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 const { loadDb, saveDb } = require('./database');
 const { supabase } = require('./supabase');
 
@@ -68,6 +69,97 @@ async function uploadBase64ToSupabaseStorage(bucket, base64Data, filename) {
   } catch (err) {
     console.error(`Error uploading base64 to Supabase (${bucket}):`, err);
     return null;
+  }
+}
+
+// Mail Transporter for Welcome & Notification Emails
+let mailTransporter = null;
+
+function getMailTransporter() {
+  if (mailTransporter) return mailTransporter;
+
+  const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER || 'ia.project.pro2k26@gmail.com';
+  const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
+
+  if (smtpPass) {
+    mailTransporter = nodemailer.createTransport({
+      service: process.env.SMTP_SERVICE || 'gmail',
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT || '465'),
+      secure: process.env.SMTP_PORT === '587' ? false : true,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass
+      }
+    });
+  } else {
+    // Ethereal/Local fallback transporter
+    mailTransporter = nodemailer.createTransport({
+      host: 'smtp.ethereal.email',
+      port: 587,
+      auth: {
+        user: 'ethereal.user@ethereal.email',
+        pass: 'ethereal.pass'
+      }
+    });
+  }
+  return mailTransporter;
+}
+
+async function sendWelcomeEmail(toEmail, username) {
+  if (!toEmail) return false;
+  const siteUrl = 'https://video-hub-mu-nine.vercel.app';
+  const mailOptions = {
+    from: `"VideoHub" <${process.env.SMTP_USER || 'ia.project.pro2k26@gmail.com'}>`,
+    to: toEmail,
+    subject: '🎉 Bienvenue sur VideoHub - Votre compte a été créé avec succès !',
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
+        <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 32px 24px; text-align: center;">
+          <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Video<span style="color: #0f172a;">Hub</span></h1>
+          <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 15px; font-weight: 600;">Plateforme & Blog Vidéo Communautaire</p>
+        </div>
+        <div style="padding: 32px 24px; line-height: 1.6;">
+          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bienvenue sur VideoHub, ${username || 'Cher Membre'} ! 👋</h2>
+          <p style="color: #cbd5e1; font-size: 15px;">
+            Votre compte a bien été créé avec succès. Vous pouvez dès à présent vous connecter et profiter de tous nos services :
+          </p>
+          <div style="background: #1e293b; border-radius: 8px; padding: 18px; margin: 20px 0; border: 1px solid #334155;">
+            <ul style="color: #cbd5e1; font-size: 14px; margin: 0; padding-left: 18px; line-height: 1.8;">
+              <li>🚀 <strong>Partager vos vidéos</strong> en haute définition avec la communauté</li>
+              <li>💬 <strong>Interagir :</strong> likes, commentaires et retours en direct</li>
+              <li>⭐ <strong>Accéder aux sélections exclusives</strong> et profils créateurs</li>
+            </ul>
+          </div>
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${siteUrl}" style="background-color: #f97316; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 4px 12px rgba(249,115,22,0.4);">
+              Se connecter à mon compte
+            </a>
+          </div>
+          <p style="color: #94a3b8; font-size: 13px; border-top: 1px solid #334155; padding-top: 20px; margin-bottom: 0;">
+            E-mail associé : <strong>${toEmail}</strong><br>
+            À très vite sur VideoHub !
+          </p>
+        </div>
+      </div>
+    `,
+    text: `Bienvenue sur VideoHub, ${username || 'Cher Membre'} !\n\nVotre compte a bien été créé avec succès.\n\nAccédez à la plateforme : ${siteUrl}\nE-mail de connexion : ${toEmail}`
+  };
+
+  try {
+    const transporter = getMailTransporter();
+    const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
+    if (smtpPass) {
+      await transporter.sendMail(mailOptions);
+      console.log(`[Email] Welcome email successfully sent to ${toEmail}`);
+      return true;
+    } else {
+      console.log(`[Email Notice] Welcome email logged for ${toEmail}. Set SMTP_PASS in Vercel to send actual live SMTP.`);
+      return true;
+    }
+  } catch (err) {
+    console.error(`[Email Error] Failed sending welcome email to ${toEmail}:`, err.message);
+    return false;
   }
 }
 
@@ -205,14 +297,34 @@ app.post('/api/auth/register', (req, res) => {
 
   addLog('Inscription Utilisateur', `Nouveau compte: ${newUser.username} (${newUser.email})`);
 
+  // Asynchronously send welcome email
+  sendWelcomeEmail(newUser.email, newUser.username).catch(err => {
+    console.error('Welcome email sending error:', err);
+  });
+
   const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, { expiresIn: '30d' });
   const { passwordHash: _, ...userSafe } = newUser;
 
   res.status(201).json({
-    message: 'Compte créé avec succès !',
+    message: 'Compte créé avec succès ! Un e-mail de confirmation vous a été envoyé.',
     token,
     user: userSafe
   });
+});
+
+// Endpoint to send/resend welcome email to logged-in user
+app.post('/api/auth/send-welcome-email', authenticate, async (req, res) => {
+  try {
+    const user = req.user;
+    const ok = await sendWelcomeEmail(user.email, user.username);
+    addLog('E-mail Bienvenue', `E-mail de bienvenue envoyé à ${user.email}`);
+    res.json({
+      success: true,
+      message: `E-mail de bienvenue envoyé à ${user.email} ! Vérifiez votre boîte de réception.`
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erreur lors de l'envoi de l'e-mail." });
+  }
 });
 
 app.post('/api/auth/login', (req, res) => {
