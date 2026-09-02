@@ -588,7 +588,9 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   const code = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = Date.now() + 15 * 60 * 1000;
 
-  passwordResetCodes.set(cleanEmail, { code, expiresAt, userId: user.id });
+  user.resetCode = code;
+  user.resetExpiresAt = expiresAt;
+  saveDb(db);
 
   // Send reset code email
   const sent = await sendPasswordResetEmail(user.email, user.username, code);
@@ -614,33 +616,35 @@ app.post('/api/auth/reset-password', async (req, res) => {
   const cleanEmail = email.trim().toLowerCase();
   const cleanCode = code.toString().trim();
 
-  const resetEntry = passwordResetCodes.get(cleanEmail);
-  if (!resetEntry) {
-    return res.status(400).json({ error: 'Aucune demande de réinitialisation en cours pour cette adresse ou code expiré.' });
-  }
-
-  if (Date.now() > resetEntry.expiresAt) {
-    passwordResetCodes.delete(cleanEmail);
-    return res.status(400).json({ error: 'Ce code a expiré. Veuillez refaire une demande.' });
-  }
-
-  if (resetEntry.code !== cleanCode) {
-    return res.status(400).json({ error: 'Code de sécurité incorrect. Vérifiez vos e-mails.' });
-  }
-
   const db = loadDb();
-  const user = db.users.find(u => u.id === resetEntry.userId || (u.email && u.email.toLowerCase() === cleanEmail));
+  const user = db.users.find(u => u.email && u.email.toLowerCase() === cleanEmail);
 
   if (!user) {
     return res.status(404).json({ error: 'Utilisateur introuvable.' });
   }
 
+  if (!user.resetCode || !user.resetExpiresAt) {
+    return res.status(400).json({ error: 'Aucune demande de réinitialisation active pour ce compte.' });
+  }
+
+  if (Date.now() > user.resetExpiresAt) {
+    user.resetCode = null;
+    user.resetExpiresAt = null;
+    saveDb(db);
+    return res.status(400).json({ error: 'Ce code a expiré. Veuillez refaire une demande.' });
+  }
+
+  if (user.resetCode !== cleanCode) {
+    return res.status(400).json({ error: 'Code de sécurité incorrect. Vérifiez vos e-mails.' });
+  }
+
   // Hash new password and save
   const salt = bcrypt.genSaltSync(10);
   user.passwordHash = bcrypt.hashSync(newPassword, salt);
+  user.resetCode = null;
+  user.resetExpiresAt = null;
   saveDb(db);
 
-  passwordResetCodes.delete(cleanEmail);
   addLog('Mot de Passe Réinitialisé', `Nouveau mot de passe défini pour ${user.email}`);
 
   const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
