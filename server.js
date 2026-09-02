@@ -93,55 +93,52 @@ function getMailTransporter() {
   return mailTransporter;
 }
 
-async function sendWelcomeEmail(toEmail, username) {
-  if (!toEmail) return false;
-  const siteUrl = 'https://video-hub-mu-nine.vercel.app';
+async function sendRobustEmail({ to, subject, html, text, replyTo, category }) {
+  if (!to) return false;
+  const senderAddress = process.env.SMTP_USER || 'ia.project.pro2k26@gmail.com';
+  const transporter = getMailTransporter();
+  const cleanId = `vh-${Date.now()}-${Math.random().toString(36).substring(2, 7)}@gmail.com`;
+
   const mailOptions = {
-    from: `"VideoHub" <${process.env.SMTP_USER || 'ia.project.pro2k26@gmail.com'}>`,
-    to: toEmail,
-    subject: 'Bienvenue sur VideoHub - Votre compte a été créé avec succès',
-    html: `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
-        <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 32px 24px; text-align: center;">
-          <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Video<span style="color: #0f172a; background: #ffffff; padding: 2px 8px; border-radius: 6px; margin-left: 4px;">Hub</span></h1>
-          <p style="margin: 8px 0 0; color: rgba(255,255,255,0.95); font-size: 15px; font-weight: 600;">Plateforme & Hub Vidéo Communautaire</p>
-        </div>
-        <div style="padding: 32px 24px; line-height: 1.6;">
-          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bienvenue sur VideoHub, ${username || 'Cher Membre'} !</h2>
-          <p style="color: #cbd5e1; font-size: 15px;">
-            Votre compte a bien été créé avec succès. Vous pouvez dès à présent vous connecter et profiter de tous nos services :
-          </p>
-          <div style="background: #1e293b; border-radius: 8px; padding: 18px; margin: 20px 0; border: 1px solid #334155;">
-            <ul style="color: #cbd5e1; font-size: 14px; margin: 0; padding-left: 18px; line-height: 1.9;">
-              <li><strong>Partager vos vidéos</strong> en haute définition avec la communauté</li>
-              <li><strong>Interagir :</strong> likes, commentaires et retours en direct</li>
-              <li><strong>Accéder aux sélections exclusives</strong> et profils créateurs</li>
-            </ul>
-          </div>
-          <div style="margin: 30px 0; text-align: center;">
-            <a href="${siteUrl}" style="background-color: #f97316; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 8px; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 4px 12px rgba(249,115,22,0.4);">
-              Se connecter à mon compte
-            </a>
-          </div>
-          <p style="color: #94a3b8; font-size: 13px; border-top: 1px solid #334155; padding-top: 20px; margin-bottom: 0;">
-            E-mail associé : <strong>${toEmail}</strong><br>
-            À très vite sur VideoHub !
-          </p>
-        </div>
-      </div>
-    `,
-    text: `Bienvenue sur VideoHub, ${username || 'Cher Membre'} !\n\nVotre compte a bien été créé avec succès.\n\nAccédez à la plateforme : ${siteUrl}\nE-mail de connexion : ${toEmail}`
+    from: `"VideoHub Support" <${senderAddress}>`,
+    to: to.trim(),
+    replyTo: replyTo || senderAddress,
+    subject: subject,
+    html: html,
+    text: text || html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+    messageId: `<${cleanId}>`,
+    date: new Date(),
+    headers: {
+      'List-Unsubscribe': `<mailto:${senderAddress}?subject=Desinscription>`,
+      'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      'X-Entity-Ref-ID': `VH-${Date.now()}`,
+      'X-Auto-Response-Suppress': 'OOF, AutoReply',
+      'Auto-Submitted': 'auto-generated',
+      'Feedback-ID': `VID_HUB:${category || 'TRANSACTIONAL'}:1:GMAIL`
+    }
   };
 
   try {
-    const transporter = getMailTransporter();
     await transporter.sendMail(mailOptions);
-    console.log(`[Email] Welcome email successfully sent to ${toEmail}`);
+    console.log(`[Email Delivered] ${subject} successfully sent to ${to}`);
     return true;
   } catch (err) {
-    console.error(`[Email Error] Failed sending welcome email to ${toEmail}:`, err.message);
+    console.error(`[Email Delivery Error] Failed sending to ${to}:`, err.message);
     return false;
   }
+}
+
+async function sendWelcomeEmail(toEmail, username) {
+  if (!toEmail) return false;
+  const siteUrl = 'https://video-hub-mu-nine.vercel.app';
+  const tpl = generateEmailTemplate('welcome', { username, toEmail });
+  return await sendRobustEmail({
+    to: toEmail,
+    subject: tpl.subject,
+    html: tpl.html,
+    text: tpl.text,
+    category: 'WELCOME'
+  });
 }
 
 // In-memory store for password reset codes: email -> { code, expiresAt, userId }
@@ -149,49 +146,14 @@ const passwordResetCodes = new Map();
 
 async function sendPasswordResetEmail(toEmail, username, resetCode) {
   if (!toEmail) return false;
-  const siteUrl = 'https://video-hub-mu-nine.vercel.app';
-  const mailOptions = {
-    from: `"VideoHub" <${process.env.SMTP_USER || 'ia.project.pro2k26@gmail.com'}>`,
+  const tpl = generateEmailTemplate('reset_pwd', { username, toEmail, code: resetCode });
+  return await sendRobustEmail({
     to: toEmail,
-    subject: 'Réinitialisation de votre mot de passe VideoHub',
-    html: `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
-        <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 32px 24px; text-align: center;">
-          <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Video<span style="color: #0f172a; background: #ffffff; padding: 2px 8px; border-radius: 6px; margin-left: 4px;">Hub</span></h1>
-          <p style="margin: 8px 0 0; color: rgba(255,255,255,0.95); font-size: 15px; font-weight: 600;">Récupération de compte sécurisée</p>
-        </div>
-        <div style="padding: 32px 24px; line-height: 1.6;">
-          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bonjour ${username || ''},</h2>
-          <p style="color: #cbd5e1; font-size: 15px;">
-            Vous avez demandé la réinitialisation de votre mot de passe sur <strong>VideoHub</strong>.
-          </p>
-          <p style="color: #cbd5e1; font-size: 15px;">
-            Voici votre code de sécurité temporaire (valable 15 minutes) :
-          </p>
-          <div style="background: #1e293b; border-radius: 8px; padding: 20px; text-align: center; margin: 24px 0; border: 1px dashed #f97316;">
-            <span style="font-size: 32px; font-weight: 900; letter-spacing: 6px; color: #f97316; font-family: monospace;">${resetCode}</span>
-          </div>
-          <p style="color: #cbd5e1; font-size: 14px;">
-            Entrez ce code sur le site pour définir votre nouveau mot de passe.
-          </p>
-          <p style="color: #94a3b8; font-size: 13px; border-top: 1px solid #334155; padding-top: 20px; margin-bottom: 0;">
-            Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail en toute sécurité. Votre mot de passe actuel reste inchangé.
-          </p>
-        </div>
-      </div>
-    `,
-    text: `Bonjour ${username || ''},\n\nVotre code de réinitialisation VideoHub est : ${resetCode}\n(Valable 15 minutes)\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.`
-  };
-
-  try {
-    const transporter = getMailTransporter();
-    await transporter.sendMail(mailOptions);
-    console.log(`[Email] Password reset email sent to ${toEmail}`);
-    return true;
-  } catch (err) {
-    console.error(`[Email Error] Failed sending password reset email to ${toEmail}:`, err.message);
-    return false;
-  }
+    subject: tpl.subject,
+    html: tpl.html,
+    text: tpl.text,
+    category: 'SECURITY'
+  });
 }
 
 // Unified Email Templates Generator for VideoHub
@@ -240,7 +202,8 @@ function generateEmailTemplate(type, data = {}) {
               <li><strong>Accéder aux sélections exclusives</strong> et profils créateurs</li>
             </ul>
           </div>
-        ` + baseFooter
+        ` + baseFooter,
+        text: `Bienvenue sur VideoHub, ${username} !\n\nVotre compte a bien été créé avec succès. Vous pouvez dès à présent vous connecter et partager vos vidéos avec la communauté.\n\nAccéder au site : ${siteUrl}\nDestinataire : ${toEmail}`
       };
 
     case 'reset_pwd':
@@ -262,7 +225,8 @@ function generateEmailTemplate(type, data = {}) {
           <p style="color: #cbd5e1; font-size: 14px;">
             Entrez ce code sur le site pour définir votre nouveau mot de passe.
           </p>
-        ` + baseFooter
+        ` + baseFooter,
+        text: `Bonjour ${username},\n\nVotre code de réinitialisation temporaire VideoHub est : ${code}\n(Valable 15 minutes)\n\nEntrez ce code sur le site pour définir votre nouveau mot de passe : ${siteUrl}`
       };
 
     case 'video_approved':
@@ -281,7 +245,8 @@ function generateEmailTemplate(type, data = {}) {
           <p style="color: #cbd5e1; font-size: 14px;">
             Votre vidéo est désormais visible par tous les utilisateurs de la plateforme et commence à accumuler des vues !
           </p>
-        ` + baseFooter
+        ` + baseFooter,
+        text: `Félicitations ${username} !\n\nVotre vidéo "${data.videoTitle || 'Ma Nouvelle Vidéo HD'}" a été validée par la modération et est désormais publiée en ligne sur VideoHub : ${siteUrl}`
       };
 
     case 'video_rejected':
@@ -300,7 +265,8 @@ function generateEmailTemplate(type, data = {}) {
           <p style="color: #cbd5e1; font-size: 14px;">
             Vous pouvez à tout moment soumettre une nouvelle vidéo conforme aux conditions d'utilisation.
           </p>
-        ` + baseFooter
+        ` + baseFooter,
+        text: `Bonjour ${username},\n\nVotre vidéo "${data.videoTitle || 'Vidéo soumise'}" n'a pas été validée. Motif : ${data.reason || 'Critères de qualité'}.\n\nVous pouvez déposer une nouvelle vidéo sur : ${siteUrl}`
       };
 
     case 'vip_activated':
@@ -321,7 +287,8 @@ function generateEmailTemplate(type, data = {}) {
               <li>Traitement prioritaire de vos dépôts de vidéos</li>
             </ul>
           </div>
-        ` + baseFooter
+        ` + baseFooter,
+        text: `Bienvenue dans le Club VIP, ${username} !\n\nVotre abonnement VIP VideoHub (9,99€ / mois) est actif avec succès.\nProfitez dès maintenant de vos avantages exclusifs sur : ${siteUrl}`
       };
 
     case 'new_message':
@@ -339,7 +306,8 @@ function generateEmailTemplate(type, data = {}) {
           <p style="color: #cbd5e1; font-size: 14px;">
             Connectez-vous à votre espace messagerie pour lui répondre.
           </p>
-        ` + baseFooter
+        ` + baseFooter,
+        text: `Bonjour ${username},\n\nVous avez reçu un nouveau message privé de ${data.senderName || 'Alex'} sur VideoHub :\n"${data.messagePreview || 'Salut !'}"\n\nRépondez sur : ${siteUrl}`
       };
 
     case 'report_received':
@@ -358,14 +326,16 @@ function generateEmailTemplate(type, data = {}) {
           <p style="color: #cbd5e1; font-size: 14px;">
             Notre équipe de modération traite votre demande dans les plus brefs délais conformément à la législation.
           </p>
-        ` + baseFooter
+        ` + baseFooter,
+        text: `Bonjour ${username},\n\nNous vous confirmons la prise en charge de votre signalement réf #${data.reportId || 'SIG-12345'}.\nNotre équipe de modération traite votre demande dans les plus brefs délais.\n\nVideoHub Support : ${siteUrl}`
       };
 
     default:
       return {
         name: 'Notification générale',
         subject: 'Notification VideoHub',
-        html: baseHeader + `<p>Notification VideoHub</p>` + baseFooter
+        html: baseHeader + `<p>Notification VideoHub</p>` + baseFooter,
+        text: `Notification VideoHub\n\nAccéder au site : ${siteUrl}`
       };
   }
 }
@@ -1535,74 +1505,71 @@ app.post('/api/contact/submit', async (req, res) => {
   addLog('Contact', `Nouveau message de ${newContact.name} (${newContact.email}) - Objet: ${newContact.subject}`);
 
   const adminEmail = process.env.SMTP_USER || 'ia.project.pro2k26@gmail.com';
-  const transporter = getMailTransporter();
 
   // 1. Send direct notification email to Admin (ia.project.pro2k26@gmail.com)
-  try {
-    await transporter.sendMail({
-      from: `"VideoHub Support" <${adminEmail}>`,
-      to: adminEmail,
-      replyTo: newContact.email,
-      subject: `[VideoHub Contact] ${newContact.subject} (de ${newContact.name})`,
-      html: `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
-          <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 24px; text-align: center;">
-            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800;">Nouveau Message de Contact</h1>
-            <p style="margin: 6px 0 0; color: rgba(255,255,255,0.95); font-size: 13px;">Formulaire Nous Contacter - VideoHub</p>
-          </div>
-          <div style="padding: 24px; line-height: 1.6;">
-            <p style="margin: 0 0 12px 0;"><strong style="color:#f97316;">Expéditeur :</strong> ${newContact.name} (<a href="mailto:${newContact.email}" style="color:#38bdf8;">${newContact.email}</a>)</p>
-            <p style="margin: 0 0 16px 0;"><strong style="color:#f97316;">Objet :</strong> ${newContact.subject}</p>
-            <div style="background: #1e293b; border-radius: 8px; padding: 18px; border: 1px solid #334155; margin-bottom: 20px;">
-              <strong style="color:#cbd5e1; font-size:13px; display:block; margin-bottom:8px;">Message :</strong>
-              <p style="color: #f8fafc; font-size: 14px; margin: 0; white-space: pre-wrap;">${newContact.message}</p>
-            </div>
-            <div style="text-align: center;">
-              <a href="mailto:${newContact.email}?subject=Re: ${encodeURIComponent(newContact.subject)}" style="background-color: #f97316; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 700; font-size: 14px; display: inline-block;">
-                Répondre directement à ${newContact.name}
-              </a>
-            </div>
-          </div>
+  const adminContactHtml = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
+      <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 24px; text-align: center;">
+        <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800;">Nouveau Message de Contact</h1>
+        <p style="margin: 6px 0 0; color: rgba(255,255,255,0.95); font-size: 13px;">Formulaire Nous Contacter - VideoHub</p>
+      </div>
+      <div style="padding: 24px; line-height: 1.6;">
+        <p style="margin: 0 0 12px 0;"><strong style="color:#f97316;">Expéditeur :</strong> ${newContact.name} (<a href="mailto:${newContact.email}" style="color:#38bdf8;">${newContact.email}</a>)</p>
+        <p style="margin: 0 0 16px 0;"><strong style="color:#f97316;">Objet :</strong> ${newContact.subject}</p>
+        <div style="background: #1e293b; border-radius: 8px; padding: 18px; border: 1px solid #334155; margin-bottom: 20px;">
+          <strong style="color:#cbd5e1; font-size:13px; display:block; margin-bottom:8px;">Message :</strong>
+          <p style="color: #f8fafc; font-size: 14px; margin: 0; white-space: pre-wrap;">${newContact.message}</p>
         </div>
-      `,
-      text: `Nouveau message de contact VideoHub\n\nDe : ${newContact.name} (${newContact.email})\nObjet : ${newContact.subject}\n\nMessage :\n${newContact.message}`
-    });
-  } catch (err) {
-    console.error('[Contact Email Error] Failed to notify admin:', err.message);
-  }
+        <div style="text-align: center;">
+          <a href="mailto:${newContact.email}?subject=Re: ${encodeURIComponent(newContact.subject)}" style="background-color: #f97316; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 700; font-size: 14px; display: inline-block;">
+            Répondre directement à ${newContact.name}
+          </a>
+        </div>
+      </div>
+    </div>
+  `;
+  const adminContactText = `Nouveau message de contact VideoHub\n\nDe : ${newContact.name} (${newContact.email})\nObjet : ${newContact.subject}\n\nMessage :\n${newContact.message}`;
+
+  await sendRobustEmail({
+    to: adminEmail,
+    replyTo: newContact.email,
+    subject: `[VideoHub Contact] ${newContact.subject} (de ${newContact.name})`,
+    html: adminContactHtml,
+    text: adminContactText,
+    category: 'CONTACT_ADMIN'
+  });
 
   // 2. Send automatic confirmation email to the user who submitted the form
   if (newContact.email.toLowerCase() !== adminEmail.toLowerCase()) {
-    try {
-      await transporter.sendMail({
-        from: `"VideoHub Support" <${adminEmail}>`,
-        to: newContact.email,
-        subject: `Confirmation de réception de votre message - VideoHub`,
-        html: `
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
-            <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 24px; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800;">VideoHub</h1>
-              <p style="margin: 6px 0 0; color: rgba(255,255,255,0.95); font-size: 13px;">Accusé de réception - Support</p>
-            </div>
-            <div style="padding: 24px; line-height: 1.6;">
-              <h2 style="color: #ffffff; font-size: 18px; margin-top: 0;">Bonjour ${newContact.name},</h2>
-              <p style="color: #cbd5e1; font-size: 14px;">
-                Nous vous confirmons la bonne réception de votre message concernant : <strong>"${newContact.subject}"</strong>.
-              </p>
-              <div style="background: #1e293b; border-radius: 8px; padding: 16px; border: 1px solid #334155; margin: 18px 0; color: #94a3b8; font-size: 13px; font-style: italic;">
-                "${newContact.message}"
-              </div>
-              <p style="color: #cbd5e1; font-size: 14px;">
-                Notre équipe de support traite votre demande et vous répondra dans les plus brefs délais.
-              </p>
-            </div>
+    const userConfirmationHtml = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
+        <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 24px; text-align: center;">
+          <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800;">VideoHub</h1>
+          <p style="margin: 6px 0 0; color: rgba(255,255,255,0.95); font-size: 13px;">Accusé de réception - Support</p>
+        </div>
+        <div style="padding: 24px; line-height: 1.6;">
+          <h2 style="color: #ffffff; font-size: 18px; margin-top: 0;">Bonjour ${newContact.name},</h2>
+          <p style="color: #cbd5e1; font-size: 14px;">
+            Nous vous confirmons la bonne réception de votre message concernant : <strong>"${newContact.subject}"</strong>.
+          </p>
+          <div style="background: #1e293b; border-radius: 8px; padding: 16px; border: 1px solid #334155; margin: 18px 0; color: #94a3b8; font-size: 13px; font-style: italic;">
+            "${newContact.message}"
           </div>
-        `,
-        text: `Bonjour ${newContact.name},\n\nNous avons bien reçu votre message concernant "${newContact.subject}".\nNotre équipe vous répondra dans les plus brefs délais.\n\nVideoHub Support`
-      });
-    } catch (err) {
-      console.error('[Contact Email Error] Failed to send user confirmation:', err.message);
-    }
+          <p style="color: #cbd5e1; font-size: 14px;">
+            Notre équipe de support traite votre demande et vous répondra dans les plus brefs délais.
+          </p>
+        </div>
+      </div>
+    `;
+    const userConfirmationText = `Bonjour ${newContact.name},\n\nNous avons bien reçu votre message concernant "${newContact.subject}".\nNotre équipe vous répondra dans les plus brefs délais.\n\nVideoHub Support`;
+
+    await sendRobustEmail({
+      to: newContact.email,
+      subject: `Confirmation de réception de votre message - VideoHub`,
+      html: userConfirmationHtml,
+      text: userConfirmationText,
+      category: 'CONTACT_CONFIRM'
+    });
   }
 
   res.status(201).json({
@@ -1737,9 +1704,7 @@ app.post('/api/admin/test-emails', requireAdmin, async (req, res) => {
     return res.status(400).json({ error: 'Veuillez sélectionner au moins un modèle et renseigner une adresse e-mail valide.' });
   }
 
-  const transporter = getMailTransporter();
   const results = [];
-  const sender = process.env.SMTP_USER || 'ia.project.pro2k26@gmail.com';
 
   for (const key of templateKeys) {
     const template = generateEmailTemplate(key, {
@@ -1755,17 +1720,18 @@ app.post('/api/admin/test-emails', requireAdmin, async (req, res) => {
       reportReason: 'Demande de vérification de droits d\'auteur'
     });
 
-    try {
-      await transporter.sendMail({
-        from: `"VideoHub" <${sender}>`,
-        to: toEmail.trim(),
-        subject: `[TEST] ${template.subject}`,
-        html: template.html
-      });
+    const sent = await sendRobustEmail({
+      to: toEmail.trim(),
+      subject: `[TEST] ${template.subject}`,
+      html: template.html,
+      text: template.text,
+      category: 'TEST_ADMIN'
+    });
+
+    if (sent) {
       results.push({ key, name: template.name, status: 'sent' });
-    } catch (err) {
-      console.error(`[Email Test Error] Failed to send ${key} to ${toEmail}:`, err.message);
-      results.push({ key, name: template.name, status: 'error', error: err.message });
+    } else {
+      results.push({ key, name: template.name, status: 'error' });
     }
   }
 
