@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>VideoHub - Plateforme & Blog Vidéo Communautaire</title>
+  <meta name="description" content="Découvrez et partagez des vidéos par catégories thématiques sans doublons.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    // Vérification immédiate anti-clignotement (1h de validité)
+    (function() {
+      try {
+        const verifiedUntil = localStorage.getItem('videohub_age_verified_until');
+        if (verifiedUntil && Date.now() < parseInt(verifiedUntil, 10)) {
+          document.documentElement.classList.add('age-verified');
+        }
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body>
+
+  <!-- AVERTISSEMENT CONTENU ADULTE (AGE GATE / DISCLAIMER) -->
+  <div id="adultWarningOverlay" class="adult-warning-backdrop">
+    <div class="adult-warning-card">
+      <div class="adult-warning-brand">
+        <svg viewBox="0 0 24 24" width="32" height="32" class="adult-flame-icon">
+          <defs>
+            <linearGradient id="flameGrad" x1="0%" y1="100%" x2="50%" y2="0%">
+              <stop offset="0%" stop-color="#ef4444" />
+              <stop offset="50%" stop-color="#f97316" />
+              <stop offset="100%" stop-color="#fbbf24" />
+            </linearGradient>
+          </defs>
+          <path fill="url(#flameGrad)" d="M12 23c4.97 0 9-3.8 9-8.5 0-4.08-2.67-6.61-4.74-8.62-.71-.69-1.42-1.39-2.02-2.18-.38-.5-.65-1.07-.84-1.7-.1-.33-.5-.48-.77-.28-.85.64-1.8 1.55-2.45 2.65C9.07 6.22 8.5 8.1 8.5 9.5c0 .32.03.63.08.93.07.41-.33.74-.7.62-.64-.2-1.25-.56-1.78-1.04-.27-.24-.7-.08-.75.28-.15 1.09-.07 2.3.28 3.46.72 2.38 2.5 4.3 4.87 5.11.45.15.65.68.41 1.09-.43.73-.59 1.48-.48 2.14.07.44.47.78.92.78.29 0 .58-.14.77-.38.71-.89 1.58-1.57 2.55-1.99.36-.16.76.07.82.46.12.78-.02 1.58-.4 2.34-.17.34.05.75.43.75z"/>
+        </svg>
+        <span class="adult-brand-name">Video<span style="color:#f97316">Hub</span></span>
+      </div>
+
+      <h2 class="adult-warning-title">CONTENU RÉSERVÉ AUX ADULTES</h2>
+
+      <p class="adult-warning-text">
+        En pénétrant sur ce site, je suis averti que ce site comporte des vidéos, des images et des documents à caractère sexuel pouvant heurter la sensibilité de certaines personnes. Je visite ce site de mon plein gré et renonce à toute poursuite judiciaire contre ses auteurs.
+      </p>
+
+      <button class="btn-adult-enter" id="btnAdultEnter" onclick="acceptAdultWarning()">
+        ENTRER
+      </button>
+
+      <p class="adult-warning-footer">
+        En cliquant sur « Entrer », je certifie avoir l'âge légal de la majorité dans mon pays.<br>
+        Mon choix concernant les cookies me sera demandé séparément.
+      </p>
+    </div>
+  </div>
+
+  <!-- TOP HEADER -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="header-left">
+        <!-- 3 lines hamburger menu button to open Navigation Principale drawer -->
+        <button class="btn-sidebar-toggle" id="sidebarToggleBtn" onclick="toggleSidebar()" aria-label="Menu Navigation Principale" title="Navigation Principale">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+        <div class="brand-logo" onclick="switchTab('accueil')">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" class="brand-svg-icon">
+            <polygon points="5 3 19 12 5 21 5 3" fill="var(--primary)" stroke="var(--primary)"/>
+          </svg>
+          <span class="brand-text">Video<span class="text-orange">Hub</span></span>
+        </div>
+      </div>
+
+      <!-- Search bar (Only for searching categories) -->
+      <div class="search-box-wrap" style="position:relative;flex:1;max-width:420px;">
+        <div class="search-box">
+          <span class="search-icon">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </span>
+          <input type="text" id="globalSearchInput" placeholder="Rechercher une catégorie..." oninput="handleCategorySearch(this.value)" autocomplete="off">
+        </div>
+        <!-- Smart Category Suggestions Dropdown -->
+        <div id="categorySearchSuggestions" class="cat-suggestions-dropdown hidden"></div>
+      </div>
+
+      <!-- Quick user actions & Upload button next to search bar -->
+      <div class="header-actions">
+        <!-- + Déposer une vidéo button right next to search bar -->
+        <button class="btn-header-upload-top" onclick="switchTab('upload')" title="Déposer une vidéo">
+          + Déposer une vidéo
+        </button>
+        
+        <button class="btn-theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Basculer Mode Clair / Sombre" aria-label="Mode Clair / Sombre">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" id="themeToggleSvg">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+        </button>
+        <button class="btn-header-explore" onclick="navigateToTab('explorer')">Catégories</button>
+        <button class="btn-header-messages" onclick="openConversationsModal()" title="Messagerie privée & Tchat">
+          Messages <span id="headerUnreadBadge" class="header-unread-badge hidden">0</span>
+        </button>
+        <button class="btn-add-cat-top" onclick="openAddCategoryModal()" title="Ajouter une catégorie">+ Catégorie</button>
+        <div id="headerAuthBtn" class="header-auth" onclick="switchTab('profil')">
+          <span class="header-auth-label">Se connecter</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- APP LAYOUT WRAPPER -->
+  <div class="app-layout">
+    
+    <!-- LEFT SIDEBAR BACKDROP (DRAWER) -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar(false)"></div>
+
+    <!-- LEFT DRAWER SIDEBAR (NAVIGATION PRINCIPALE IN ACCORDION / DEPLIANT) -->
+    <aside class="app-sidebar" id="appSidebar">
+      <div class="sidebar-inner">
+        
+        <!-- Sidebar Navigation Header -->
+        <div class="sidebar-top-header">
+          <div class="sidebar-section-title main-title">NAVIGATION PRINCIPALE</div>
+          <button class="sidebar-close-btn" onclick="toggleSidebar(false)" title="Fermer"></button>
+        </div>
+
+        <!-- Sidebar Navigation Menu -->
+        <div class="sidebar-section">
+          <ul class="sidebar-nav-list">
+            <li>
+              <button class="sidebar-nav-item active" id="side-nav-accueil" onclick="navigateToTab('accueil')">
+                <span class="sidebar-item-label">Accueil</span>
+              </button>
+            </li>
+            <li>
+              <button class="sidebar-nav-item" id="side-nav-explorer" onclick="navigateToTab('explorer')">
+                <span class="sidebar-item-label">Catégories</span>
+              </button>
+            </li>
+            <li>
+              <button class="sidebar-nav-item" id="side-nav-upload" onclick="navigateToTab('upload')">
+                <span class="sidebar-item-label">Déposer une vidéo</span>
+              </button>
+            </li>
+            <li>
+              <button class="sidebar-nav-item vip-sidebar-link" id="side-nav-vip" onclick="navigateToTab('vip')">
+                <span class="sidebar-item-label">VIP (9,99€)</span>
+                <span class="badge-vip-mini">PROMO</span>
+              </button>
+            </li>
+            <li>
+              <button class="sidebar-nav-item" id="side-nav-faq" onclick="navigateToTab('faq')">
+                <span class="sidebar-item-label">FAQ & Aide</span>
+              </button>
+            </li>
+            <li>
+              <button class="sidebar-nav-item" id="side-nav-profil" onclick="navigateToTab('profil')">
+                <span class="sidebar-item-label">Mon Profil</span>
+              </button>
+            </li>
+            <!-- Admin button (Visible ONLY for Admin) -->
+            <li id="sideAdminItem" class="hidden">
+              <button class="sidebar-nav-item admin-sidebar-link" id="side-nav-admin" onclick="navigateToAdmin()">
+                <span class="sidebar-item-label">Espace Administration</span>
+                <span class="badge-pending-count" id="sidebarPendingBadge">0</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <div class="sidebar-divider"></div>
+
+        <!-- VIP Promo Box in Sidebar -->
+        <div class="sidebar-vip-card">
+          <div class="sidebar-vip-title">Pass VIP Club</div>
+          <div class="sidebar-vip-price">9,99€ <small>/ mois</small></div>
+          <p class="sidebar-vip-desc">Badge certifié, vidéos 4K HD et 0 publicité.</p>
+          <button class="btn btn-sm btn-vip-pill w-100" onclick="navigateToTab('vip')">Découvrir le VIP</button>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- MAIN VIEWPORT CONTAINER (FULL WIDTH) -->
+    <main class="app-main full-width-main">
+      
+      <!-- ==================== TAB 1 : ACCUEIL ==================== -->
+      <section id="tab-accueil" class="tab-content active">
+        <div class="feed-section">
+          
+          <!-- Emplacement Publicitaire Unique & Ultra-Visible (Masqué pour VIP) -->
+          <div id="adBannerFeed" class="ad-banner-prime-slot">
+            <span class="ad-badge-prime">PUBLICITÉ SPONSORISÉE</span>
+            <div class="ad-box-content">
+              <p class="ad-title">ESPACE PUBLICITAIRE UNIQUE (ExoClick / JuicyAds / TrafficStars)</p>
+              <small class="ad-subtitle">Insérez ici votre script publicitaire (Bannière 728x90 / 300x250 ou Pre-Roll). Désactivé pour les membres VIP (9,99€).</small>
+            </div>
+          </div>
+
+          <div class="section-heading">
+            <h3 id="feedHeading">Vidéos récentes</h3>
+            <span id="videoCount" class="video-counter">0 vidéo</span>
+          </div>
+
+          <!-- Video Grid -->
+          <div class="video-grid" id="videoGrid">
+            <!-- Dynamic Video Cards injected via JS -->
+          </div>
+
+          <!-- Pagination (10 vidéos par page) -->
+          <div class="pagination-wrapper" id="feedPagination">
+            <!-- Dynamic page buttons injected via JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB : EXPLORATEUR MULTI-CATÉGORIES ==================== -->
+      <section id="tab-explorer" class="tab-content">
+        <div class="explorer-container">
+          
+          <div class="explorer-header">
+            <div class="explorer-badge">RECHERCHE PAR CATÉGORIES</div>
+            <h2>Explorateur par Catégories</h2>
+            <p>Sélectionnez une ou plusieurs catégories pour filtrer vos vidéos préférées.</p>
+          </div>
+
+          <!-- Multi-Tag Selector Cloud -->
+          <div class="explorer-tags-wrapper">
+            <div class="explorer-tags-title">
+              <span>Choisir des catégories :</span>
+              <button class="btn-clear-tags" id="btnClearTags" onclick="clearSelectedExplorerTags()" style="display:none;"> Réinitialiser les filtres</button>
+            </div>
+            <div class="explorer-tags-cloud" id="explorerTagsCloud">
+              <!-- Dynamically populated tag chips -->
+            </div>
+            <div class="active-tags-status" id="activeTagsStatus">
+              <small style="color:var(--text-muted);">Cliquez sur une ou plusieurs catégories ci-dessus pour combiner les thématiques.</small>
+            </div>
+          </div>
+
+          <!-- Explorer Filtered Feed -->
+          <div id="explorerContentArea">
+            <!-- Dynamically populated by JS -->
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ==================== TAB 2 : TA VIDÉO (UPLOAD SANS CONNEXION) ==================== -->
+      <section id="tab-upload" class="tab-content">
+        <div class="form-container">
+          <div class="form-header">
+            <div class="icon-circle icon-upload">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 10l-3-3m0 0l-3 3m3-3v12" />
+                <rect x="2" y="3" width="20" height="14" rx="2" />
+              </svg>
+            </div>
+            <h2>Déposer une Vidéo</h2>
+            <p><strong>Pas besoin de compte.</strong> Renseignez simplement votre e-mail, votre région et une description.</p>
+          </div>
+
+          <form id="uploadForm" class="custom-form" onsubmit="handleVideoUpload(event)">
+            
+            <!-- Video File Drag & Drop -->
+            <div class="form-group">
+              <label class="form-label">Fichier Vidéo (MP4, WebM, MOV) *</label>
+              <div class="drop-zone" id="videoDropZone" onclick="document.getElementById('videoFileInput').click()">
+                <input type="file" id="videoFileInput" name="videoFile" accept="video/*" class="file-input" onchange="previewVideoFile(this)">
+                <div class="drop-zone-prompt" id="videoDropPrompt">
+                  <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom:6px;color:var(--primary);">
+                    <polygon points="5 3 19 12 5 21 5 3"/>
+                  </svg>
+                  <strong>Cliquez ou glissez votre vidéo ici</strong>
+                  <span>Fichiers jusqu'à 100 Mo</span>
+                </div>
+                <div id="videoFilePreview" class="file-preview hidden">
+                  <video id="previewPlayer" controls></video>
+                  <button type="button" class="btn-remove" onclick="removeVideoFile(event)">Changer de fichier</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Email (Obligatoire) -->
+            <div class="form-group">
+              <label for="uploaderEmail" class="form-label">Votre Adresse E-mail * <small style="font-weight:400;color:var(--text-muted);">(pour le suivi de publication)</small></label>
+              <input type="email" id="uploaderEmail" class="form-input" placeholder="ex: contact@exemple.fr" required>
+            </div>
+
+            <!-- Région de France (Obligatoire) -->
+            <div class="form-group">
+              <label for="uploaderRegion" class="form-label">Région de France *</label>
+              <select id="uploaderRegion" class="form-select" required>
+                <option value="Île-de-France">Île-de-France (Paris & banlieue)</option>
+                <option value="Auvergne-Rhône-Alpes">Auvergne-Rhône-Alpes (Lyon, Grenoble, Clermont...)</option>
+                <option value="Nouvelle-Aquitaine">Nouvelle-Aquitaine (Bordeaux, Limoges, Poitiers...)</option>
+                <option value="Occitanie">Occitanie (Toulouse, Montpellier, Nîmes...)</option>
+                <option value="Provence-Alpes-Côte d'Azur">Provence-Alpes-Côte d'Azur (Marseille, Nice, Toulon...)</option>
+                <option value="Hauts-de-France">Hauts-de-France (Lille, Amiens...)</option>
+                <option value="Grand Est">Grand Est (Strasbourg, Reims, Metz, Nancy...)</option>
+                <option value="Bretagne">Bretagne (Rennes, Brest, Quimper...)</option>
+                <option value="Pays de la Loire">Pays de la Loire (Nantes, Angers, Le Mans...)</option>
+                <option value="Normandie">Normandie (Rouen, Caen, Le Havre...)</option>
+                <option value="Bourgogne-Franche-Comté">Bourgogne-Franche-Comté (Dijon, Besançon...)</option>
+                <option value="Centre-Val de Loire">Centre-Val de Loire (Orléans, Tours...)</option>
+                <option value="Corse">Corse (Ajaccio, Bastia...)</option>
+                <option value="Outre-Mer (DOM-TOM)">Outre-Mer (Guadeloupe, Martinique, Réunion, Guyane...)</option>
+              </select>
+            </div>
+
+            <!-- Video Title -->
+            <div class="form-group">
+              <label for="videoTitle" class="form-label">Titre de la vidéo *</label>
+              <input type="text" id="videoTitle" class="form-input" placeholder="Titre descriptif de votre vidéo..." required>
+            </div>
+
+            <!-- Video Description -->
+            <div class="form-group">
+              <label for="videoDesc" class="form-label">Description *</label>
+              <textarea id="videoDesc" class="form-textarea" rows="3" placeholder="Expliquez brièvement le contenu de votre vidéo..." required></textarea>
+            </div>
+
+            <!-- Video Categories (Multi-select tags) -->
+            <div class="form-group">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <label class="form-label" style="margin-bottom:0;">Catégories & Tags associés <small style="font-weight:400;color:var(--text-muted);">(au choix)</small></label>
+                <button type="button" class="btn-link" onclick="openAddCategoryModal()">+ Nouvelle Catégorie</button>
+              </div>
+              <div class="multi-cat-selector" id="uploadCategoriesMultiSelect">
+                <!-- Dynamically populated category checkboxes -->
+              </div>
+            </div>
+
+            <!-- Mandatory Certification & CGU Agreement -->
+            <div class="form-group cgu-agreement-group">
+              <label class="cgu-checkbox-label">
+                <input type="checkbox" id="cguAgreementCheckbox" required>
+                <span>
+                  Je certifie sur l'honneur être l'auteur/propriétaire de cette vidéo ou détenir l'intégralité des droits et consentements nécessaires. J'ai lu et j'accepte sans réserve les <a href="javascript:void(0)" onclick="openCguModal()" class="cgu-link">Conditions Générales d'Utilisation (CGU)</a>.
+                </span>
+              </label>
+            </div>
+
+            <!-- Upload Submit Button -->
+            <button type="submit" id="btnSubmitVideo" class="btn btn-primary btn-block">
+              Envoyer ma vidéo
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 3 : VIP SHOWCASE (9,99€) ==================== -->
+      <section id="tab-vip" class="tab-content">
+        <div class="vip-showcase-container">
+          
+          <!-- VIP Hero Banner Card -->
+          <div class="vip-premium-hero">
+            <div class="vip-hero-top-badge">OFFRE PRIVILÈGE VIP</div>
+            <h2 class="vip-hero-title">Devenez Membre du Club VIP</h2>
+            <p class="vip-hero-desc">
+              Débloquez l'accès instantané à toutes les vidéos exclusives, profitez du badge certifié officiel, d'une priorité en tête de flux et d'une navigation sans aucune publicité.
+            </p>
+
+            <div class="vip-pricing-card">
+              <div class="vip-price-tag-big">
+                <span class="currency">€</span>
+                <span class="amount">9,99</span>
+                <span class="period">/ mois</span>
+              </div>
+              <span class="vip-no-commitment">Sans engagement · Annulation en 1 clic à tout moment</span>
+              
+              <button class="btn btn-vip-cta-gold" onclick="openVipCheckoutModal()">
+                S'abonner pour 9,99€ / mois
+              </button>
+            </div>
+            
+            <div class="vip-trust-badges">
+              <span>Paiement 100% Sécurisé</span>
+              <span>Activation Immédiate</span>
+              <span>Badge Certifié</span>
+            </div>
+          </div>
+
+          <!-- VIP Perks Grid -->
+          <div class="vip-perks-grid">
+            <div class="vip-feature-card">
+              <div class="vip-feature-icon">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              </div>
+              <h3>Badge Certifié VIP</h3>
+              <p>Votre profil et l'ensemble de vos vidéos sont immédiatement certifiés avec le badge membre VIP officiel.</p>
+            </div>
+
+            <div class="vip-feature-card">
+              <div class="vip-feature-icon">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </div>
+              <h3>Vidéos Exclusives Débloquées</h3>
+              <p>Accès illimité à toutes les vidéos populaires automatiquement passées en statut VIP Exclusif.</p>
+            </div>
+
+            <div class="vip-feature-card">
+              <div class="vip-feature-icon">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+              </div>
+              <h3>Mise en Avant Prioritaire</h3>
+              <p>Vos publications sont propulsées en tête des flux d'accueil et des résultats de recherche.</p>
+            </div>
+
+            <div class="vip-feature-card">
+              <div class="vip-feature-icon">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                </svg>
+              </div>
+              <h3>100% Sans Publicité</h3>
+              <p>Profitez d'une expérience épurée, ultra-rapide et totalement fluide sans la moindre interruption commerciale.</p>
+            </div>
+          </div>
+
+          <!-- Plan Comparison Table -->
+          <div class="vip-comparison-wrapper">
+            <h3 class="comparison-title">Comparatif des Offres</h3>
+            <div class="comparison-table-card">
+              <table class="comparison-table">
+                <thead>
+                  <tr>
+                    <th>Fonctionnalités</th>
+                    <th class="col-free">Accès Gratuit</th>
+                    <th class="col-vip">Club VIP (9,99€)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Dépôt de vidéos sans compte</td>
+                    <td><span class="check-green">Inclus</span></td>
+                    <td><span class="check-green">Inclus</span></td>
+                  </tr>
+                  <tr>
+                    <td>Accès aux Vidéos Exclusives VIP</td>
+                    <td><span class="cross-red">Masqué</span></td>
+                    <td><span class="check-gold">Accès Illimité</span></td>
+                  </tr>
+                  <tr>
+                    <td>Badge Certifié sur Profil & Vidéos</td>
+                    <td><span class="cross-red">Non</span></td>
+                    <td><span class="check-gold">Badge Officiel</span></td>
+                  </tr>
+                  <tr>
+                    <td>Mise en avant en tête de flux</td>
+                    <td>Standard</td>
+                    <td><span class="check-gold">Priorité Absolue</span></td>
+                  </tr>
+                  <tr>
+                    <td>Publicités en cours de lecture</td>
+                    <td>Publicités</td>
+                    <td><span class="check-gold">0 Publicité</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Bottom Action Box -->
+          <div class="vip-bottom-cta-box">
+            <h3>Prêt à rejoindre le Club VIP ?</h3>
+            <p>Abonnement 9,99€ / mois sans engagement. Annulable en un clic depuis votre espace.</p>
+            <button class="btn btn-vip-cta-gold" onclick="openVipCheckoutModal()">
+              Passer au Pass VIP (9,99€)
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ==================== TAB 4 : FAQ ÉLARGIE ==================== -->
+      <section id="tab-faq" class="tab-content">
+        <div class="faq-container">
+          <div class="faq-hero">
+            <div class="icon-circle icon-faq">
+              <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+            </div>
+            <h2>Foire Aux Questions (FAQ)</h2>
+            <p>Toutes les réponses concernant le dépôt sans compte, les catégories, la modération et l'abonnement VIP.</p>
+          </div>
+
+          <div class="faq-accordion" id="faqAccordion">
+            <!-- Dynamic FAQ Accordion Items -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 5 : MON PROFIL & AUTH ==================== -->
+      <section id="tab-profil" class="tab-content">
+        
+        <!-- AUTH VIEW (When user is logged out) -->
+        <div id="authView" class="auth-box">
+          <div class="auth-tabs">
+            <button class="auth-tab-btn active" id="tabLoginBtn" onclick="switchAuthMode('login')">Se connecter</button>
+            <button class="auth-tab-btn" id="tabRegisterBtn" onclick="switchAuthMode('register')">Créer un compte</button>
+          </div>
+
+          <!-- Login Form -->
+          <form id="loginForm" class="auth-form" onsubmit="handleLogin(event)">
+            <div class="auth-header">
+              <h3>Connexion</h3>
+              <p>Accédez à votre espace membre.</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Email ou Nom d'utilisateur</label>
+              <input type="text" id="loginIdentifier" class="form-input" placeholder="ex: contact@exemple.fr" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Mot de passe</label>
+              <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Se connecter</button>
+            <button type="button" class="btn btn-secondary btn-block mt-2" onclick="quickFillAdminLogin()">
+              Connexion Administrateur 1-Clic
+            </button>
+
+            <!-- Registration CTA Prompt -->
+            <div class="auth-switch-box">
+              <span class="auth-switch-text">Pas encore inscrit ?</span>
+              <button type="button" class="auth-switch-link" onclick="switchAuthMode('register')">
+                Qu'attends-tu pour nous rejoindre ?
+              </button>
+            </div>
+          </form>
+
+          <!-- Register Form -->
+          <form id="registerForm" class="auth-form hidden" onsubmit="handleRegister(event)">
+            <div class="auth-header">
+              <h3>Inscription Gratuite</h3>
+              <p>Créez votre compte en quelques secondes.</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Nom d'utilisateur *</label>
+              <input type="text" id="regUsername" class="form-input" placeholder="ex: createur_pro" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Adresse Email *</label>
+              <input type="email" id="regEmail" class="form-input" placeholder="ex: contact@domaine.fr" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Mot de passe *</label>
+              <input type="password" id="regPassword" class="form-input" placeholder="Minimum 6 caractères" required minlength="6">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Créer mon compte</button>
+
+            <div class="auth-switch-box">
+              <span class="auth-switch-text">Déjà un compte membre ?</span>
+              <button type="button" class="auth-switch-link" onclick="switchAuthMode('login')">
+                Connecte-toi ici
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- PROFILE VIEW (When user is logged in) -->
+        <div id="profileView" class="profile-box hidden">
+          
+          <!-- Premium Profile Header Card -->
+          <div class="profile-card-premium">
+            <div class="profile-banner-cover"></div>
+            
+            <div class="profile-avatar-row">
+              <div class="profile-avatar-wrap-lg">
+                <img id="userAvatarImg" src="" alt="Avatar" class="profile-avatar-lg">
+              </div>
+            </div>
+
+            <div class="profile-info-center">
+              <div class="profile-name-row">
+                <h3 id="profileUsername">Pseudo</h3>
+                <span id="profileRoleBadge" class="admin-badge hidden">ADMINISTRATEUR</span>
+                <span id="profileVipTag" class="vip-status-badge hidden">MEMBRE VIP (9,99€)</span>
+              </div>
+              <p id="profileEmail" class="profile-email">email@example.com</p>
+              <p id="profileBio" class="profile-bio">Passionné par le partage de vidéos.</p>
+            </div>
+
+            <!-- Profile KPI Stats Bar -->
+            <div class="profile-stats-grid">
+              <div class="profile-stat-card">
+                <div class="stat-value" id="profileStatVideos">0</div>
+                <div class="stat-label">Vidéos publiées</div>
+              </div>
+              <div class="profile-stat-card">
+                <div class="stat-value" id="profileStatViews">0</div>
+                <div class="stat-label">Vues cumulées</div>
+              </div>
+              <div class="profile-stat-card">
+                <div class="stat-value" id="profileStatLikes">0</div>
+                <div class="stat-label">J'aime reçus</div>
+              </div>
+              <div class="profile-stat-card">
+                <div class="stat-value" id="profileStatStatus">Membre Gratuit</div>
+                <div class="stat-label">Statut du compte</div>
+              </div>
+            </div>
+
+            <!-- Profile Actions -->
+            <div class="profile-actions-bar">
+              <button class="btn btn-primary" onclick="openEditProfileModal()">Modifier mon profil</button>
+              <button id="btnAdminAccess" class="btn btn-secondary hidden" onclick="navigateToAdmin()">Espace Administration (URL: /admin)</button>
+              <button id="btnUpgradeProfileVip" class="btn btn-vip-pill" onclick="switchTab('vip')">Devenir VIP (9,99€)</button>
+              <button class="btn btn-secondary" onclick="handleLogout()">Se déconnecter</button>
+            </div>
+          </div>
+
+          <!-- User's Uploaded Videos Section -->
+          <div class="user-videos-section">
+            <div class="section-heading">
+              <h3>Mes Vidéos Publiées (<span id="myVideosCountHeader">0</span>)</h3>
+              <button class="btn btn-sm btn-primary" onclick="switchTab('upload')">+ Déposer une vidéo</button>
+            </div>
+            <div class="video-grid" id="myVideosGrid">
+              <!-- Dynamic User Videos -->
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ==================== TAB 6 : ESPACE ADMINISTRATEUR DÉDIÉ (SHOP TON PARTIEL STYLE) ==================== -->
+      <section id="tab-admin" class="tab-content">
+        <div class="admin-container standalone-admin-portal">
+          
+          <div class="admin-top-bar">
+            <div class="admin-title-wrap">
+              <span class="admin-pill">PANNEAU D'ADMINISTRATION</span>
+              <h2>Centre de Contrôle & Modération</h2>
+              <p>Gestion des vidéos, validation, modération des catégories, utilisateurs et journal d'activité.</p>
+            </div>
+            <div class="admin-header-actions">
+              <div class="admin-header-badge">
+                <span class="dot-online"></span> Connecté : <strong>ia.project.pro2k26@gmail.com</strong>
+              </div>
+              <button class="btn btn-sm btn-secondary" onclick="switchTab('accueil')" title="Retour au site public">
+                Retour au site public
+              </button>
+            </div>
+          </div>
+
+          <!-- Admin KPI Summary Grid (Clickable) -->
+          <div class="admin-stats-grid">
+            <div class="admin-stat-card stat-pending" onclick="filterAdminVideosFromKpi('pending')" title="Voir les vidéos en attente de modération">
+              <div class="stat-number" id="statPendingVideos">0</div>
+              <div class="stat-label">À modérer</div>
+            </div>
+            <div class="admin-stat-card stat-online" onclick="filterAdminVideosFromKpi('approved')" title="Voir les vidéos en ligne validées">
+              <div class="stat-number" id="statApprovedVideos">0</div>
+              <div class="stat-label">Vidéos en ligne</div>
+            </div>
+            <div class="admin-stat-card stat-users" onclick="switchAdminSection('users')" title="Gérer les membres inscrits">
+              <div class="stat-number" id="statTotalUsers">0</div>
+              <div class="stat-label">Membres inscrits</div>
+            </div>
+            <div class="admin-stat-card stat-vip" onclick="switchAdminSection('users')" title="Gérer les membres VIP">
+              <div class="stat-number" id="statTotalVips">0</div>
+              <div class="stat-label">Membres VIP (9,99€)</div>
+            </div>
+            <div class="admin-stat-card stat-cats" onclick="switchAdminSection('categories')" title="Gérer les catégories & tags">
+              <div class="stat-number" id="statTotalCategories">0</div>
+              <div class="stat-label">Catégories</div>
+            </div>
+            <div class="admin-stat-card stat-views" onclick="switchAdminSection('logs')" title="Consulter le journal d'activité">
+              <div class="stat-number" id="statTotalViews">0</div>
+              <div class="stat-label">Vues cumulées</div>
+            </div>
+          </div>
+
+          <!-- Admin Sub-tabs -->
+          <div class="admin-tabs">
+            <button class="admin-tab-btn active" id="adminTabVidsBtn" onclick="switchAdminSection('videos')">
+              Modération Vidéos (<span id="adminPendingCountText">0</span>)
+            </button>
+            <button class="admin-tab-btn" id="adminTabCatsBtn" onclick="switchAdminSection('categories')">
+              Catégories
+            </button>
+            <button class="admin-tab-btn" id="adminTabUsersBtn" onclick="switchAdminSection('users')">
+              Membres & VIP
+            </button>
+            <button class="admin-tab-btn" id="adminTabLogsBtn" onclick="switchAdminSection('logs')">
+              Journal d'Audit
+            </button>
+          </div>
+
+          <!-- Section 1 : Modération Vidéos (Filtres & Liste) -->
+          <div id="adminSectionVideos" class="admin-section-body">
+            <div class="admin-filter-bar">
+              <div class="filter-group">
+                <label class="filter-label">Statut :</label>
+                <select id="adminVideoStatusFilter" class="form-select-sm" onchange="loadAdminVideos()">
+                  <option value="pending">En attente de validation</option>
+                  <option value="approved">Vidéos validées en ligne</option>
+                  <option value="all">Tous les statuts</option>
+                </select>
+              </div>
+
+              <div class="filter-group">
+                <label class="filter-label">Catégorie :</label>
+                <select id="adminVideoCategoryFilter" class="form-select-sm" onchange="loadAdminVideos()">
+                  <option value="all">Toutes les catégories</option>
+                </select>
+              </div>
+
+              <div class="filter-group search-filter">
+                <input type="text" id="adminVideoSearchInput" class="form-input-sm" placeholder="Rechercher par titre, auteur..." oninput="debounceAdminVideoSearch()">
+              </div>
+
+              <button class="btn btn-sm btn-secondary" onclick="loadAdminVideos()">Actualiser</button>
+            </div>
+
+            <div id="adminVideosList" class="pending-videos-list">
+              <!-- Dynamically populated video moderation cards -->
+            </div>
+          </div>
+
+          <!-- Section 2 : Gestion des Catégories -->
+          <div id="adminSectionCategories" class="admin-section-body hidden">
+            <div class="section-subheading">
+              <h3>Gestion des Catégories</h3>
+              <button class="btn btn-sm btn-primary" onclick="openAddCategoryModal()">+ Ajouter une Catégorie</button>
+            </div>
+            <div id="adminCategoriesTable" class="categories-manager-grid">
+              <!-- Dynamically populated categories -->
+            </div>
+          </div>
+
+          <!-- Section 3 : Gestion des Utilisateurs & VIP -->
+          <div id="adminSectionUsers" class="admin-section-body hidden">
+            <div class="section-subheading">
+              <h3>Utilisateurs & Privilèges VIP</h3>
+              <button class="btn btn-sm btn-secondary" onclick="loadAdminUsers()">Actualiser</button>
+            </div>
+            <div id="adminUsersList" class="admin-users-grid">
+              <!-- Dynamically populated users list -->
+            </div>
+          </div>
+
+          <!-- Section 4 : Journal d'Audit / Logs -->
+          <div id="adminSectionLogs" class="admin-section-body hidden">
+            <div class="section-subheading">
+              <h3>Historique des Actions Administratives</h3>
+              <button class="btn btn-sm btn-secondary" onclick="loadAdminStats()">Actualiser</button>
+            </div>
+            <div id="adminLogsContainer" class="admin-logs-list">
+              <!-- Dynamically populated logs -->
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ==================== SITE MEGA FOOTER (MULTI-COLONNES & LÉGAL) ==================== -->
+      <footer class="site-mega-footer">
+        <div class="footer-top-grid">
+          
+          <!-- Column 1: Brand & Presentation -->
+          <div class="footer-col footer-col-brand">
+            <div class="footer-logo">
+              <span class="logo-text">Video<span class="logo-accent">Hub</span></span>
+              <span class="logo-dot"></span>
+            </div>
+            <p class="footer-brand-desc">
+              La plateforme communautaire de partage et de découverte vidéo. Téléversez en toute liberté, découvrez des contenus exclusifs et échangez en toute sécurité avec la communauté.
+            </p>
+            <div class="footer-badges-row">
+              <span class="footer-safe-badge">SSL Chiffré 256-bit</span>
+              <span class="footer-safe-badge">18+ Uniquement</span>
+            </div>
+          </div>
+
+          <!-- Column 2: Explorer -->
+          <div class="footer-col">
+            <h4 class="footer-col-title">Explorer</h4>
+            <ul class="footer-links-list">
+              <li><a href="javascript:void(0)" onclick="navigateToTab('accueil')">Accueil & Récents</a></li>
+              <li><a href="javascript:void(0)" onclick="navigateToTab('explorer')">Explorer par Catégories</a></li>
+              <li><a href="javascript:void(0)" onclick="navigateToTab('vip')">Vidéos Exclusives VIP</a></li>
+              <li><a href="javascript:void(0)" onclick="navigateToTab('upload')">Déposer une vidéo (Gratuit)</a></li>
+            </ul>
+          </div>
+
+          <!-- Column 3: Mon Compte -->
+          <div class="footer-col">
+            <h4 class="footer-col-title">Compte & Membres</h4>
+            <ul class="footer-links-list">
+              <li><a href="javascript:void(0)" onclick="navigateToTab('profil'); switchAuthMode('register');">Créer un compte</a></li>
+              <li><a href="javascript:void(0)" onclick="navigateToTab('profil'); switchAuthMode('login');">Se connecter</a></li>
+              <li><a href="javascript:void(0)" onclick="navigateToTab('profil')">Mon Profil & Favoris</a></li>
+              <li><a href="javascript:void(0)" onclick="openMessagesModal()">Messagerie Privée</a></li>
+              <li><a href="javascript:void(0)" onclick="navigateToTab('vip')">Pass VIP (9,99€ / mois)</a></li>
+            </ul>
+          </div>
+
+          <!-- Column 4: À propos & Aide -->
+          <div class="footer-col">
+            <h4 class="footer-col-title">Aide & Support</h4>
+            <ul class="footer-links-list">
+              <li><a href="javascript:void(0)" onclick="navigateToTab('faq')">Foire Aux Questions (FAQ)</a></li>
+              <li><a href="javascript:void(0)" onclick="openReportModal()">Signaler un abus / Retrait</a></li>
+              <li><a href="mailto:ia.project.pro2k26@gmail.com">Contact Support & DPO</a></li>
+              <li><a href="javascript:void(0)" onclick="openCsamModal()">Protection des Mineurs</a></li>
+            </ul>
+          </div>
+
+          <!-- Column 5: Légal & Conformité -->
+          <div class="footer-col">
+            <h4 class="footer-col-title">Légal & Conformité</h4>
+            <ul class="footer-links-list">
+              <li><a href="javascript:void(0)" onclick="openMentionsLegalesModal()">Mentions légales</a></li>
+              <li><a href="javascript:void(0)" onclick="openCguModal()">Conditions Générales (CGU)</a></li>
+              <li><a href="javascript:void(0)" onclick="openPrivacyModal()">Confidentialité (RGPD)</a></li>
+              <li><a href="javascript:void(0)" onclick="openComplaintsModal()">Plaintes & DMCA / Retrait</a></li>
+              <li><a href="javascript:void(0)" onclick="openCsamModal()" style="color:#ef4444;font-weight:600;">Politique CSAM (Tolérance 0)</a></li>
+            </ul>
+          </div>
+
+        </div>
+
+        <!-- Tags / Catégories Populaires Strip -->
+        <div class="footer-sub-strip">
+          <span class="strip-label">CATÉGORIES POPULAIRES :</span>
+          <div class="strip-tags">
+            <a href="javascript:void(0)" onclick="filterVideosByCategory('Amateur')">Amateur</a> •
+            <a href="javascript:void(0)" onclick="filterVideosByCategory('Beurettes')">Beurettes</a> •
+            <a href="javascript:void(0)" onclick="filterVideosByCategory('Exclusif VIP')">Exclusif VIP</a> •
+            <a href="javascript:void(0)" onclick="filterVideosByCategory('HD 1080p')">HD 1080p</a> •
+            <a href="javascript:void(0)" onclick="filterVideosByCategory('Français')">Français</a> •
+            <a href="javascript:void(0)" onclick="filterVideosByCategory('Tendances')">Tendances</a>
+          </div>
+        </div>
+
+        <!-- Bottom Copyright and Legal Notice -->
+        <div class="footer-bottom-bar">
+          <div class="footer-copy-text">
+            <span>© 2026 VideoHub. Tous droits réservés.</span>
+            <span class="footer-separator">•</span>
+            <span class="footer-lcen-note">Plateforme d'hébergement technique de contenus (LCEN art. 6-I-2). Vidéos publiées sous la responsabilité exclusive de leurs déposants.</span>
+          </div>
+          <button class="btn-scroll-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="Retour en haut">
+            ▲
+          </button>
+        </div>
+      </footer>
+
+    </main>
+  </div> <!-- end app-layout -->
+
+  <!-- ==================== MOBILE BOTTOM NAVIGATION BAR ==================== -->
+  <nav class="mobile-nav-bar" id="mobileNavBar">
+    
+    <!-- 1. Accueil -->
+    <button class="nav-item active" id="nav-accueil" onclick="switchTab('accueil')">
+      <div class="nav-icon-wrap">
+        <svg viewBox="0 0 24 24" class="nav-icon" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-5a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9.5z"/>
+        </svg>
+      </div>
+      <span class="nav-label">Accueil</span>
+    </button>
+
+    <!-- 2. Déposer -->
+    <button class="nav-item" id="nav-upload" onclick="switchTab('upload')">
+      <div class="nav-icon-wrap">
+        <svg viewBox="0 0 24 24" class="nav-icon" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="4" width="13" height="16" rx="2" />
+          <path d="M15 8.5l6-3.5v14l-6-3.5" />
+          <path d="M8.5 8v6M6 11.5l2.5 2.5 2.5-2.5" />
+        </svg>
+      </div>
+      <span class="nav-label">Déposer</span>
+    </button>
+
+    <!-- 3. VIP -->
+    <button class="nav-item" id="nav-vip" onclick="switchTab('vip')">
+      <div class="vip-nav-badge">
+        <span class="vip-text-tag">VIP</span>
+      </div>
+    </button>
+
+    <!-- 4. FAQ -->
+    <button class="nav-item" id="nav-faq" onclick="switchTab('faq')">
+      <div class="nav-icon-wrap">
+        <svg viewBox="0 0 24 24" class="nav-icon" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9"/>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+      </div>
+      <span class="nav-label">FAQ</span>
+    </button>
+
+    <!-- 5. Mon Profil -->
+    <button class="nav-item" id="nav-profil" onclick="switchTab('profil')">
+      <div class="nav-icon-wrap">
+        <svg viewBox="0 0 24 24" class="nav-icon" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+      <span class="nav-label">Profil</span>
+    </button>
+
+  </nav>
+
+  <!-- ==================== VIDEO MODAL PLAYER ==================== -->
+  <div id="videoModal" class="modal-overlay hidden" onclick="closeVideoModal(event)">
+    <div class="modal-card modal-video" onclick="event.stopPropagation()">
+      <button class="modal-close-btn" onclick="closeVideoModal()"></button>
+      <div class="player-container">
+        <video id="modalVideoPlayer" controls autoplay playsinline></video>
+        <!-- VIP Paywall Overlay when video is VIP Exclusive and user is non-VIP -->
+        <div id="vipPaywallOverlay" class="vip-paywall-box hidden">
+          <div class="vip-lock-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+          <h3>Contenu Exclusif VIP (9,99€ / mois)</h3>
+          <p>Cette vidéo populaire a atteint la communauté VIP et est désormais réservée aux membres abonnés.</p>
+          <button class="btn btn-vip-cta" onclick="closeVideoModal(); switchTab('vip');">
+            S'abonner pour 9,99€ et débloquer
+          </button>
+          <span class="paywall-sub">Accès immédiat à toutes les vidéos exclusives + 0 Pub + Qualité 4K HD</span>
+        </div>
+      </div>
+      <div class="modal-video-details">
+        <div class="modal-author-row">
+          <div class="modal-author-left">
+            <img id="modalAuthorAvatar" src="" alt="Auteur" class="avatar-sm">
+            <div class="modal-author-info">
+              <span id="modalAuthorName" class="author-name">Auteur</span>
+              <span id="modalAuthorBadge" class="vip-author-badge hidden">VIP</span>
+            </div>
+          </div>
+          <div class="modal-actions-right">
+            <!-- Bouton Message Direct avec l'auteur -->
+            <button id="modalMessageAuthorBtn" class="btn-message-author" onclick="openDirectMessageFromPlayingVideo()" title="Envoyer un message privé à l'auteur">
+              Message
+            </button>
+            <!-- Bouton Signaler Vidéo -->
+            <button id="modalReportBtn" class="btn-report-video" onclick="openReportModalFromCurrentVideo()" title="Signaler un contenu abusif ou illégal">
+              Signaler
+            </button>
+            <!-- Bouton Modifier Tags pour l'Administrateur -->
+            <button id="modalAdminEditTagsBtn" class="btn-admin-edit-tags hidden" onclick="openAdminEditModalFromPlayingVideo()">
+              Modifier les tags
+            </button>
+            <button id="modalLikeBtn" class="btn-like" onclick="likeCurrentVideo()">
+              J'aime (<span id="modalLikesCount">0</span>)
+            </button>
+          </div>
+        </div>
+
+        <h3 id="modalVideoTitle" class="modal-title">Titre de la vidéo</h3>
+        <p id="modalVideoDesc" class="modal-description">Description...</p>
+
+        <!-- Star Rating Interactive Component (0 à 5 étoiles) -->
+        <div class="modal-rating-container">
+          <div class="modal-rating-left">
+            <span class="rating-label-text">Noter cette vidéo :</span>
+            <div class="rating-stars-interactive" id="modalRatingStars" onmouseleave="resetHoverStars()">
+              <span class="star-btn" data-val="1" onmouseenter="hoverStar(1)" onclick="rateCurrentVideo(1)" title="1 étoile">★</span>
+              <span class="star-btn" data-val="2" onmouseenter="hoverStar(2)" onclick="rateCurrentVideo(2)" title="2 étoiles">★</span>
+              <span class="star-btn" data-val="3" onmouseenter="hoverStar(3)" onclick="rateCurrentVideo(3)" title="3 étoiles">★</span>
+              <span class="star-btn" data-val="4" onmouseenter="hoverStar(4)" onclick="rateCurrentVideo(4)" title="4 étoiles">★</span>
+              <span class="star-btn" data-val="5" onmouseenter="hoverStar(5)" onclick="rateCurrentVideo(5)" title="5 étoiles">★</span>
+            </div>
+          </div>
+          <div class="modal-rating-score-badge">
+            <span class="rating-star-icon" style="color:#f59e0b;">★</span>
+            <strong id="modalRatingScore">5.0</strong> / 5
+            <small id="modalRatingCount" class="rating-count-text">(1 avis)</small>
+          </div>
+        </div>
+
+        <!-- Tags associés (#tags) -->
+        <div class="modal-tags-container" id="modalVideoTagsContainer">
+          <span class="modal-tags-label">Tags associés :</span>
+          <div id="modalVideoTagsList" class="modal-tags-list">
+            <!-- Dynamic #tags -->
+          </div>
+        </div>
+
+        <!-- Meta info (Date, Vues, Région, Note) -->
+        <div class="modal-meta-row">
+          <span id="modalVideoDate" class="modal-meta-pill">Publiée récemment</span>
+          <span id="modalVideoViews" class="modal-meta-pill">0 vues</span>
+          <span id="modalVideoRegion" class="modal-meta-pill">Région</span>
+          <span id="modalVideoRatingMeta" class="modal-meta-pill">5.0 / 5</span>
+        </div>
+
+        <!-- ==================== SECTION VIDÉOS SIMILAIRES ==================== -->
+        <div class="modal-similar-box">
+          <div class="modal-section-title">
+            <span>Vidéos similaires</span>
+            <small style="color:var(--text-muted);font-weight:normal;">(selon les catégories)</small>
+          </div>
+          <div id="modalSimilarVideosGrid" class="similar-videos-grid">
+            <!-- 3 columns on PC / 1 column on Mobile -->
+          </div>
+        </div>
+
+        <!-- ==================== SECTION ESPACE COMMENTAIRES ==================== -->
+        <div class="modal-comments-box">
+          <div class="modal-section-title">
+            <span>Espace Commentaires (<span id="modalCommentsCount">0</span>)</span>
+          </div>
+
+          <!-- Formulaire Nouveau Commentaire -->
+          <form id="modalCommentForm" class="modal-comment-form" onsubmit="handlePostComment(event)">
+            <div class="comment-input-wrap">
+              <textarea id="commentTextInput" class="comment-input" rows="2" placeholder="Écrire un commentaire sur cette vidéo..." required></textarea>
+            </div>
+            <div class="comment-submit-bar">
+              <input type="text" id="commentGuestNameInput" class="comment-guest-name" placeholder="Votre pseudo (optionnel)">
+              <button type="submit" id="btnSubmitComment" class="btn btn-primary btn-sm">
+                Publier le commentaire
+              </button>
+            </div>
+          </form>
+
+          <!-- Liste des Commentaires -->
+          <div id="modalCommentsList" class="modal-comments-list">
+            <!-- Dynamic comments list -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ADD CATEGORY MODAL ==================== -->
+  <div id="addCategoryModal" class="modal-overlay hidden" onclick="closeAddCategoryModal(event)">
+    <div class="modal-card modal-category" onclick="event.stopPropagation()">
+      <button class="modal-close-btn" onclick="closeAddCategoryModal()"></button>
+      <div class="modal-header-box">
+        <h3>Ajouter une Catégorie</h3>
+        <p>Proposez une nouvelle thématique pour classer les vidéos.</p>
+      </div>
+
+      <form id="addCategoryForm" class="custom-form" onsubmit="handleAddCategory(event)">
+        <div class="form-group">
+          <label class="form-label">Nom de la catégorie *</label>
+          <input type="text" id="newCatName" class="form-input" placeholder="Ex: Podcasts, Manga, Bricolage..." required>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">
+          Créer la catégorie
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== ADMIN EDIT VIDEO MODAL ==================== -->
+  <div id="adminEditVideoModal" class="modal-overlay hidden" onclick="closeAdminEditModal(event)">
+    <div class="modal-card modal-category admin-edit-modal-card" onclick="event.stopPropagation()">
+      <button class="modal-close-btn" onclick="closeAdminEditModal()"></button>
+      <div class="modal-header-box">
+        <h3>Modifier la Vidéo & Choisir la Miniature</h3>
+        <p>Prenez une capture sur la vidéo pour définir la miniature, ou ajustez les tags et métadonnées.</p>
+      </div>
+
+      <form id="adminEditVideoForm" class="custom-form" onsubmit="saveAdminVideoEdit(event)">
+        <input type="hidden" id="editVideoId">
+        <input type="hidden" id="editVideoSelectedThumbnail" value="">
+        
+        <!-- Video Player & Live Frame Scrubber Studio -->
+        <div class="form-group">
+          <label class="form-label">Lecteur Vidéo & Capture de Miniature</label>
+          <div class="admin-scrubber-container">
+            <video id="adminScrubVideoPlayer" controls playsinline></video>
+            <div class="admin-capture-actions">
+              <button type="button" class="btn btn-secondary btn-block" onclick="captureAdminVideoCurrentFrame()">
+                Définir l'image actuelle comme miniature
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Automated Suggested Frames Gallery -->
+        <div class="form-group">
+          <label class="form-label">Captures automatiques suggérées (cliquez pour choisir) :</label>
+          <div class="admin-thumb-gallery" id="adminThumbGalleryGrid">
+            <!-- 4 extracted frame thumbnails -->
+          </div>
+        </div>
+
+        <!-- Current Selected Thumbnail Preview -->
+        <div class="form-group">
+          <label class="form-label">Aperçu de la miniature sélectionnée :</label>
+          <div class="admin-selected-thumb-wrap">
+            <img id="adminCurrentThumbPreview" src="" alt="Miniature actuelle" class="admin-selected-thumb-img">
+            <span id="adminThumbStatusBadge" class="admin-selected-thumb-badge">Miniature sélectionnée</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Titre de la vidéo *</label>
+          <input type="text" id="editVideoTitle" class="form-input" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Catégories & Tags associés *</label>
+          <div class="multi-cat-selector" id="editVideoCategoriesMultiSelect">
+            <!-- Dynamic Category Checkboxes -->
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea id="editVideoDesc" class="form-textarea" rows="3"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">
+          Enregistrer les modifications
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== EDIT PROFILE MODAL ==================== -->
+  <div id="editProfileModal" class="modal-overlay hidden" onclick="closeEditProfileModal(event)">
+    <div class="modal-card modal-category" onclick="event.stopPropagation()">
+      <button class="modal-close-btn" onclick="closeEditProfileModal()"></button>
+      <div class="modal-header-box">
+        <h3>Personnaliser mon Profil</h3>
+        <p>Modifiez votre surnom, votre description et votre photo de profil.</p>
+      </div>
+
+      <form id="editProfileForm" class="custom-form" onsubmit="handleSaveProfile(event)">
+        
+        <!-- Avatar Preview & Upload -->
+        <div class="form-group" style="text-align:center;">
+          <label class="form-label" style="text-align:center;">Photo de Profil</label>
+          <div class="avatar-edit-container">
+            <img id="editProfileAvatarPreview" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150" class="avatar-preview-img" alt="Avatar">
+            <label class="btn-avatar-upload" for="editProfileAvatarFile" title="Changer la photo">
+              Changer
+            </label>
+            <input type="file" id="editProfileAvatarFile" accept="image/*" style="display:none;" onchange="previewEditAvatar(this)">
+          </div>
+        </div>
+
+        <!-- Surnom / Pseudo -->
+        <div class="form-group">
+          <label class="form-label">Surnom / Pseudo *</label>
+          <input type="text" id="editProfileUsername" class="form-input" placeholder="Votre surnom public..." required>
+        </div>
+
+        <!-- Petite Description / Bio -->
+        <div class="form-group">
+          <label class="form-label">Description / Bio</label>
+          <textarea id="editProfileBio" class="form-textarea" rows="3" placeholder="Ex: Passionné par les vidéos, créateur de contenu..."></textarea>
+        </div>
+
+        <button type="submit" id="btnSaveProfileSubmit" class="btn btn-primary btn-block">
+          Enregistrer mon profil
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== ADMIN EDIT CATEGORY MODAL ==================== -->
+  <div id="adminEditCategoryModal" class="modal-overlay hidden" onclick="closeAdminEditCategoryModal(event)">
+    <div class="modal-card modal-category" onclick="event.stopPropagation()">
+      <button class="modal-close-btn" onclick="closeAdminEditCategoryModal()"></button>
+      <div class="modal-header-box">
+        <h3>Modifier la Catégorie</h3>
+        <p>Changez le nom de cette catégorie.</p>
+      </div>
+
+      <form id="adminEditCategoryForm" class="custom-form" onsubmit="saveAdminCategoryEdit(event)">
+        <input type="hidden" id="editCatId">
+        
+        <div class="form-group">
+          <label class="form-label">Nom de la catégorie *</label>
+          <input type="text" id="editCatName" class="form-input" placeholder="Ex: Gaming, Musique..." required>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">
+          Mettre à jour la catégorie
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MENTIONS LÉGALES & INFORMATIONS ÉDITEUR ==================== -->
+  <div id="mentionsLegalesModal" class="modal-overlay hidden" onclick="closeMentionsLegalesModal(event)">
+    <div class="modal-card modal-cgu" onclick="event.stopPropagation()">
+      <button class="modal-close-btn" onclick="closeMentionsLegalesModal()"></button>
+      <div class="modal-header-box">
+        <h3>Mentions Légales & Informations Éditeur</h3>
+        <p>Conformité juridique, statut d'hébergeur technique (LCEN), hébergement et politique de confidentialité (RGPD).</p>
+      </div>
+
+      <div class="cgu-content-box">
+        <div class="cgu-alert-box">
+          <strong>AVERTISSEMENT LÉGAL :</strong> VideoHub est un service en ligne communautaire et un blog de partage audiovisuel exclusivement réservé aux personnes majeures (18 ans et plus). L'accès des mineurs est formellement interdit.
+        </div>
+
+        <h4>1. Édition du Service & Directeur de la Publication</h4>
+        <p>Le site et service <strong>VideoHub</strong> est un service de communication au public en ligne, blog vidéo et plateforme d'hébergement audiovisuel.<br>
+        <strong>Directeur de la Publication :</strong> L'Administrateur principal de VideoHub.<br>
+        <strong>Contact administratif, réclamations et signalements :</strong> <a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></p>
+
+        <h4>2. Hébergement & Sécurité Technique</h4>
+        <p>La plateforme VideoHub est propulsée par une infrastructure réseau sécurisée avec protocole de chiffrement SSL/TLS 256-bit, assurant la protection continue des données, la confidentialité des comptes et la traçabilité des opérations de modération.</p>
+
+        <h4>3. Statut d'Hébergeur Technique & Responsabilité Légale (Loi LCEN du 21 juin 2004)</h4>
+        <p>Conformément à l'article 6 de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l'économie numérique (LCEN), VideoHub agit exclusivement en qualité d'<strong>hébergeur technique</strong> de contenus mis en ligne par des créateurs et utilisateurs tiers.<br>
+        VideoHub n'est pas soumis à une obligation générale de surveillance des vidéos et messages stockés. Toutefois, dès lors qu'un contenu illicite ou litigieux est notifié à l'administration, il fait l'objet d'un examen prioritaire et d'un retrait immédiat sous 24h à 48h.</p>
+
+        <h4>4. Protection des Données Personnelles & Conformité RGPD</h4>
+        <p>En conformité avec le Règlement Général sur la Protection des Données (RGPD 2016/679) et la loi Informatique et Libertés :<br>
+        - Les données collectées (adresse e-mail, pseudonyme, messages privés, notes et journaux d'audit) sont strictement nécessaires à l'exécution du service, à la sécurisation des comptes et à la prévention des abus.<br>
+        - Aucune donnée personnelle n'est vendue, louée ou cédée à des tiers à des fins de prospection publicitaire.<br>
+        - Vous disposez d'un droit d'accès, de rectification, de portabilité et d'effacement de vos données personnelles sur simple demande à <a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a>.</p>
+
+        <h4>5. Procédure de Retrait d'Urgence & Protection des Droits (Takedown / DMCA)</h4>
+        <p>Tout titulaire de droits d'auteur, ayant droit ou personne physique estimant qu'un contenu porte atteinte à ses droits, à sa dignité ou à son image peut solliciter le retrait d'urgence en écrivant à <strong>ia.project.pro2k26@gmail.com</strong> en précisant le titre de la vidéo, le lien URL et la preuve de son identité/droits.</p>
+      </div>
+
+      <button type="button" class="btn btn-primary btn-block mt-3" onclick="closeMentionsLegalesModal()">
+        Fermer les Mentions Légales
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== CONDITIONS GÉNÉRALES D'UTILISATION (CGU) ==================== -->
+  <div id="cguModal" class="modal-overlay hidden" onclick="closeCguModal(event)">
+    <div class="modal-card modal-cgu" onclick="event.stopPropagation()">
+      <button class="modal-close-btn" onclick="closeCguModal()"></button>
+      <div class="modal-header-box">
+        <h3>Conditions Générales d'Utilisation (CGU)</h3>
+        <p>Dernière mise à jour : 2026 • Règles de publication, certification 18+, modération admin et engagements légaux.</p>
+      </div>
+
+      <div class="cgu-content-box">
+        <div class="cgu-alert-box">
+          <strong>ENGAGEMENT FORMEL :</strong> En accédant à <strong>VideoHub</strong> ou en y publiant du contenu, vous reconnaissez avoir pris connaissance des présentes Conditions Générales d'Utilisation et les accepter sans réserve. Si vous refusez l'une quelconque de ces dispositions, vous devez cesser immédiatement toute utilisation du site.
+        </div>
+
+        <h4>1. Majorité Légale Obligatoire (18 Ans et Plus) & Avertissement</h4>
+        <p>L'accès à VideoHub et la consultation des contenus sont <strong>strictement réservés aux personnes ayant atteint l'âge légal de la majorité</strong> (18 ans révolus). En accédant au service, vous déclarez sur l'honneur être majeur. Le contrôle de majorité constitue une déclaration d'engagement de l'utilisateur et ne dispense pas l'éditeur de ses mesures actives de modération.</p>
+
+        <h4>2. Règles et Garanties Impératives de Téléversement (Uploaders & Créateurs)</h4>
+        <p>Pour tout téléversement ou dépôt de vidéo sur VideoHub, le déposant déclare, certifie et garantit formellement sur l'honneur :</p>
+        <ul>
+          <li><strong>Propriété & Titularité des Droits :</strong> Être l'auteur exclusif de la vidéo ou détenir toutes les licences, autorisations et décharges écrites nécessaires pour sa diffusion publique sur VideoHub.</li>
+          <li><strong>Consentement Écrit Libre, Spécifique et Éclairé :</strong> Avoir recueilli l'accord formel et explicite de chaque personne identifiable apparaissant dans le contenu. <em>Un accord pour être photographié ou filmé ne vaut pas, à lui seul, accord de publication.</em> Le déposant reste seul garant et responsable des autorisations de diffusion.</li>
+          <li><strong>Vérification d'Identité & Majorité (Conformité 18 U.S.C. § 2257) :</strong> Avoir personnellement contrôlé les pièces officielles d'identité avec photo attestant que chaque personne figurant dans le contenu était âgée d'au moins 18 ans au moment de la captation, et conserver ces justificatifs à disposition de l'administration.</li>
+          <li><strong>Absence de Faux & Usurpation :</strong> Ne transmettre aucun contenu volé, truqué de manière trompeuse, obtenu sous contrainte ou partagé sans consentement (« revenge porn »).</li>
+        </ul>
+
+        <h4>3. Tolérance Zéro & Contenus Strictement Prohibés</h4>
+        <p>VideoHub applique une politique d'interdiction absolue. Sont formellement prohibés et font l'objet d'une <strong>suppression immédiate, d'un bannissement définitif et d'un signalement systématique auprès des autorités judiciaires</strong> :</p>
+        <ul>
+          <li>Tout contenu impliquant, mettant en scène ou sexualisant des personnes mineures (CSAM/CSAE) ;</li>
+          <li>La diffusion intime non consentie, le chantage, l'extorsion, la contrainte ou la pornographie de vengeance ;</li>
+          <li>Tout contenu faisant l'apologie de la violence réelle, de la haine, des discriminations ou d'actes criminels ;</li>
+          <li>La divulgation non autorisée de données personnelles privées d'autrui (doxxing, numéros, adresses) ;</li>
+          <li>Tout envoi de spam, virus, script automatisé ou tentative de contournement de la sécurité du serveur.</li>
+        </ul>
+
+        <h4>4. Modération Souveraine & Prérogatives Exclusives de l'Administrateur</h4>
+        <p>Dans l'intérêt de la sécurité de la communauté et de la conformité légale de la plateforme, l'administrateur de VideoHub dispose d'un droit de modération souverain :</p>
+        <ul>
+          <li><strong>Validation & Retrait :</strong> L'administrateur examine les soumissions et peut valider, refuser, déplacer, masquer ou supprimer définitivement toute vidéo sans préavis ni droit à indemnisation.</li>
+          <li><strong>Miniatures Officielles :</strong> L'administrateur sélectionne les miniatures à partir des séquences exactes de la vidéo via le studio de capture intégré.</li>
+          <li><strong>Catégorisation & Tags :</strong> L'administrateur peut modifier, enrichir ou réorganiser les tags (#tags) et descriptions des publications.</li>
+          <li><strong>Modération Exclusive des Commentaires :</strong> Seul l'administrateur détient le pouvoir de suppression des commentaires sur l'ensemble du site afin de prévenir le harcèlement et les dérives.</li>
+          <li><strong>Bannissement & Mesures Conservatoires :</strong> Clôture immédiate du compte et blocage d'IP en cas d'infraction.</li>
+        </ul>
+
+        <h4>5. Licence de Publication Concédée par l'Utilisateur</h4>
+        <p>L'auteur conserve ses droits moraux et de propriété intellectuelle. En soumettant un contenu sur VideoHub, il concède à la plateforme une autorisation non exclusive, gratuite et mondiale pour héberger, reproduire techniquement, adapter aux formats de diffusion, modérer et afficher le contenu. Cette licence s'exerce pendant la durée de mise en ligne et prend fin lors du retrait effectif du contenu, sous réserve des copies techniques temporaires de cache et des données conservées à titre de preuve pour satisfaire aux obligations légales.</p>
+
+        <h4>6. Espace Communautaire, Système de Notation (0 à 5 Étoiles) & Tchat Privé</h4>
+        <p>Les fonctionnalités interactives (évaluations par étoiles, commentaires, messagerie directe entre membres) doivent respecter les règles de courtoisie et les lois en vigueur. Les tentatives de votes multiples ou frauduleux sont bloquées par empreinte technique temporaire anti-spam.</p>
+
+        <h4>7. Pass VIP « Club Privilège » (9,99 € / mois) & Absence de Rétractation</h4>
+        <p>L'accès aux vidéos exclusives de la zone VIP est régi par les conditions suivantes :</p>
+        <ul>
+          <li><strong>Tarif & Facturation :</strong> L'abonnement VIP est fixé à 9,99 € TTC par mois, sans engagement de durée.</li>
+          <li><strong>Fourniture Immédiate & Renonciation au Droit de Rétractation :</strong> Conformément à l'article L. 221-28 13° du Code de la consommation, la fourniture du contenu numérique débutant immédiatement dès le paiement, l'abonné renonce expressément à son droit de rétractation de 14 jours.</li>
+          <li><strong>Résiliation en 1 Clic :</strong> Résiliation possible à tout moment sans frais depuis l'espace utilisateur ou par simple demande par e-mail.</li>
+        </ul>
+
+        <h4>8. Conservation des Données, Corbeille & Journal Légal</h4>
+        <p>Les envois en attente non validés sont purgés au plus tard sous 90 jours et les contenus mis à la corbeille sous 30 jours. Les adresses IP et journaux techniques d'audit légal sont conservés pendant 12 mois à compter de l'opération concernée conformément à la loi LCEN, puis supprimés ou anonymisés.</p>
+
+        <h4>9. Limitation de Responsabilité & Obligation de Moyens</h4>
+        <p>VideoHub est fourni avec une obligation de moyens. VideoHub n'est responsable que des dommages directs qui lui sont imputables. L'utilisateur répond seul des contenus qu'il transmet et garantit VideoHub et son administrateur contre tout recours ou réclamation de tiers.</p>
+
+        <h4>10. Divisibilité, Droit Applicable & Contact</h4>
+        <p>Si une clause venait à être déclarée inapplicable, les autres stipulations demeurent pleinement en vigueur. Pour tout signalement ou exercice de vos droits, contactez l'administration 7j/7 à : <strong><a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></strong>.</p>
+      </div>
+
+      <button type="button" class="btn btn-primary btn-block mt-3" onclick="closeCguModal()">
+        J'ai compris et j'accepte les CGU
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== POLITIQUE DE CONFIDENTIALITÉ & RGPD ==================== -->
+  <div id="privacyPolicyModal" class="modal-overlay hidden" onclick="closePrivacyModal(event)">
+    <div class="modal-card modal-cgu" onclick="event.stopPropagation()">
+      <button class="modal-close-btn" onclick="closePrivacyModal()"></button>
+      <div class="modal-header-box">
+        <h3>Politique de Confidentialité & Protection des Données (RGPD)</h3>
+        <p>Dernière modification : 2026 • Engagements de protection de la vie privée, registre des traitements et conformité CNIL / RGPD.</p>
+      </div>
+
+      <div class="cgu-content-box">
+        <div class="cgu-alert-box">
+          <strong>ENGAGEMENT VIE PRIVÉE :</strong> La protection de votre vie privée et la confidentialité de vos données sont au cœur de nos priorités sur <strong>VideoHub</strong>. Aucune de vos données personnelles n'est vendue, louée ou cédée à des tiers à des fins publicitaires.
+        </div>
+
+        <h4>1. Responsable du Traitement & Délégué aux Données (DPO)</h4>
+        <p>Le responsable du traitement des données personnelles pour la plateforme en ligne <strong>VideoHub</strong> est l'Administrateur principal du service.<br>
+        <strong>Délégué à la Protection des Données (DPO) & Contact :</strong> <a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></p>
+
+        <h4>2. Tableau Récapitulatif des Traitements Réalisés</h4>
+        <div style="overflow-x:auto;margin:10px 0;">
+          <table class="legal-table" style="width:100%;font-size:0.78rem;border-collapse:collapse;color:var(--text-muted);">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border-color);color:var(--primary);text-align:left;">
+                <th style="padding:6px 8px;">Traitement / Données</th>
+                <th style="padding:6px 8px;">Finalité</th>
+                <th style="padding:6px 8px;">Base Juridique</th>
+                <th style="padding:6px 8px;">Durée de Conservation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid var(--border-subtle);">
+                <td style="padding:6px 8px;"><strong>Dépôt de Vidéo</strong> (titre, tags, e-mail/pseudo, vidéo)</td>
+                <td style="padding:6px 8px;">Hébergement, modération administrative et diffusion publique</td>
+                <td style="padding:6px 8px;">Exécution du service & consentement explicite</td>
+                <td style="padding:6px 8px;">Pendant la publication. En attente : 90j max. Corbeille : 30j. Archive preuve : 5 ans.</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border-subtle);">
+                <td style="padding:6px 8px;"><strong>Journal Légal (LCEN)</strong> (IP source, port, date/heure, ID vidéo)</td>
+                <td style="padding:6px 8px;">Identification légale des auteurs de publications et coopération judiciaire</td>
+                <td style="padding:6px 8px;">Obligation légale (Loi LCEN du 21 juin 2004)</td>
+                <td style="padding:6px 8px;">12 mois à compter de l'opération, puis anonymisation ou suppression.</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border-subtle);">
+                <td style="padding:6px 8px;"><strong>Signalements & Takedown</strong> (nom, e-mail, URL, motif, signature)</td>
+                <td style="padding:6px 8px;">Traitement d'urgence des retraits de contenus non consentis ou contrefaisants</td>
+                <td style="padding:6px 8px;">Obligation légale & intérêt légitime à protéger les personnes</td>
+                <td style="padding:6px 8px;">12 mois après clôture du dossier (jusqu'à 5 ans en cas de contentieux).</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border-subtle);">
+                <td style="padding:6px 8px;"><strong>Compte Membre & Profil</strong> (pseudo, e-mail, avatar, bio)</td>
+                <td style="padding:6px 8px;">Gestion de l'espace membre, personnalisation et favoris</td>
+                <td style="padding:6px 8px;">Exécution du contrat de service</td>
+                <td style="padding:6px 8px;">Durée d'activité du compte (supprimé sous 30 jours sur demande).</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border-subtle);">
+                <td style="padding:6px 8px;"><strong>Commentaires & Évaluations</strong> (texte, note 0 à 5)</td>
+                <td style="padding:6px 8px;">Animation communautaire et modération des échanges</td>
+                <td style="padding:6px 8px;">Intérêt légitime & exécution du service</td>
+                <td style="padding:6px 8px;">Public jusqu'à suppression par l'administrateur.</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border-subtle);">
+                <td style="padding:6px 8px;"><strong>Messagerie Privée</strong> (messages entre membres)</td>
+                <td style="padding:6px 8px;">Échanges directs et privés entre utilisateurs du site</td>
+                <td style="padding:6px 8px;">Exécution du service demandé</td>
+                <td style="padding:6px 8px;">Tant que les comptes participants sont actifs.</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 8px;"><strong>Empreinte Anti-Abus & Votes</strong> (hash temporaire)</td>
+                <td style="padding:6px 8px;">Limiter les spams, attaques automatisées et votes multiples</td>
+                <td style="padding:6px 8px;">Intérêt légitime à la sécurité du site</td>
+                <td style="padding:6px 8px;">24 heures pour l'empreinte anti-abus.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h4>3. Contenus Intimes & Consentement Exprès</h4>
+        <p>Toute vidéo ou image intime révélant des données relatives à la vie privée ne peut être publiée que si l'auteur détient le <strong>consentement libre, spécifique, éclairé et explicite</strong> de chaque personne identifiable. <em>Un accord pour être photographié ou filmé ne vaut pas accord de publication.</em> Tout consentement peut être révoqué à tout moment via notre <a href="javascript:void(0)" onclick="closePrivacyModal(); openReportModal();" style="color:var(--primary);font-weight:700;">Formulaire de Signalement & Retrait</a>.</p>
+
+        <h4>4. Mesures de Sécurité & Confidentialité de l'Hébergement</h4>
+        <p>Nous mettons en œuvre des mesures techniques avancées :</p>
+        <ul>
+          <li><strong>Chiffrement Global :</strong> Navigation et flux protégés par certificat SSL/TLS 256 bits (HTTPS).</li>
+          <li><strong>Hachage Cryptographique :</strong> Mots de passe chiffrés via algorithme robuste bcrypt avec salage.</li>
+          <li><strong>Isolement des Données Privées :</strong> Le journal légal LCEN et les journaux d'audit ne sont jamais exposés dans les pages publiques ni via l'API publique.</li>
+          <li><strong>Médias en Attente Sécurisés :</strong> Les vidéos non publiées sont isolées et accessibles uniquement à l'administrateur modérateur.</li>
+        </ul>
+
+        <h4>5. Vos Droits RGPD & Délais de Réponse</h4>
+        <p>Conformément aux dispositions du Règlement Général sur la Protection des Données (RGPD) et de la loi Informatique et Libertés, vous disposez des droits suivants :</p>
+        <ul>
+          <li><strong>Droit d'accès et de rectification :</strong> Modification immédiate de votre profil ou consultation de vos données.</li>
+          <li><strong>Droit à l'effacement (« Droit à l'oubli ») :</strong> Suppression intégrale de votre compte et de vos données sur simple e-mail.</li>
+          <li><strong>Droit à la limitation et d'opposition :</strong> Droit de contester un traitement ou de s'opposer à la modération automatique.</li>
+          <li><strong>Droit à la portabilité :</strong> Transmission de vos données dans un format lisible par machine.</li>
+        </ul>
+        <p>Pour exercer vos droits, écrivez au DPO à : Email : <strong><a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></strong>. Une réponse vous sera apportée sous un délai maximum de 30 jours.<br>
+        Vous disposez également du droit d'introduire une réclamation auprès de la <strong>CNIL</strong> (Commission Nationale de l'Informatique et des Libertés - France).</p>
+
+        <h4>6. Cookies & Traceurs Techniques</h4>
+        <p>VideoHub utilise exclusivement des cookies et du stockage local strictement nécessaires (session utilisateur JWT, mémorisation 1h de l'avertissement de majorité 18+, préférences d'affichage sombre/clair et jeton anti-vote multiple). Aucun cookie publicitaire tiers n'est déposé sans votre consentement.</p>
+      </div>
+
+      <button type="button" class="btn btn-primary btn-block mt-3" onclick="closePrivacyModal()">
+        Fermer la Politique de Confidentialité
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== POLITIQUE DE PLAINTES & SIGNALEMENT (DMCA / TAKEDOWN) ==================== -->
+  <div id="complaintsPolicyModal" class="modal-overlay hidden" onclick="closeComplaintsModal(event)">
+    <div class="modal-card modal-cgu" onclick="event.stopPropagation()">
+      <button class="modal-close-btn" onclick="closeComplaintsModal()"></button>
+      <div class="modal-header-box">
+        <h3>Politique de Plaintes & Takedown (DMCA)</h3>
+        <p>Procédure de notification, retrait d'urgence de contenu non consenti et protection des droits d'auteur.</p>
+      </div>
+
+      <div class="cgu-content-box">
+        <div class="cgu-alert-box">
+          <strong>PROCÉDURE PRIORITAIRE :</strong> VideoHub prend avec la plus haute gravité toute plainte relative à l'atteinte aux droits d'auteur ou à la diffusion non consentie de contenu. Toute notification conforme fait l'objet d'un examen et d'une mesure conservatoire sous 24h à 48h.
+        </div>
+
+        <h4>1. Signalement d'Urgence pour Contenu Non Consenti ou Atteinte à la Personne</h4>
+        <p>Si vous apparaissez dans une vidéo diffusée sur VideoHub et que vous n'avez pas donné votre consentement exprès, ou si vous êtes victime de chantage, de harcèlement, de « revenge porn » ou de divulgation de données privées (doxxing) :<br>
+        - Envoyez immédiatement un e-mail avec pour objet <strong>[URGENT - RETRAIT DE CONTENU]</strong> à :<br>
+        Email : <strong><a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></strong><br>
+        - Indiquez l'URL précise ou le titre exact de la vidéo concernée ainsi qu'une description sommaire permettant de vous identifier.<br>
+        <em>Le contenu signalé sera immédiatement masqué à titre conservatoire pendant la vérification.</em></p>
+
+        <h4>2. Notification de Violation des Droits d'Auteur (DMCA / Droit d'Auteur Français)</h4>
+        <p>Si vous êtes titulaire d'un droit d'auteur ou agent légalement mandaté et estimez qu'une vidéo diffusée sur VideoHub contrefait vos œuvres, vous devez nous adresser une notification écrite comprenant obligatoirement :</p>
+        <ul>
+          <li><strong>Identification de l'œuvre protégée :</strong> Le titre et la description claire de l'œuvre dont vous détenez les droits (ou lien vers la source originale).</li>
+          <li><strong>Localisation précise du contenu contesté :</strong> L'URL exacte de la vidéo sur VideoHub (ex: lien de la page ou identifiant de la vidéo).</li>
+          <li><strong>Coordonnées complètes du déclarant :</strong> Nom complet, raison sociale le cas échéant, adresse postale, numéro de téléphone et adresse e-mail valide.</li>
+          <li><strong>Déclaration de bonne foi :</strong> Une déclaration affirmant que vous estimez en toute bonne foi que l'utilisation contestée n'est pas autorisée par le titulaire des droits, son mandataire ou la loi.</li>
+          <li><strong>Déclaration d'exactitude sous peine de sanctions :</strong> Une attestation confirmant que les informations fournies sont exactes et que vous êtes bien le titulaire des droits exclusifs ou légalement habilité à agir en son nom.</li>
+          <li><strong>Signature :</strong> La signature électronique ou manuscrite du déclarant.</li>
+        </ul>
+
+        <h4>3. Procédure de Contre-Notification (Droit de Réponse de l'Uploader)</h4>
+        <p>Si un utilisateur ayant publié un contenu estime de bonne foi que celui-ci a été retiré par erreur ou mauvaise identification, il peut soumettre une contre-notification écrite à <strong>ia.project.pro2k26@gmail.com</strong> comportant :</p>
+        <ul>
+          <li>Ses coordonnées complètes et sa signature ;</li>
+          <li>L'identification de la vidéo retirée ;</li>
+          <li>Une déclaration sur l'honneur expliquant les motifs et autorisations légales démontrant son droit de diffusion ;</li>
+          <li>L'acceptation formelle de la juridiction compétente.</li>
+        </ul>
+        <p>En cas de contre-notification recevable, celle-ci est transmise au plaignant initial. Sans action en justice initiée par le plaignant sous 10 à 14 jours ouvrés, le contenu pourra être réexaminé.</p>
+
+        <h4>4. Politique Relative aux Infracteurs Récidivistes (Repeat Infringers)</h4>
+        <p>Conformément aux réglementations internationales et à la politique de sécurité de VideoHub, tout utilisateur faisant l'objet de notifications d'infraction répétées ou publiant délibérément des contenus contrefaisants verra son compte <strong>immédiatement résilié, ses vidéos supprimées et son adresse IP bloquée définitivement</strong>.</p>
+
+        <h4>5. Sanction des Fausses Déclarations</h4>
+        <p>Toute fausse notification ou réclamation abusive soumise délibérément engage la responsabilité civile et pénale de son auteur, qui s'expose au paiement de dommages-intérêts et frais de justice engagés par VideoHub et par les créateurs concernés.</p>
+
+        <h4>6. Contact Officiel du Service Modération</h4>
+        <p>Toutes les plaintes et notifications DMCA doivent être exclusivement adressées à l'administrateur modérateur :<br>
+        Email : <strong><a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></strong></p>
+      </div>
+
+      <button type="button" class="btn btn-primary btn-block mt-3" onclick="closeComplaintsModal()">
+        Fermer la Politique de Plaintes
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== FORMULAIRE DE SIGNALEMENT & TAKEDOWN ==================== -->
+  <div id="reportAbuseModal" class="modal-overlay hidden" onclick="closeReportModal(event)">
+    <div class="modal-card modal-cgu" onclick="event.stopPropagation()">
+      <button class="modal-close-btn" onclick="closeReportModal()"></button>
+      <div class="modal-header-box">
+        <h3>Signaler un Contenu Abusif ou Illégal</h3>
+        <p>Demande de retrait prioritaire pour atteinte à la vie privée, droits d'auteur ou contenu illicite.</p>
+      </div>
+
+      <form id="reportAbuseForm" class="custom-form" onsubmit="handleSendReport(event)">
+        <div class="cgu-alert-box mb-3">
+          <strong>CONFIDENTIALITÉ GARANTIE :</strong> Votre signalement est strictement confidentiel. L'auteur de la vidéo ne verra aucune de vos informations personnelles.
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Votre nom complet *</label>
+          <input type="text" id="reportFullName" class="form-input" placeholder="Ex: Jean Dupont" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Adresse e-mail de contact *</label>
+          <input type="email" id="reportEmail" class="form-input" placeholder="Ex: contact@exemple.fr" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Titre ou URL de la vidéo à signaler *</label>
+          <input type="text" id="reportVideoUrl" class="form-input" placeholder="Ex: https://... ou titre de la vidéo" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Motif principal du signalement *</label>
+          <select id="reportReason" class="form-select" required>
+            <option value="">-- Sélectionnez le motif --</option>
+            <option value="Diffusion non consentie / Atteinte à la vie privée">Diffusion non consentie de mon image / Atteinte à la vie privée</option>
+            <option value="Contenu impliquant un mineur (CSAM - Urgence)">Contenu impliquant ou suggérant un mineur (CSAM - Urgence Absolue)</option>
+            <option value="Violation de droits d'auteur (DMCA)">Violation de droits d'auteur (DMCA / Copyright)</option>
+            <option value="Revenge Porn / Chantage / Intimidation">Revenge Porn / Chantage / Intimidation</option>
+            <option value="Divulgation de données personnelles (Doxxing)">Divulgation de données personnelles (Doxxing)</option>
+            <option value="Violence / Propos haineux / Illégal">Violence / Propos haineux / Contenu illégal</option>
+            <option value="Autre">Autre motif</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description détaillée des faits *</label>
+          <textarea id="reportDetails" class="form-textarea" rows="3" placeholder="Expliquez précisément en quoi ce contenu est litigieux..." required></textarea>
+        </div>
+
+        <div class="legal-warning-text" style="font-size:0.76rem;color:var(--text-muted);margin-bottom:12px;line-height:1.45;">
+          <em>Rappel de l'article 6-I-4 de la loi LCEN : Le fait de présenter un contenu comme illicite dans le but d'en obtenir le retrait en sachant cette information inexacte est puni d'un an d'emprisonnement et de 15 000 € d'amende.</em>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Signature électronique (Tapez votre nom légal complet) *</label>
+          <input type="text" id="reportSignature" class="form-input" placeholder="En tapant votre nom, vous certifiez l'exactitude des informations fournies" required>
+        </div>
+
+        <button type="submit" id="btnSubmitReport" class="btn btn-danger btn-block">
+          Transmettre le Signalement d'Urgence
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== POLITIQUE CSAM & PROTECTION DES MINEURS ==================== -->
+  <div id="csamPolicyModal" class="modal-overlay hidden" onclick="closeCsamModal(event)">
+    <div class="modal-card modal-cgu" onclick="event.stopPropagation()">
+      <button class="modal-close-btn" onclick="closeCsamModal()"></button>
+      <div class="modal-header-box">
+        <h3>Politique de Tolérance Zéro contre les Abus Sexuels sur Enfants (CSAM)</h3>
+        <p>Engagement absolu pour la protection des mineurs, prévention, détection et transmission judiciaire.</p>
+      </div>
+
+      <div class="cgu-content-box">
+        <div class="cgu-alert-box" style="border-left-color: #ef4444; background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35);">
+          <strong style="color: #ef4444;">TOLÉRANCE ZÉRO ABSOLUE :</strong> VideoHub applique une politique d'intolérance totale envers tout matériel d'abus ou d'exploitation sexuelle des enfants (CSAM/CSAE). Tout contenu de cette nature est immédiatement supprimé, son auteur banni à vie et les éléments transmis sans délai aux services de police et de justice.
+        </div>
+
+        <h4>1. Définition et Interdiction Stricte</h4>
+        <p>Au sens de la présente politique, est considéré comme mineur toute personne physique âgée de <strong>moins de dix-huit (18) ans</strong>.<br>
+        Sont formellement et absolument proscrits sur l'ensemble de la plateforme VideoHub :</p>
+        <ul>
+          <li>Tout contenu visuel, vidéo ou audio mettant en scène, impliquant ou suggérant un mineur ;</li>
+          <li>Toute sexualisation d'enfant, qu'il s'agisse de captations réelles, de simulations, d'animations ou d'images générées par Intelligence Artificielle (IA) ;</li>
+          <li>Tout texte, titre, tag (#tag), description, commentaire ou message privé faisant référence, faisant l'apologie ou incitant à l'exploitation ou aux abus sur mineurs.</li>
+        </ul>
+
+        <h4>2. Processus de Modération et Contrôle Préalable</h4>
+        <p>Afin de garantir un environnement strictement réservé aux adultes et conforme à la loi :</p>
+        <ul>
+          <li><strong>Examen Humain Rigoureux :</strong> Chaque vidéo téléversée est inspectée par l'administrateur avant ou dès sa mise en ligne.</li>
+          <li><strong>Filtrage Sémantique Continu :</strong> Mise à jour permanente d'une liste noire de mots-clés et blocage automatique des requêtes de recherche suspectes.</li>
+          <li><strong>Audit et Traçabilité :</strong> Conservation des journaux techniques de connexion aux fins d'identification des contrevenants.</li>
+        </ul>
+
+        <h4>3. Signalement Systématique aux Autorités Compétentes</h4>
+        <p>Dès lors qu'une tentative de publication de contenu CSAM est détectée, VideoHub procède sans délai à :</p>
+        <ul>
+          <li>La suppression instantanée et le blocage irréversible du fichier ;</li>
+          <li>Le bannissement immédiat et définitif du compte utilisateur et de son adresse IP ;</li>
+          <li>La transmission d'un signalement officiel d'urgence aux autorités judiciaires compétentes, notamment la plateforme <strong>PHAROS</strong> (Ministère de l'Intérieur français) et le <strong>NCMEC</strong> (National Center for Missing & Exploited Children).</li>
+        </ul>
+
+        <h4>4. Comment Signaler une Violation de cette Politique ?</h4>
+        <p>Si vous identifiez le moindre contenu suspect ou si vous pensez qu'un mineur est en danger :</p>
+        <ul>
+          <li>Utilisez immédiatement notre <a href="javascript:void(0)" onclick="closeCsamModal(); openReportModal();" style="color:var(--primary);font-weight:700;">Formulaire de Signalement d'Urgence</a> en sélectionnant le motif <em>« Contenu impliquant un mineur (CSAM) »</em> ;</li>
+          <li>Ou écrivez 24h/24 en urgence absolue à : Email : <strong><a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></strong>.</li>
+        </ul>
+
+        <h4>5. Organismes Officiels et Numéros d'Urgence</h4>
+        <p>En cas de situation d'urgence ou d'assistance directe aux mineurs :</p>
+        <ul>
+          <li><strong>PHAROS (France) :</strong> <a href="https://www.internet-signalement.gouv.fr" target="_blank" rel="noopener" style="color:var(--primary);">internet-signalement.gouv.fr</a></li>
+          <li><strong>119 - Enfance en Danger (France) :</strong> Numéro national gratuit accessible 24h/24</li>
+          <li><strong>NCMEC (International) :</strong> <a href="https://www.missingkids.org" target="_blank" rel="noopener" style="color:var(--primary);">missingkids.org / report.cybertip.org</a></li>
+          <li><strong>Internet Watch Foundation (IWF) :</strong> <a href="https://www.iwf.org.uk" target="_blank" rel="noopener" style="color:var(--primary);">report.iwf.org.uk</a></li>
+          <li><strong>Point de Contact (INHOPE) :</strong> <a href="https://www.pointdecontact.net" target="_blank" rel="noopener" style="color:var(--primary);">pointdecontact.net</a></li>
+        </ul>
+      </div>
+
+      <button type="button" class="btn btn-primary btn-block mt-3" onclick="closeCsamModal()">
+        Fermer la Politique CSAM
+      </button>
+    </div>
+  </div>
+
+  <!-- ==================== VIP CHECKOUT MODAL ==================== -->
+  <div id="vipModal" class="modal-overlay hidden" onclick="closeVipModal(event)">
+    <div class="modal-card modal-vip-checkout" onclick="event.stopPropagation()">
+      <button class="modal-close-btn" onclick="closeVipModal()"></button>
+      
+      <div class="vip-checkout-header-new">
+        <div class="vip-modal-badge">ABONNEMENT CLUB PRIVILÈGE</div>
+        <h3>Activation du Pass VIP</h3>
+        <div class="vip-checkout-price-pill">
+          <span class="price">9,99 €</span>
+          <span class="cycle">/ mois (TTC)</span>
+        </div>
+      </div>
+
+      <div class="vip-checkout-body-new">
+        <!-- Visual Simulated Credit Card -->
+        <div class="simulated-card-box">
+          <div class="card-chip"></div>
+          <div class="card-brand">VIP CLUB PASS</div>
+          <div class="card-number">•••• •••• •••• 4242</div>
+          <div class="card-holder-row">
+            <span class="holder-name" id="cardHolderNameDisplay">MEMBRE VIP</span>
+            <span class="card-exp">12/28</span>
+          </div>
+        </div>
+
+        <div class="payment-methods-grid">
+          <label class="pay-method-chip active">
+            <input type="radio" name="paymethod" checked>
+            <span>Carte Bancaire (CB)</span>
+          </label>
+          <label class="pay-method-chip">
+            <input type="radio" name="paymethod">
+            <span>Apple Pay / Google Pay</span>
+          </label>
+        </div>
+
+        <div class="order-summary-box">
+          <div class="summary-line">
+            <span>Pass VIP Club (1 Mois)</span>
+            <span>9,99 €</span>
+          </div>
+          <div class="summary-line">
+            <span>TVA (20%)</span>
+            <span>Incluses</span>
+          </div>
+          <div class="summary-divider"></div>
+          <div class="summary-line total">
+            <span>Total à régler aujourd'hui :</span>
+            <span class="total-amount">9,99 €</span>
+          </div>
+        </div>
+
+        <button class="btn btn-vip-cta-gold btn-block" onclick="processVipSubscription()">
+          Valider et Activer mon Pass VIP (9,99€)
+        </button>
+
+        <div class="checkout-guarantee-row">
+          <span>Cryptage 256-bit SSL</span> • 
+          <span>Activation immédiate</span> • 
+          <span>Sans engagement</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== DIRECT MESSAGING / CHAT MODAL ==================== -->
+  <div id="directMessageModal" class="modal-overlay hidden" onclick="closeDirectMessageModal(event)">
+    <div class="modal-card modal-chat" onclick="event.stopPropagation()">
+      
+      <!-- Chat Header -->
+      <div class="chat-header">
+        <div class="chat-header-user">
+          <img id="chatPartnerAvatar" src="" alt="Avatar" class="chat-avatar">
+          <div class="chat-header-info">
+            <h4 id="chatPartnerName">Destinataire</h4>
+            <span class="chat-status-online">En ligne</span>
+          </div>
+        </div>
+        <div class="chat-header-actions">
+          <button class="btn-chat-conversations" onclick="openConversationsModal()" title="Toutes les conversations">Boîte</button>
+          <button class="modal-close-btn" onclick="closeDirectMessageModal()"></button>
+        </div>
+      </div>
+
+      <!-- Messages Thread Area -->
+      <div id="chatMessagesBody" class="chat-body">
+        <!-- Chat bubbles rendered dynamically -->
+      </div>
+
+      <!-- Chat Input Bar -->
+      <form id="chatSendForm" class="chat-input-bar" onsubmit="handleSendChatMessage(event)">
+        <input type="text" id="chatTextInput" class="chat-input" placeholder="Écrivez un message privé..." required autocomplete="off">
+        <button type="submit" id="btnSendChat" class="btn-send-chat" title="Envoyer le message">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== CONVERSATIONS INBOX MODAL ==================== -->
+  <div id="conversationsModal" class="modal-overlay hidden" onclick="closeConversationsModal(event)">
+    <div class="modal-card modal-inbox" onclick="event.stopPropagation()">
+      <button class="modal-close-btn" onclick="closeConversationsModal()"></button>
+      <div class="modal-header-box">
+        <h3>Boîte de Réception (Messagerie)</h3>
+        <p>Vos conversations privées avec les créateurs et membres de la communauté.</p>
+      </div>
+
+      <div id="conversationsListContainer" class="conversations-list-wrap">
+        <!-- Dynamically rendered conversations -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toastNotification" class="toast hidden"></div>
+
+  <!-- SCRIPTS -->
+  <script src="js/auth.js"></script>
+  <script src="js/upload.js"></script>
+  <script src="js/vip.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

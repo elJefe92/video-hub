@@ -1,0 +1,1701 @@
+{
+  "users": [
+    {
+      "id": "user_admin_main",
+      "username": "Administrateur",
+      "email": "ia.project.pro2k26@gmail.com",
+      "passwordHash": "$2b$10$Bc44Nf/6IFSOUNWevSlxNeL66GiWEyu1.x1/6QhUzz803lsSZrac.",
+      "role": "admin",
+      "isVip": true,
+      "vipExpiry": "2026-10-01",
+      "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      "bio": "Administrateur principal de la plateforme",
+      "createdAt": "2026-08-17T09:04:30.911Z"
+    }
+  ],
+  "categories": [
+    {
+      "id": "all",
+      "name": "Tous les flux",
+      "icon": "",
+      "isSystem": true,
+      "description": "Flux général de toutes les vidéos"
+    },
+    {
+      "id": "snap",
+      "name": "Snap",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T23:32:00.000Z"
+    },
+    {
+      "id": "amateur_francais",
+      "name": "Amateur français",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T23:32:00.000Z"
+    },
+    {
+      "id": "gros_cul",
+      "name": "Gros cul",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T09:24:39.532Z"
+    },
+    {
+      "id": "levrette",
+      "name": "Levrette",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T23:32:00.000Z"
+    },
+    {
+      "id": "sextape_amateur",
+      "name": "Sextape amateur",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T23:32:00.000Z"
+    },
+    {
+      "id": "pov",
+      "name": "POV",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T09:22:29.852Z"
+    },
+    {
+      "id": "hardcore",
+      "name": "Hardcore",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T23:32:00.000Z"
+    },
+    {
+      "id": "beurette_video",
+      "name": "Beurette vidéo",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T23:32:00.000Z"
+    },
+    {
+      "id": "plan_cul",
+      "name": "Plan cul",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T23:32:00.000Z"
+    },
+    {
+      "id": "sextape",
+      "name": "Sextape",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T23:32:00.000Z"
+    },
+    {
+      "id": "beurette_sextape",
+      "name": "Beurette sextape",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T23:32:00.000Z"
+    },
+    {
+      "id": "beurette_francaise",
+      "name": "Beurette française",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T23:32:00.000Z"
+    },
+    {
+      "id": "beurette_gros_cul",
+      "name": "Beurette gros cul",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T23:32:00.000Z"
+    },
+    {
+      "id": "snap_hot",
+      "name": "Snap hot",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T23:32:00.000Z"
+    },
+    {
+      "id": "fellation",
+      "name": "Fellation",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T23:32:00.000Z"
+    },
+    {
+      "id": "sodomie",
+      "name": "Sodomie",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T23:32:00.000Z"
+    },
+    {
+      "id": "beurettes",
+      "name": "Beurettes",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T09:07:27.356Z"
+    },
+    {
+      "id": "milf",
+      "name": "MILF",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T09:22:14.057Z"
+    },
+    {
+      "id": "anal",
+      "name": "Anal",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T09:22:39.575Z"
+    },
+    {
+      "id": "trio_plan_3",
+      "name": "Trio / Plan à 3",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T09:23:49.624Z"
+    },
+    {
+      "id": "mature",
+      "name": "Mature",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T09:23:57.938Z"
+    },
+    {
+      "id": "gros_seins",
+      "name": "Gros seins",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T09:24:11.182Z"
+    },
+    {
+      "id": "gangbang",
+      "name": "Gangbang",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T09:24:30.157Z"
+    },
+    {
+      "id": "black",
+      "name": "Black",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-08-17T10:56:13.667Z"
+    },
+    {
+      "id": "afro",
+      "name": "Afro",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.158Z"
+    },
+    {
+      "id": "anal_amateur",
+      "name": "Anal amateur",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "anal_mature",
+      "name": "Anal mature",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "asiatique",
+      "name": "Asiatique",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "bbw",
+      "name": "BBW",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "bdsm",
+      "name": "BDSM",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "baise_cougar",
+      "name": "Baise cougar",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "baise_en_foret",
+      "name": "Baise en forêt",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "baise_libertine",
+      "name": "Baise libertine",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "beau_cul",
+      "name": "Beau cul",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "belle_chatte",
+      "name": "Belle chatte",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "belle_cougar",
+      "name": "Belle cougar",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "belle_femme",
+      "name": "Belle femme",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "belle_mature",
+      "name": "Belle mature",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "belle_salope",
+      "name": "Belle salope",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "blonde",
+      "name": "Blonde",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "blonde_gros_seins",
+      "name": "Blonde gros seins",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "bois_coquin",
+      "name": "Bois coquin",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "bombe_atomique",
+      "name": "Bombe atomique",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "bonne_baise",
+      "name": "Bonne baise",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "branlette_espagnole",
+      "name": "Branlette espagnole",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "brunette",
+      "name": "Brunette",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "bresilienne",
+      "name": "Brésilienne",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "bukkake",
+      "name": "Bukkake",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "candaulisme",
+      "name": "Candaulisme",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "casting",
+      "name": "Casting",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "casting_anal",
+      "name": "Casting anal",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "chatte_poilue",
+      "name": "Chatte poilue",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "chatte_poilue_blonde",
+      "name": "Chatte poilue blonde",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "chatte_rasee",
+      "name": "Chatte rasée",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "club",
+      "name": "Club",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "cochonne_orientale",
+      "name": "Cochonne orientale",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "cougar",
+      "name": "Cougar",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "cougar_francaise",
+      "name": "Cougar française",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "cougar_gros_seins",
+      "name": "Cougar gros seins",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "couple_debutant",
+      "name": "Couple débutant",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "couple_libertin",
+      "name": "Couple libertin",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "creampie",
+      "name": "Creampie",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "cuckold",
+      "name": "Cuckold",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "cunnilingus",
+      "name": "Cunnilingus",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "domination",
+      "name": "Domination",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "double_anale",
+      "name": "Double anale",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "double_dong",
+      "name": "Double dong",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "double_penetration",
+      "name": "Double pénétration",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "double_vaginale",
+      "name": "Double vaginale",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "debutante",
+      "name": "Débutante",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "echangisme",
+      "name": "Echangisme",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "ejaculation_faciale",
+      "name": "Ejaculation faciale",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "en_public",
+      "name": "En public",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "exhib",
+      "name": "Exhib",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "exhib_en_exterieur",
+      "name": "Exhib en extérieur",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "exhib_en_public",
+      "name": "Exhib en public",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "femme_fontaine",
+      "name": "Femme fontaine",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "femme_libertine",
+      "name": "Femme libertine",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "femme_offerte",
+      "name": "Femme offerte",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "femme_tatouee",
+      "name": "Femme tatouée",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "fille_nue",
+      "name": "Fille nue",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "film_erotique",
+      "name": "Film érotique",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "fist",
+      "name": "Fist",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "fist_vaginal",
+      "name": "Fist vaginal",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "footjob",
+      "name": "Footjob",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "fetichisme",
+      "name": "Fétichisme",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "gang_bang_amateur",
+      "name": "Gang-bang amateur",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "gang_bang_de_mecs",
+      "name": "Gang-bang de mecs",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "glory_hole",
+      "name": "Glory-hole",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "gode_ceinture",
+      "name": "Gode-ceinture",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "godes",
+      "name": "Godes",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "gorge_profonde",
+      "name": "Gorge profonde",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "grand_mere",
+      "name": "Grand-mère",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "gros_seins_afro",
+      "name": "Gros seins afro",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "gros_seins_amateur",
+      "name": "Gros seins amateur",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "gros_seins_naturels",
+      "name": "Gros seins naturels",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "grosse_cochonne",
+      "name": "Grosse Cochonne",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "grosse_bite",
+      "name": "Grosse bite",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "grosses",
+      "name": "Grosses",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "humide",
+      "name": "Humide",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "infirmieres",
+      "name": "Infirmières",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "japonaise",
+      "name": "Japonaise",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "jeune_cochonne",
+      "name": "Jeune cochonne",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "jeune_coquine",
+      "name": "Jeune coquine",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "jeune_femme_18",
+      "name": "Jeune femme (18+)",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "jeune_gros_seins",
+      "name": "Jeune gros seins",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "jeune_lesbienne",
+      "name": "Jeune lesbienne",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "jeune_salope",
+      "name": "Jeune salope",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "jeux_de_role",
+      "name": "Jeux de rôle",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "jeux_de_sperme",
+      "name": "Jeux de sperme",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "latina",
+      "name": "Latina",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "lesbienne_anal",
+      "name": "Lesbienne anal",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "lesbienne_francaise",
+      "name": "Lesbienne française",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "lesbienne_gros_seins",
+      "name": "Lesbienne gros seins",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "lesbienne_mature",
+      "name": "Lesbienne mature",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "lesbienne_salope",
+      "name": "Lesbienne salope",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "lesbiennes",
+      "name": "Lesbiennes",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "libertin",
+      "name": "Libertin",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "lingerie",
+      "name": "Lingerie",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "long_metrage",
+      "name": "Long-métrage",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "lechage_d_anus",
+      "name": "Léchage d'anus",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "massage",
+      "name": "Massage",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "masturbation",
+      "name": "Masturbation",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "milf_cougars",
+      "name": "Milf / Cougars",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "milf_gang_bang",
+      "name": "Milf Gang Bang",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "milf_amateur",
+      "name": "Milf amateur",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "milf_anal",
+      "name": "Milf anal",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "milf_blonde",
+      "name": "Milf blonde",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "milf_francaise",
+      "name": "Milf française",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "milf_lesbienne",
+      "name": "Milf lesbienne",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "milf_lingerie",
+      "name": "Milf lingerie",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "milf_salope",
+      "name": "Milf salope",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "mixite",
+      "name": "Mixité",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "orgasmes",
+      "name": "Orgasmes",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "orgie",
+      "name": "Orgie",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "partouze",
+      "name": "Partouze",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "partouze_francaise",
+      "name": "Partouze française",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "partouze_gros_seins",
+      "name": "Partouze gros seins",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "partouze_lesbiennes",
+      "name": "Partouze lesbiennes",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "petits_seins",
+      "name": "Petits seins",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "piscine",
+      "name": "Piscine",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "porn_art",
+      "name": "Porn-art",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "porno_jeune",
+      "name": "Porno jeune",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "porno_oriental",
+      "name": "Porno oriental",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "porno_pour_femme",
+      "name": "Porno pour femme",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "porno_chic",
+      "name": "Porno-chic",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "porno_reportage",
+      "name": "Porno-reportage",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "porte_jarretelles",
+      "name": "Porte-jarretelles",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "professeures",
+      "name": "Professeures",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "ronde",
+      "name": "Ronde",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "rousse",
+      "name": "Rousse",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "salope",
+      "name": "Salope",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "salope_amateur",
+      "name": "Salope amateur",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "salope_anal",
+      "name": "Salope anal",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "salope_blonde",
+      "name": "Salope blonde",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "salope_soumise",
+      "name": "Salope soumise",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "sauna",
+      "name": "Sauna",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "sauna_libertin",
+      "name": "Sauna libertin",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "scenario",
+      "name": "Scénario",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "secretaire",
+      "name": "Secrétaire",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "sex_shop",
+      "name": "Sex-shop",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "sexe_sauvage",
+      "name": "Sexe Sauvage",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "sexe_a_la_plage",
+      "name": "Sexe a la plage",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "sexe_amateur",
+      "name": "Sexe amateur",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "sexe_arabe",
+      "name": "Sexe arabe",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "sexe_francais",
+      "name": "Sexe français",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "sexe_hard",
+      "name": "Sexe hard",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "sexe_poilu",
+      "name": "Sexe poilu",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "sextoys",
+      "name": "Sextoys",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "soumission",
+      "name": "Soumission",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "sport",
+      "name": "Sport",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "squirting",
+      "name": "Squirting",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "strip_tease",
+      "name": "Strip-tease",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    },
+    {
+      "id": "suceuse",
+      "name": "Suceuse",
+      "icon": "",
+      "description": "",
+      "createdBy": "Administrateur",
+      "createdAt": "2026-09-01T12:08:48.161Z"
+    }
+  ],
+  "videos": [
+    {
+      "id": "vid_1788264820815",
+      "title": "hgu",
+      "description": "vuvujgh",
+      "videoUrl": "/uploads/media-1788264820804-95666336.MP4",
+      "thumbnail": "/uploads/thumb_admin_1788268915436_jsz7.jpg",
+      "authorId": "user_admin_main",
+      "authorName": "Administrateur",
+      "authorEmail": "ia.project.pro2k26@gmail.com",
+      "authorAvatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      "region": "Île-de-France",
+      "isGuest": false,
+      "isVipAuthor": true,
+      "category": "casting_anal",
+      "categories": [
+        "casting_anal",
+        "chatte_rasee",
+        "cougar_francaise"
+      ],
+      "status": "approved",
+      "views": 1,
+      "likes": 0,
+      "duration": "0:30",
+      "createdAt": "2026-09-01T12:13:40.815Z",
+      "isDailyFeatured": false,
+      "featuredDate": "2026-09-01",
+      "isVipExclusive": false,
+      "comments": [
+        {
+          "id": "comm_1788265922939_nyyjz",
+          "videoId": "vid_1788264820815",
+          "authorId": null,
+          "authorName": "Marc",
+          "authorAvatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Marc",
+          "isVip": false,
+          "isAdmin": false,
+          "text": "Superbe vidéo, hâte de voir les prochaines ! 🔥",
+          "createdAt": "2026-09-01T12:32:02.939Z"
+        }
+      ],
+      "ratingCount": 7,
+      "ratingSum": 25,
+      "rating": 3.6
+    },
+    {
+      "id": "vid_1788264754329",
+      "title": "sensu",
+      "description": "@c'est moi",
+      "videoUrl": "/uploads/media-1788264754186-538154546.MOV",
+      "thumbnail": "/uploads/thumb_admin_1788268948471_nkmp.jpg",
+      "authorId": "guest_1788264754329",
+      "authorName": "itchigrvs",
+      "authorEmail": "itchigrvs@gmail.com",
+      "authorAvatar": "https://api.dicebear.com/7.x/bottts/svg?seed=itchigrvs",
+      "region": "Île-de-France",
+      "isGuest": true,
+      "isVipAuthor": false,
+      "category": "amateur_francais",
+      "categories": [
+        "amateur_francais"
+      ],
+      "status": "approved",
+      "views": 1,
+      "likes": 0,
+      "duration": "0:30",
+      "createdAt": "2026-09-01T12:12:34.329Z",
+      "isDailyFeatured": false,
+      "featuredDate": "2026-09-01",
+      "publishedAt": "2026-09-01T12:13:03.307Z",
+      "isVipExclusive": false,
+      "comments": [
+        {
+          "id": "comm_1788266058600_09vcl",
+          "videoId": "vid_1788264754329",
+          "authorId": "user_admin_main",
+          "authorName": "Administrateur",
+          "authorAvatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+          "isVip": true,
+          "isAdmin": true,
+          "text": "top",
+          "createdAt": "2026-09-01T12:34:18.600Z"
+        }
+      ]
+    }
+  ],
+  "logs": [
+    {
+      "id": "log_1788269706347",
+      "action": "Signalement Abus",
+      "details": "Signalement reçu pour \"hgu\" (Motif : Diffusion non consentie / Atteinte à la vie privée) par Test Signalement",
+      "date": "2026-09-01T13:35:06.347Z"
+    },
+    {
+      "id": "log_1788268948474",
+      "action": "Modification Vidéo",
+      "details": "Métadonnées et miniature de \"sensu\" mises à jour par Admin",
+      "date": "2026-09-01T13:22:28.474Z"
+    },
+    {
+      "id": "log_1788268915440",
+      "action": "Modification Vidéo",
+      "details": "Métadonnées et miniature de \"hgu\" mises à jour par Admin",
+      "date": "2026-09-01T13:21:55.440Z"
+    },
+    {
+      "id": "log_1788268837029",
+      "action": "Modification Vidéo",
+      "details": "Métadonnées et miniature de \"hgu\" mises à jour par Admin",
+      "date": "2026-09-01T13:20:37.029Z"
+    },
+    {
+      "id": "log_1788266411440",
+      "action": "Message Envoyé",
+      "details": "Message de \"Marc\" à \"Administrateur\"",
+      "date": "2026-09-01T12:40:11.440Z"
+    },
+    {
+      "id": "log_1788266058601",
+      "action": "Nouveau Commentaire",
+      "details": "Commentaire ajouté sur \"sensu\" par Administrateur",
+      "date": "2026-09-01T12:34:18.601Z"
+    },
+    {
+      "id": "log_1788266038094",
+      "action": "Nouveau Commentaire",
+      "details": "Commentaire ajouté sur \"sensu\" par Administrateur",
+      "date": "2026-09-01T12:33:58.094Z"
+    },
+    {
+      "id": "log_1788265922939",
+      "action": "Nouveau Commentaire",
+      "details": "Commentaire ajouté sur \"hgu\" par Marc",
+      "date": "2026-09-01T12:32:02.939Z"
+    },
+    {
+      "id": "log_1788265452253",
+      "action": "Modération VIP",
+      "details": "Vidéo \"sensu\" statut VIP Exclusif : false",
+      "date": "2026-09-01T12:24:12.253Z"
+    },
+    {
+      "id": "log_1788265451573",
+      "action": "Modération VIP",
+      "details": "Vidéo \"sensu\" statut VIP Exclusif : true",
+      "date": "2026-09-01T12:24:11.573Z"
+    },
+    {
+      "id": "log_1788265450540",
+      "action": "Modération VIP",
+      "details": "Vidéo \"hgu\" statut VIP Exclusif : false",
+      "date": "2026-09-01T12:24:10.540Z"
+    },
+    {
+      "id": "log_1788265449640",
+      "action": "Modération VIP",
+      "details": "Vidéo \"hgu\" statut VIP Exclusif : true",
+      "date": "2026-09-01T12:24:09.640Z"
+    },
+    {
+      "id": "log_1788265447707",
+      "action": "Sélection du Jour",
+      "details": "Vidéo \"sensu\" retirée de la sélection du jour",
+      "date": "2026-09-01T12:24:07.707Z"
+    },
+    {
+      "id": "log_1788265446856",
+      "action": "Sélection du Jour",
+      "details": "Vidéo \"hgu\" retirée de la sélection du jour",
+      "date": "2026-09-01T12:24:06.856Z"
+    },
+    {
+      "id": "log_1788265444707",
+      "action": "Sélection du Jour",
+      "details": "Vidéo \"hgu\" marquée comme Vidéo du Jour ⭐",
+      "date": "2026-09-01T12:24:04.707Z"
+    },
+    {
+      "id": "log_1788264820817",
+      "action": "Dépôt Vidéo (Sans connexion)",
+      "details": "Vidéo \"hgu\" (Île-de-France) déposée par ia.project.pro2k26@gmail.com",
+      "date": "2026-09-01T12:13:40.817Z"
+    },
+    {
+      "id": "log_1788264783309",
+      "action": "Validation Vidéo",
+      "details": "Vidéo \"sensu\" validée et publiée par Admin",
+      "date": "2026-09-01T12:13:03.309Z"
+    },
+    {
+      "id": "log_1788264773879",
+      "action": "Sélection du Jour",
+      "details": "Vidéo \"sensu\" marquée comme Vidéo du Jour ⭐",
+      "date": "2026-09-01T12:12:53.879Z"
+    },
+    {
+      "id": "log_1788264754330",
+      "action": "Dépôt Vidéo (Sans connexion)",
+      "details": "Vidéo \"sensu\" (Île-de-France) déposée par itchigrvs@gmail.com",
+      "date": "2026-09-01T12:12:34.330Z"
+    },
+    {
+      "id": "log_1788263739645",
+      "action": "Abonnement VIP",
+      "details": "Administrateur a souscrit au Pass VIP 9,99€",
+      "date": "2026-09-01T11:55:39.645Z"
+    },
+    {
+      "id": "log_tags_update",
+      "action": "Mise à jour Catégories",
+      "details": "Ajout des tags : Snap, Amateur français, Levrette, Sextape amateur, Beurette vidéo, Plan cul, Sextape, Beurette sextape, Beurette française, Beurette gros cul, Snap hot, Fellation, Sodomie.",
+      "date": "2026-08-17T23:32:00.000Z"
+    }
+  ],
+  "faqs": [
+    {
+      "id": "faq_1",
+      "question": "Faut-il créer un compte pour déposer une vidéo ?",
+      "answer": "Non ! Aucun compte n'est requis. Il vous suffit d'indiquer votre adresse e-mail (pour le suivi), votre région de France et une brève description de votre vidéo."
+    },
+    {
+      "id": "faq_2",
+      "question": "Comment s'effectue la modération des vidéos ?",
+      "answer": "Toute vidéo téléversée passe d'abord dans notre file de modération. L'administrateur valide le contenu et vérifie qu'il respecte les CGU avant sa mise en ligne publique."
+    },
+    {
+      "id": "faq_3",
+      "question": "Comment rechercher une catégorie spécifique ?",
+      "answer": "Tapez directement le nom de la thématique dans la barre de recherche en haut. Notre système intelligent filtre instantanément la liste des catégories sans doublons."
+    },
+    {
+      "id": "faq_4",
+      "question": "Quels sont les avantages du Club VIP à 9,99€ / mois ?",
+      "answer": "L'abonnement VIP vous donne droit au badge certifié sur toutes vos vidéos, la mise en avant en tête de flux et une navigation sans aucune publicité."
+    },
+    {
+      "id": "faq_5",
+      "question": "Puis-je associer plusieurs catégories à une seule vidéo ?",
+      "answer": "Oui, lors du dépôt de votre vidéo, vous pouvez cocher un ou plusieurs tags pour référencer votre vidéo dans plusieurs catégories simultanément."
+    },
+    {
+      "id": "faq_6",
+      "question": "Comment demander la suppression d'une vidéo ou exercer son droit RGPD ?",
+      "answer": "Conformément à la réglementation française et au RGPD, il vous suffit de nous contacter avec l'adresse e-mail renseignée lors du dépôt pour retirer immédiatement une vidéo."
+    },
+    {
+      "id": "faq_7",
+      "question": "Quelle est la taille maximale acceptée pour un fichier vidéo ?",
+      "answer": "Vous pouvez importer des fichiers vidéo jusqu'à 100 Mo aux formats standard MP4, WebM ou MOV."
+    },
+    {
+      "id": "faq_8",
+      "question": "Quelles sont les mentions légales applicables au blog et aux publications ?",
+      "answer": "La plateforme agit en qualité d'hébergeur de contenu au sens de la LCEN. L'auteur reste pénalement responsable des propos et fichiers mis en ligne."
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg_1788266411439_ky6pt",
+      "senderId": null,
+      "senderName": "Marc",
+      "senderAvatar": "https://api.dicebear.com/7.x/initials/svg?seed=Marc",
+      "recipientId": "user_admin_main",
+      "recipientName": "Administrateur",
+      "recipientAvatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      "text": "Bonjour Admin, super site ! Est-ce que tu peux regarder ma vidéo ?",
+      "read": true,
+      "createdAt": "2026-09-01T12:40:11.439Z"
+    }
+  ],
+  "reports": [
+    {
+      "id": "rep_1788269706346_tezt",
+      "fullName": "Test Signalement",
+      "email": "test@contact.fr",
+      "videoUrl": "http://localhost:3000/#video-vid_1788264820815",
+      "videoTitle": "hgu",
+      "reason": "Diffusion non consentie / Atteinte à la vie privée",
+      "details": "Demande de retrait pour test de conformité.",
+      "signature": "Test Signalement",
+      "status": "pending",
+      "createdAt": "2026-09-01T13:35:06.346Z"
+    }
+  ]
+}
