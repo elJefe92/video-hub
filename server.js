@@ -8,8 +8,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const { loadDb, saveDb } = require('./database');
-const { supabase } = require('./supabase');
-const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
+const stripeSecret = process.env.STRIPE_SECRET_KEY;
+const stripe = stripeSecret ? require('stripe')(stripeSecret) : null;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
