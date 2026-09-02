@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
+const { supabase } = require('./supabase');
 
 const LOCAL_DB_PATH = path.join(__dirname, 'data.json');
 const TMP_DB_PATH = path.join('/tmp', 'data.json');
@@ -80,6 +81,41 @@ function normalizeData(db) {
 
 let memoryDb = null;
 
+async function syncDbFromCloud() {
+  if (!supabase) return;
+  try {
+    const { data, error } = await supabase.storage.from('thumbnails').download('videohub_db_state.json');
+    if (data && !error) {
+      const text = await data.text();
+      const remoteDb = JSON.parse(text);
+      if (remoteDb && Array.isArray(remoteDb.users) && remoteDb.users.length > 0) {
+        memoryDb = normalizeData(remoteDb);
+        const targetPath = getDbPath();
+        try {
+          fs.writeFileSync(targetPath, JSON.stringify(memoryDb, null, 2), 'utf-8');
+        } catch (e) {}
+        console.log(`[Database Cloud] Synced ${memoryDb.users.length} users and ${memoryDb.videos ? memoryDb.videos.length : 0} videos.`);
+      }
+    }
+  } catch (err) {
+    // ignore
+  }
+}
+
+async function syncDbToCloud(data) {
+  if (!supabase || !data) return;
+  try {
+    const buffer = Buffer.from(JSON.stringify(data, null, 2), 'utf-8');
+    await supabase.storage.from('thumbnails').upload('videohub_db_state.json', buffer, {
+      contentType: 'application/json',
+      upsert: true
+    });
+    console.log('[Database Cloud] Persisted to cloud state.');
+  } catch (err) {
+    console.error('[Database Cloud Save Error]', err.message);
+  }
+}
+
 function loadDb() {
   if (memoryDb) return memoryDb;
 
@@ -125,9 +161,12 @@ function saveDb(data) {
       fs.writeFileSync(TMP_DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
     } catch (err) {}
   }
+  syncDbToCloud(data).catch(() => {});
 }
 
 module.exports = {
   loadDb,
-  saveDb
+  saveDb,
+  syncDbFromCloud,
+  syncDbToCloud
 };

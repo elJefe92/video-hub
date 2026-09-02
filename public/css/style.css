@@ -2806,6 +2806,30 @@ body.theme-light .btn-sort-cat.active {
   font-size: 0.95rem;
 }
 
+.btn-filter-pill {
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-filter-pill:hover {
+  border-color: var(--primary);
+  color: var(--text-main);
+}
+
+.btn-filter-pill.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.35);
+}
+
 .admin-users-grid {
   display: flex;
   flex-direction: column;

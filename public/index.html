@@ -790,10 +790,32 @@
 
           <!-- Section 3 : Gestion des Utilisateurs & VIP -->
           <div id="adminSectionUsers" class="admin-section-body hidden">
-            <div class="section-subheading">
-              <h3>Utilisateurs & Privilèges VIP</h3>
-              <button class="btn btn-sm btn-secondary" onclick="loadAdminUsers()">Actualiser</button>
+            <div class="section-subheading" style="flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+              <div>
+                <h3 style="margin-bottom:3px;">Gestion des Membres & Abonnements</h3>
+                <p style="font-size:0.82rem; color:var(--text-muted); margin:0;">Tous les comptes inscrits : Membres VIP (9,99€) et Membres Gratuits (Free).</p>
+              </div>
+              <button class="btn btn-sm btn-secondary" onclick="loadAdminUsers()">Actualiser la liste</button>
             </div>
+
+            <!-- Filtres et Recherche Membres -->
+            <div class="admin-users-toolbar" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:16px;">
+              <div class="admin-users-tabs" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button id="filterUsersAllBtn" class="btn-filter-pill active" onclick="setAdminUsersFilter('all')">
+                  Tous les membres (<span id="statCountUsersAll">0</span>)
+                </button>
+                <button id="filterUsersVipBtn" class="btn-filter-pill" onclick="setAdminUsersFilter('vip')">
+                  Membres VIP (<span id="statCountUsersVip">0</span>)
+                </button>
+                <button id="filterUsersFreeBtn" class="btn-filter-pill" onclick="setAdminUsersFilter('free')">
+                  Membres Gratuits / Free (<span id="statCountUsersFree">0</span>)
+                </button>
+              </div>
+              <div class="filter-group search-filter" style="min-width:220px;">
+                <input type="text" id="adminUserSearchInput" class="form-input-sm" placeholder="Rechercher un pseudo, email..." oninput="filterAndRenderAdminUsers()">
+              </div>
+            </div>
+
             <div id="adminUsersList" class="admin-users-grid">
               <!-- Dynamically populated users list -->
             </div>

@@ -1947,6 +1947,88 @@ async function saveAdminVideoEdit(e) {
 }
 
 // Admin Users Management
+// ==================== ADMIN USERS & VIP CONTROLLER ====================
+let adminUsersCache = [];
+let currentAdminUsersFilter = 'all';
+
+function setAdminUsersFilter(filter) {
+  currentAdminUsersFilter = filter;
+  ['all', 'vip', 'free'].forEach(f => {
+    const btn = document.getElementById(`filterUsers${f.charAt(0).toUpperCase() + f.slice(1)}Btn`);
+    if (btn) btn.classList.toggle('active', f === filter);
+  });
+  filterAndRenderAdminUsers();
+}
+
+function filterAndRenderAdminUsers() {
+  const container = document.getElementById('adminUsersList');
+  if (!container) return;
+
+  const searchInput = document.getElementById('adminUserSearchInput');
+  const search = searchInput ? searchInput.value.trim().toLowerCase() : '';
+
+  let filtered = adminUsersCache;
+
+  // 1. Filter by category (VIP / Free / All)
+  if (currentAdminUsersFilter === 'vip') {
+    filtered = filtered.filter(u => u.isVip);
+  } else if (currentAdminUsersFilter === 'free') {
+    filtered = filtered.filter(u => !u.isVip);
+  }
+
+  // 2. Filter by search query
+  if (search) {
+    filtered = filtered.filter(u => 
+      (u.username && u.username.toLowerCase().includes(search)) ||
+      (u.email && u.email.toLowerCase().includes(search)) ||
+      (u.bio && u.bio.toLowerCase().includes(search))
+    );
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; background: #1e293b; border-radius: 12px; border: 1px dashed #334155; color: var(--text-muted);">
+        <p style="margin:0; font-size:0.95rem;">Aucun membre ne correspond à ce filtre.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map(u => {
+    const isUserVip = !!u.isVip;
+    const isUserAdmin = u.role === 'admin' || (u.email && u.email.toLowerCase() === 'ia.project.pro2k26@gmail.com');
+
+    return `
+      <div class="admin-user-card" style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; border:1px solid ${isUserVip ? '#f59e0b' : '#334155'}; padding:16px 20px; border-radius:12px; gap:16px;">
+        <div class="user-card-left" style="display:flex; align-items:center; gap:14px;">
+          <img src="${u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}" class="user-card-avatar" style="width:46px; height:46px; border-radius:50%; object-fit:cover; border:2px solid ${isUserVip ? '#f59e0b' : 'var(--primary)'};" alt="${u.username}">
+          <div class="user-card-details">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <h4 style="margin:0; font-size:1rem; color:#ffffff;">${u.username}</h4>
+              ${isUserAdmin ? '<span class="admin-badge" style="background:#dc2626; color:#fff; font-size:0.7rem; padding:2px 8px; border-radius:999px; font-weight:800;">Admin</span>' : ''}
+              ${isUserVip ? 
+                '<span style="background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color:#ffffff; font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:999px;">MEMBRE VIP</span>' : 
+                '<span style="background:#334155; color:#94a3b8; font-size:0.7rem; font-weight:700; padding:2px 8px; border-radius:999px;">MEMBRE GRATUIT (FREE)</span>'
+              }
+            </div>
+            <p style="margin:4px 0 0; font-size:0.84rem; color:var(--text-muted);">${u.email}</p>
+            ${u.bio ? `<p style="margin:3px 0 0; font-size:0.78rem; color:#cbd5e1; font-style:italic;">"${u.bio.length > 60 ? u.bio.slice(0, 60) + '...' : u.bio}"</p>` : ''}
+            <p style="font-size:0.75rem; margin:4px 0 0; color:${isUserVip ? '#fbbf24' : '#64748b'};">
+              ${isUserVip ? `Privilèges VIP actifs (${u.vipExpiry || 'Permanent'})` : 'Option standard gratuite (Free)'}
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <button class="btn btn-sm ${isUserVip ? 'btn-secondary' : 'btn-vip-pill'}" onclick="toggleUserVip('${u.id}')" title="${isUserVip ? 'Rétrograder au compte standard Free' : 'Accorder les privilèges VIP à 9,99€'}">
+            ${isUserVip ? 'Retirer VIP' : 'Passer VIP'}
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 async function loadAdminUsers() {
   if (!AUTH.isAdmin()) return;
   const container = document.getElementById('adminUsersList');
@@ -1957,28 +2039,22 @@ async function loadAdminUsers() {
       headers: { 'Authorization': `Bearer ${AUTH.token}` }
     });
     const data = await res.json();
-    const users = data.users || [];
+    adminUsersCache = data.users || [];
 
-    container.innerHTML = users.map(u => `
-      <div class="admin-user-card">
-        <div class="user-card-left">
-          <img src="${u.avatar}" class="user-card-avatar" alt="${u.username}">
-          <div class="user-card-details">
-            <h4>${u.username} ${u.role === 'admin' ? '<span class="admin-badge">Admin</span>' : ''}</h4>
-            <p>${u.email}</p>
-            <p style="font-size:0.75rem;margin-top:2px;">
-              Statut VIP : <strong>${u.isVip ? 'Actif (' + (u.vipExpiry || 'Illimité') + ')' : 'Non VIP'}</strong>
-            </p>
-          </div>
-        </div>
+    // Update Counts
+    const totalCount = adminUsersCache.length;
+    const vipCount = adminUsersCache.filter(u => u.isVip).length;
+    const freeCount = totalCount - vipCount;
 
-        <div>
-          <button class="btn btn-sm ${u.isVip ? 'btn-secondary' : 'btn-vip-pill'}" onclick="toggleUserVip('${u.id}')">
-            ${u.isVip ? 'Retirer VIP' : 'Passer VIP'}
-          </button>
-        </div>
-      </div>
-    `).join('');
+    const countAllEl = document.getElementById('statCountUsersAll');
+    const countVipEl = document.getElementById('statCountUsersVip');
+    const countFreeEl = document.getElementById('statCountUsersFree');
+
+    if (countAllEl) countAllEl.textContent = totalCount;
+    if (countVipEl) countVipEl.textContent = vipCount;
+    if (countFreeEl) countFreeEl.textContent = freeCount;
+
+    filterAndRenderAdminUsers();
   } catch (err) {
     console.error(err);
   }
@@ -1995,7 +2071,7 @@ async function toggleUserVip(userId) {
     await loadAdminStats();
     await loadAdminUsers();
   } catch (err) {
-    showToast('Erreur.');
+    showToast('Erreur lors du changement de statut.');
   }
 }
 

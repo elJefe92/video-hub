@@ -7,7 +7,7 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
-const { loadDb, saveDb } = require('./database');
+const { loadDb, saveDb, syncDbFromCloud, syncDbToCloud } = require('./database');
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 const stripe = stripeSecret ? require('stripe')(stripeSecret) : null;
 
@@ -437,6 +437,7 @@ app.post('/api/auth/register', async (req, res) => {
     });
   }
 
+  await syncDbFromCloud();
   const db = loadDb();
 
   // 2. Strict unique username check (case-insensitive)
@@ -471,6 +472,7 @@ app.post('/api/auth/register', async (req, res) => {
 
   db.users.push(newUser);
   saveDb(db);
+  await syncDbToCloud(db);
 
   addLog('Inscription Utilisateur', `Nouveau compte: ${newUser.username} (${newUser.email})`);
 
@@ -506,12 +508,13 @@ app.post('/api/auth/send-welcome-email', authenticate, async (req, res) => {
   }
 });
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const { emailOrUsername, password } = req.body;
   if (!emailOrUsername || !password) {
     return res.status(400).json({ error: 'Veuillez renseigner votre identifiant et mot de passe.' });
   }
 
+  await syncDbFromCloud();
   const db = loadDb();
   const query = emailOrUsername.trim().toLowerCase();
   const user = db.users.find(u => u.email.toLowerCase() === query || u.username.toLowerCase() === query);
@@ -529,6 +532,7 @@ app.post('/api/auth/login', (req, res) => {
     user.role = 'admin';
     user.isVip = true;
     saveDb(db);
+    await syncDbToCloud(db);
   }
 
   const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
@@ -1598,13 +1602,15 @@ app.post('/api/admin/reports/:id/resolve', requireAdmin, (req, res) => {
 });
 
 // Admin Users Management
-app.get('/api/admin/users', requireAdmin, (req, res) => {
+app.get('/api/admin/users', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
   const db = loadDb();
   const safeUsers = db.users.map(({ passwordHash, ...u }) => u);
   res.json({ users: safeUsers });
 });
 
-app.post('/api/admin/users/:id/toggle-vip', requireAdmin, (req, res) => {
+app.post('/api/admin/users/:id/toggle-vip', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
   const db = loadDb();
   const user = db.users.find(u => u.id === req.params.id);
   if (!user) return res.status(404).json({ error: 'Utilisateur introuvable.' });
@@ -1623,13 +1629,15 @@ app.post('/api/admin/users/:id/toggle-vip', requireAdmin, (req, res) => {
   });
 
   saveDb(db);
+  await syncDbToCloud(db);
   addLog('Gestion VIP', `Statut VIP de ${user.username} défini à ${user.isVip ? 'ACTIF' : 'INACTIF'}`);
 
   const { passwordHash: _, ...userSafe } = user;
   res.json({ message: `Statut VIP mis à jour pour ${user.username}`, user: userSafe });
 });
 
-app.get('/api/admin/stats', requireAdmin, (req, res) => {
+app.get('/api/admin/stats', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
   const db = loadDb();
   const totalViews = db.videos.reduce((acc, v) => acc + (v.views || 0), 0);
   const totalLikes = db.videos.reduce((acc, v) => acc + (v.likes || 0), 0);
