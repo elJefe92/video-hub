@@ -2765,6 +2765,8 @@ async function handleSendContact(e) {
       btnSubmit.textContent = 'Envoyer le message';
     }
   }
+}
+
 // ==================== PASSWORD VISIBILITY TOGGLE ====================
 function togglePasswordVisibility(inputId, btnEl) {
   const input = document.getElementById(inputId);
