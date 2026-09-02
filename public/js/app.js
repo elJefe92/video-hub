@@ -1528,7 +1528,7 @@ async function loadAdminVideos() {
           <div class="pending-info">
             <div class="pending-title-row">
               <h4 style="cursor:pointer;" onclick="openVideoPlayerModal('${v.id}')">${v.title}</h4>
-              <span class="badge-views-pill" title="Nombre total de vues">👁️ ${(v.views || 0).toLocaleString()} vues</span>
+              <span class="badge-views-pill" title="Nombre total de vues">${(v.views || 0).toLocaleString()} vues</span>
               <span class="badge-status-pill ${v.status}">${v.status === 'approved' ? 'Validé' : 'En attente'}</span>
               ${v.isVipExclusive ? '<span class="vip-author-badge" style="background:#f59e0b;color:#000;font-weight:800;">VIP EXCLUSIF</span>' : ''}
               ${v.isVipAuthor ? '<span class="vip-author-badge">Auteur VIP</span>' : ''}
@@ -2142,7 +2142,7 @@ async function resendMyWelcomeEmail() {
   } finally {
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "✉️ Renvoyer l'e-mail de bienvenue";
+      btn.textContent = "Renvoyer l'e-mail de bienvenue";
     }
   }
 }

@@ -98,7 +98,7 @@ async function sendWelcomeEmail(toEmail, username) {
   const mailOptions = {
     from: `"VideoHub" <${process.env.SMTP_USER || 'ia.project.pro2k26@gmail.com'}>`,
     to: toEmail,
-    subject: '🎉 Bienvenue sur VideoHub - Votre compte a été créé avec succès !',
+    subject: 'Bienvenue sur VideoHub - Votre compte a été créé avec succès',
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
         <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 32px 24px; text-align: center;">
@@ -106,15 +106,15 @@ async function sendWelcomeEmail(toEmail, username) {
           <p style="margin: 8px 0 0; color: rgba(255,255,255,0.95); font-size: 15px; font-weight: 600;">Plateforme & Hub Vidéo Communautaire</p>
         </div>
         <div style="padding: 32px 24px; line-height: 1.6;">
-          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bienvenue sur VideoHub, ${username || 'Cher Membre'} ! 👋</h2>
+          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bienvenue sur VideoHub, ${username || 'Cher Membre'} !</h2>
           <p style="color: #cbd5e1; font-size: 15px;">
             Votre compte a bien été créé avec succès. Vous pouvez dès à présent vous connecter et profiter de tous nos services :
           </p>
           <div style="background: #1e293b; border-radius: 8px; padding: 18px; margin: 20px 0; border: 1px solid #334155;">
             <ul style="color: #cbd5e1; font-size: 14px; margin: 0; padding-left: 18px; line-height: 1.9;">
-              <li>🚀 <strong>Partager vos vidéos</strong> en haute définition avec la communauté</li>
-              <li>💬 <strong>Interagir :</strong> likes, commentaires et retours en direct</li>
-              <li>⭐ <strong>Accéder aux sélections exclusives</strong> et profils créateurs</li>
+              <li><strong>Partager vos vidéos</strong> en haute définition avec la communauté</li>
+              <li><strong>Interagir :</strong> likes, commentaires et retours en direct</li>
+              <li><strong>Accéder aux sélections exclusives</strong> et profils créateurs</li>
             </ul>
           </div>
           <div style="margin: 30px 0; text-align: center;">
