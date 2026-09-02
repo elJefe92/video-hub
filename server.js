@@ -451,7 +451,7 @@ function isReservedAdminUsername(username, userEmail) {
 }
 
 // ---------------- AUTH ROUTES (Direct, No Google) ----------------
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', async (req, res) => {
   const { username, email, password, avatar } = req.body;
   if (!username || !email || !password) {
     return res.status(400).json({ error: 'Tous les champs sont requis.' });
@@ -504,16 +504,18 @@ app.post('/api/auth/register', (req, res) => {
 
   addLog('Inscription Utilisateur', `Nouveau compte: ${newUser.username} (${newUser.email})`);
 
-  // Asynchronously send welcome email
-  sendWelcomeEmail(newUser.email, newUser.username).catch(err => {
-    console.error('Welcome email sending error:', err);
-  });
+  // Await welcome email dispatch before serverless Lambda terminates
+  try {
+    await sendWelcomeEmail(newUser.email, newUser.username);
+  } catch (err) {
+    console.error('Welcome email sending error:', err.message);
+  }
 
   const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, { expiresIn: '30d' });
   const { passwordHash: _, ...userSafe } = newUser;
 
   res.status(201).json({
-    message: 'Compte créé avec succès ! Un e-mail de confirmation vous a été envoyé.',
+    message: 'Compte créé avec succès ! Un e-mail de bienvenue vous a été envoyé.',
     token,
     user: userSafe
   });
