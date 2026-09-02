@@ -8,6 +8,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const { loadDb, saveDb, syncDbFromCloud, syncDbToCloud } = require('./database');
+const { supabase } = require('./supabase');
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 const stripe = stripeSecret ? require('stripe')(stripeSecret) : null;
 
