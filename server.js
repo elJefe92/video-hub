@@ -7,6 +7,7 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { loadDb, saveDb } = require('./database');
+const { supabase } = require('./supabase');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,27 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Helper to upload files to Supabase Storage if configured
+async function uploadToSupabaseStorage(bucket, localFilePath, filename, contentType) {
+  if (!supabase) return null;
+  try {
+    const fileBuffer = fs.readFileSync(localFilePath);
+    const { data, error } = await supabase.storage.from(bucket).upload(filename, fileBuffer, {
+      contentType: contentType || 'application/octet-stream',
+      upsert: true
+    });
+    if (error) {
+      console.error(`Supabase storage upload error (${bucket}):`, error);
+      return null;
+    }
+    const { data: publicData } = supabase.storage.from(bucket).getPublicUrl(filename);
+    return publicData ? publicData.publicUrl : null;
+  } catch (err) {
+    console.error(`Error uploading to Supabase (${bucket}):`, err);
+    return null;
+  }
 }
 
 // Multer config for file uploads
@@ -420,7 +442,7 @@ function optionalAuthenticate(req, res, next) {
 app.post('/api/videos/upload', optionalAuthenticate, upload.fields([
   { name: 'videoFile', maxCount: 1 },
   { name: 'thumbnailFile', maxCount: 1 }
-]), (req, res) => {
+]), async (req, res) => {
   const { title, description, category, categories, email, uploaderEmail, region, uploaderRegion, externalVideoUrl, customThumbnailUrl } = req.body;
 
   const resolvedEmail = (req.user ? req.user.email : (uploaderEmail || email || '')).trim().toLowerCase();
@@ -439,7 +461,9 @@ app.post('/api/videos/upload', optionalAuthenticate, upload.fields([
 
   let videoUrl = '';
   if (req.files && req.files['videoFile'] && req.files['videoFile'][0]) {
-    videoUrl = `/uploads/${req.files['videoFile'][0].filename}`;
+    const videoFile = req.files['videoFile'][0];
+    const supabaseUrl = await uploadToSupabaseStorage('videos', videoFile.path, videoFile.filename, videoFile.mimetype);
+    videoUrl = supabaseUrl || `/uploads/${videoFile.filename}`;
   } else if (externalVideoUrl) {
     videoUrl = externalVideoUrl;
   } else {
@@ -448,7 +472,9 @@ app.post('/api/videos/upload', optionalAuthenticate, upload.fields([
 
   let thumbnail = '';
   if (req.files && req.files['thumbnailFile'] && req.files['thumbnailFile'][0]) {
-    thumbnail = `/uploads/${req.files['thumbnailFile'][0].filename}`;
+    const thumbFile = req.files['thumbnailFile'][0];
+    const supabaseThumbUrl = await uploadToSupabaseStorage('thumbnails', thumbFile.path, thumbFile.filename, thumbFile.mimetype);
+    thumbnail = supabaseThumbUrl || `/uploads/${thumbFile.filename}`;
   } else if (customThumbnailUrl) {
     thumbnail = customThumbnailUrl;
   } else {
