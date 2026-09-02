@@ -1215,23 +1215,48 @@
   <!-- ==================== ADMIN EDIT CATEGORY MODAL ==================== -->
   <div id="adminEditCategoryModal" class="modal-overlay hidden" onclick="closeAdminEditCategoryModal(event)">
     <div class="modal-card modal-category" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeAdminEditCategoryModal()"></button>
+      <button class="modal-close-btn" onclick="closeAdminEditCategoryModal()">✕</button>
       <div class="modal-header-box">
-        <h3>Modifier la Catégorie</h3>
-        <p>Changez le nom de cette catégorie.</p>
+        <h3>Modifier la Catégorie & Miniature</h3>
+        <p>Définissez le nom, la description et l'image de couverture de cette catégorie.</p>
       </div>
 
       <form id="adminEditCategoryForm" class="custom-form" onsubmit="saveAdminCategoryEdit(event)">
         <input type="hidden" id="editCatId">
         
-        <div class="form-group">
-          <label class="form-label">Nom de la catégorie *</label>
-          <input type="text" id="editCatName" class="form-input" placeholder="Ex: Gaming, Musique..." required>
+        <!-- Category Thumbnail Preview & Upload -->
+        <div class="form-group" style="text-align:center;">
+          <label class="form-label" style="text-align:center;">Miniature / Image de Couverture</label>
+          <div class="category-thumb-edit-box">
+            <img id="editCatThumbPreview" src="https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=400" class="category-thumb-preview-img" alt="Miniature Catégorie">
+            <div class="thumb-upload-row mt-2">
+              <label class="btn btn-sm btn-secondary" for="editCatThumbFile" style="cursor:pointer;">
+                📁 Choisir une image
+              </label>
+              <input type="file" id="editCatThumbFile" accept="image/*" style="display:none;" onchange="previewCategoryThumb(this)">
+            </div>
+          </div>
         </div>
 
-        <button type="submit" class="btn btn-primary btn-block">
-          Mettre à jour la catégorie
-        </button>
+        <div class="form-group">
+          <label class="form-label">Ou Coller l'URL d'une Image Web</label>
+          <input type="url" id="editCatThumbUrl" class="form-input" placeholder="https://images.unsplash.com/photo-..." oninput="updateCatThumbFromUrl(this.value)">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nom de la catégorie *</label>
+          <input type="text" id="editCatName" class="form-input" placeholder="Ex: Gaming, Musique, Interviews..." required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description (optionnelle)</label>
+          <textarea id="editCatDesc" class="form-textarea" rows="2" placeholder="Description de la thématique..."></textarea>
+        </div>
+
+        <div class="modal-actions-box mt-3" style="display:flex;gap:10px;justify-content:flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="closeAdminEditCategoryModal()">Annuler</button>
+          <button type="submit" id="btnSaveCatEditSubmit" class="btn btn-primary">Enregistrer la catégorie</button>
+        </div>
       </form>
     </div>
   </div>

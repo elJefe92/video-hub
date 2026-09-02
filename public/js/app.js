@@ -1527,12 +1527,16 @@ async function loadAdminVideos() {
           <div class="pending-info">
             <div class="pending-title-row">
               <h4 style="cursor:pointer;" onclick="openVideoPlayerModal('${v.id}')">${v.title}</h4>
+              <span class="badge-views-pill" title="Nombre total de vues">👁️ ${(v.views || 0).toLocaleString()} vues</span>
               <span class="badge-status-pill ${v.status}">${v.status === 'approved' ? 'Validé' : 'En attente'}</span>
-              ${v.isVipAuthor ? '<span class="vip-author-badge">VIP</span>' : ''}
+              ${v.isVipExclusive ? '<span class="vip-author-badge" style="background:#f59e0b;color:#000;font-weight:800;">VIP EXCLUSIF</span>' : ''}
+              ${v.isVipAuthor ? '<span class="vip-author-badge">Auteur VIP</span>' : ''}
             </div>
             <div class="pending-meta">
               <span><strong>${v.authorEmail || v.authorName}</strong></span> • 
               <span>${v.region || 'France'}</span> • 
+              <span style="color:var(--primary);font-weight:700;">${(v.views || 0).toLocaleString()} vues</span> • 
+              <span>${v.likes || 0} likes</span> • 
               <span>${cats.map(c => `#${c}`).join(', ')}</span> • 
               <span>${new Date(v.createdAt).toLocaleDateString()}</span>
             </div>
@@ -1924,70 +1928,128 @@ function renderAdminCategoriesManager() {
       allCategoriesList.filter(c => c.id !== 'all').map(c => `<option value="${c.id}">${c.name}</option>`).join('');
   }
 
-  container.innerHTML = allCategoriesList.map(cat => `
-    <div class="category-manager-item">
-      <div class="cat-item-left">
-        <strong>${cat.name}</strong>
-        ${cat.isSystem ? '<small style="color:var(--text-light);font-size:0.7rem;">(Système)</small>' : ''}
+  container.innerHTML = allCategoriesList.map(cat => {
+    const thumbUrl = cat.thumbnail || 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=150&auto=format&fit=crop&q=80';
+    return `
+      <div class="category-manager-item">
+        <div class="cat-item-left" style="display:flex;align-items:center;gap:12px;">
+          <img src="${thumbUrl}" class="cat-thumb-mini" alt="${cat.name}" onclick="openAdminEditCategoryModal('${cat.id}')" title="Cliquer pour changer la miniature" style="cursor:pointer;">
+          <div>
+            <strong>${cat.name}</strong>
+            ${cat.isSystem ? '<small style="color:var(--text-light);font-size:0.7rem;display:block;">(Système)</small>' : ''}
+            ${cat.description ? `<small style="color:var(--text-muted);display:block;font-size:0.75rem;">${cat.description}</small>` : ''}
+          </div>
+        </div>
+        <div class="cat-item-actions" style="display:flex;gap:6px;align-items:center;">
+          ${!cat.isSystem ? `
+            <button class="btn btn-sm btn-secondary" onclick="openAdminEditCategoryModal('${cat.id}')" style="border-color:var(--primary);color:var(--primary);font-weight:700;">
+              Miniature & Nom
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="deleteCategory('${cat.id}')" title="Supprimer la catégorie">Supprimer</button>
+          ` : `
+            <button class="btn btn-sm btn-secondary" onclick="openAdminEditCategoryModal('${cat.id}')" title="Ajouter une miniature à la catégorie">
+              Miniature
+            </button>
+            <span style="font-size:0.75rem;color:var(--text-light);">Protégée</span>
+          `}
+        </div>
       </div>
-      <div class="cat-item-actions" style="display:flex;gap:6px;align-items:center;">
-        ${!cat.isSystem ? `
-          <button class="btn btn-sm btn-secondary" onclick="openAdminEditCategoryModal('${cat.id}')">Modifier</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteCategory('${cat.id}')" title="Supprimer la catégorie">Supprimer</button>
-        ` : '<span style="font-size:0.75rem;color:var(--text-light);">Protégée</span>'}
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
-// Category Edit Modal Handlers
+// Category Edit & Thumbnail Modal Handlers
 function openAdminEditCategoryModal(catId) {
   const cat = allCategoriesList.find(c => c.id === catId);
   if (!cat) return;
 
   document.getElementById('editCatId').value = cat.id;
-  document.getElementById('editCatName').value = cat.name;
+  document.getElementById('editCatName').value = cat.name || '';
+  const descEl = document.getElementById('editCatDesc');
+  if (descEl) descEl.value = cat.description || '';
+
+  const defaultThumb = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=400&auto=format&fit=crop&q=80';
+  const previewImg = document.getElementById('editCatThumbPreview');
+  const urlInput = document.getElementById('editCatThumbUrl');
+  const fileInput = document.getElementById('editCatThumbFile');
+
+  if (previewImg) previewImg.src = cat.thumbnail || defaultThumb;
+  if (urlInput) urlInput.value = (cat.thumbnail && cat.thumbnail.startsWith('http')) ? cat.thumbnail : '';
+  if (fileInput) fileInput.value = '';
 
   const modal = document.getElementById('adminEditCategoryModal');
   if (modal) modal.classList.remove('hidden');
 }
 
 function closeAdminEditCategoryModal(e) {
-  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) {
+  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn') && e.target.tagName !== 'BUTTON') {
     return;
   }
   const modal = document.getElementById('adminEditCategoryModal');
   if (modal) modal.classList.add('hidden');
 }
 
+function previewCategoryThumb(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const previewImg = document.getElementById('editCatThumbPreview');
+      if (previewImg) previewImg.src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function updateCatThumbFromUrl(url) {
+  if (url && url.trim().startsWith('http')) {
+    const previewImg = document.getElementById('editCatThumbPreview');
+    if (previewImg) previewImg.src = url.trim();
+  }
+}
+
 async function saveAdminCategoryEdit(e) {
   e.preventDefault();
   const id = document.getElementById('editCatId').value;
   const name = document.getElementById('editCatName').value.trim();
-  const icon = '';
+  const description = (document.getElementById('editCatDesc')?.value || '').trim();
+  const thumbUrl = (document.getElementById('editCatThumbUrl')?.value || '').trim();
+  const fileInput = document.getElementById('editCatThumbFile');
+  const btnSubmit = document.getElementById('btnSaveCatEditSubmit');
 
   if (!name) {
     showToast('Le nom de la catégorie est obligatoire.');
     return;
   }
 
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Enregistrement...';
+  }
+
   try {
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('description', description);
+    if (thumbUrl) formData.append('thumbnail', thumbUrl);
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+      formData.append('thumbnailFile', fileInput.files[0]);
+    }
+
     const res = await fetch(`/api/categories/${id}`, {
       method: 'PUT',
       headers: {
-        'Content-Type': 'application/json',
         'Authorization': `Bearer ${AUTH.token}`
       },
-      body: JSON.stringify({ name, icon })
+      body: formData
     });
 
     const data = await res.json();
     if (!res.ok) {
-      showToast('' + (data.error || 'Erreur lors de la mise à jour'));
+      showToast(data.error || 'Erreur lors de la mise à jour');
       return;
     }
 
-    showToast(data.message || 'Catégorie modifiée avec succès !');
+    showToast(data.message || 'Catégorie et miniature mises à jour avec succès !');
     closeAdminEditCategoryModal();
 
     await loadCategories();
@@ -1995,6 +2057,11 @@ async function saveAdminCategoryEdit(e) {
     await loadAdminStats();
   } catch (err) {
     showToast('Erreur de modification.');
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = 'Enregistrer la catégorie';
+    }
   }
 }
 

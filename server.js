@@ -325,9 +325,9 @@ app.post('/api/categories', authenticate, (req, res) => {
   });
 });
 
-// Admin can edit categories
-app.put('/api/categories/:id', requireAdmin, (req, res) => {
-  const { name, icon } = req.body;
+// Admin can edit categories and their thumbnails
+app.put('/api/categories/:id', requireAdmin, upload.single('thumbnailFile'), async (req, res) => {
+  const { name, icon, description, thumbnail } = req.body;
   const db = loadDb();
   const catId = req.params.id;
 
@@ -339,15 +339,23 @@ app.put('/api/categories/:id', requireAdmin, (req, res) => {
   if (name && name.trim()) {
     cat.name = name.trim();
   }
-  if (icon && icon.trim()) {
-    cat.icon = icon.trim();
+  if (typeof description === 'string') {
+    cat.description = description.trim();
+  }
+
+  // Handle uploaded thumbnail file
+  if (req.file) {
+    const supabaseThumb = await uploadToSupabaseStorage('thumbnails', req.file.path, req.file.filename, req.file.mimetype);
+    cat.thumbnail = supabaseThumb || `/uploads/${req.file.filename}`;
+  } else if (thumbnail && thumbnail.trim()) {
+    cat.thumbnail = thumbnail.trim();
   }
 
   saveDb(db);
   addLog('Modification Catégorie', `Catégorie "${cat.name}" modifiée par Admin`);
 
   res.json({
-    message: `Catégorie "${cat.name}" modifiée avec succès ! `,
+    message: `Catégorie "${cat.name}" modifiée avec succès !`,
     category: cat,
     categories: db.categories
   });
