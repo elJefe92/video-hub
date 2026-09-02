@@ -79,9 +79,26 @@ async function uploadBase64ToSupabaseStorage(bucket, base64Data, filename) {
     return publicData ? publicData.publicUrl : null;
   } catch (err) {
     console.error(`Error uploading base64 to Supabase (${bucket}):`, err);
-    return null;
+app.get('/api/debug-supabase', async (req, res) => {
+  if (!supabase) {
+    return res.json({ supabaseConfigured: false, envUrl: !!process.env.SUPABASE_URL, envKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY });
   }
-}
+  try {
+    const { data: buckets, error: bErr } = await supabase.storage.listBuckets();
+    const testUpload = await supabase.storage.from('thumbnails').upload('test_ping.json', JSON.stringify({ ping: Date.now() }), { upsert: true, contentType: 'application/json' });
+    const { data: dlData, error: dlErr } = await supabase.storage.from('thumbnails').download('videohub_db_state.json');
+    res.json({
+      supabaseConfigured: true,
+      buckets: buckets || [],
+      bucketError: bErr ? bErr.message : null,
+      testUploadError: testUpload.error ? testUpload.error.message : null,
+      downloadError: dlErr ? dlErr.message : null,
+      hasStateFile: !!dlData
+    });
+  } catch (err) {
+    res.json({ error: err.message });
+  }
+});
 
 // Mail Transporter for Welcome & Notification Emails
 let mailTransporter = null;
