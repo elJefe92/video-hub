@@ -1929,11 +1929,12 @@ function renderAdminCategoriesManager() {
   }
 
   container.innerHTML = allCategoriesList.map(cat => {
-    const thumbUrl = cat.thumbnail || 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=150&auto=format&fit=crop&q=80';
     return `
       <div class="category-manager-item">
         <div class="cat-item-left" style="display:flex;align-items:center;gap:12px;">
-          <img src="${thumbUrl}" class="cat-thumb-mini" alt="${cat.name}" onclick="openAdminEditCategoryModal('${cat.id}')" title="Cliquer pour changer la miniature" style="cursor:pointer;">
+          ${cat.thumbnail ? `
+            <img src="${cat.thumbnail}" class="cat-thumb-mini" alt="${cat.name}" onclick="openAdminEditCategoryModal('${cat.id}')" title="Cliquer pour modifier la miniature" style="cursor:pointer;">
+          ` : ''}
           <div>
             <strong>${cat.name}</strong>
             ${cat.isSystem ? '<small style="color:var(--text-light);font-size:0.7rem;display:block;">(Système)</small>' : ''}
@@ -1943,7 +1944,7 @@ function renderAdminCategoriesManager() {
         <div class="cat-item-actions" style="display:flex;gap:6px;align-items:center;">
           ${!cat.isSystem ? `
             <button class="btn btn-sm btn-secondary" onclick="openAdminEditCategoryModal('${cat.id}')" style="border-color:var(--primary);color:var(--primary);font-weight:700;">
-              Miniature & Nom
+              ${cat.thumbnail ? 'Modifier' : 'Miniature & Nom'}
             </button>
             <button class="btn btn-sm btn-danger" onclick="deleteCategory('${cat.id}')" title="Supprimer la catégorie">Supprimer</button>
           ` : `
@@ -1959,26 +1960,63 @@ function renderAdminCategoriesManager() {
 }
 
 // Category Edit & Thumbnail Modal Handlers
+let categoryThumbRemoved = false;
+
 function openAdminEditCategoryModal(catId) {
   const cat = allCategoriesList.find(c => c.id === catId);
   if (!cat) return;
+  categoryThumbRemoved = false;
 
   document.getElementById('editCatId').value = cat.id;
   document.getElementById('editCatName').value = cat.name || '';
   const descEl = document.getElementById('editCatDesc');
   if (descEl) descEl.value = cat.description || '';
 
-  const defaultThumb = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=400&auto=format&fit=crop&q=80';
   const previewImg = document.getElementById('editCatThumbPreview');
+  const emptyBox = document.getElementById('editCatThumbEmpty');
+  const btnRemove = document.getElementById('btnRemoveCatThumb');
   const urlInput = document.getElementById('editCatThumbUrl');
   const fileInput = document.getElementById('editCatThumbFile');
 
-  if (previewImg) previewImg.src = cat.thumbnail || defaultThumb;
-  if (urlInput) urlInput.value = (cat.thumbnail && cat.thumbnail.startsWith('http')) ? cat.thumbnail : '';
   if (fileInput) fileInput.value = '';
+  if (urlInput) urlInput.value = (cat.thumbnail && cat.thumbnail.startsWith('http')) ? cat.thumbnail : '';
+
+  if (cat.thumbnail) {
+    if (previewImg) {
+      previewImg.src = cat.thumbnail;
+      previewImg.classList.remove('hidden');
+    }
+    if (emptyBox) emptyBox.classList.add('hidden');
+    if (btnRemove) btnRemove.classList.remove('hidden');
+  } else {
+    if (previewImg) {
+      previewImg.src = '';
+      previewImg.classList.add('hidden');
+    }
+    if (emptyBox) emptyBox.classList.remove('hidden');
+    if (btnRemove) btnRemove.classList.add('hidden');
+  }
 
   const modal = document.getElementById('adminEditCategoryModal');
   if (modal) modal.classList.remove('hidden');
+}
+
+function removeCategoryThumb() {
+  categoryThumbRemoved = true;
+  const previewImg = document.getElementById('editCatThumbPreview');
+  const emptyBox = document.getElementById('editCatThumbEmpty');
+  const btnRemove = document.getElementById('btnRemoveCatThumb');
+  const urlInput = document.getElementById('editCatThumbUrl');
+  const fileInput = document.getElementById('editCatThumbFile');
+
+  if (previewImg) {
+    previewImg.src = '';
+    previewImg.classList.add('hidden');
+  }
+  if (emptyBox) emptyBox.classList.remove('hidden');
+  if (btnRemove) btnRemove.classList.add('hidden');
+  if (urlInput) urlInput.value = '';
+  if (fileInput) fileInput.value = '';
 }
 
 function closeAdminEditCategoryModal(e) {
@@ -2030,9 +2068,13 @@ async function saveAdminCategoryEdit(e) {
     const formData = new FormData();
     formData.append('name', name);
     formData.append('description', description);
-    if (thumbUrl) formData.append('thumbnail', thumbUrl);
-    if (fileInput && fileInput.files && fileInput.files[0]) {
-      formData.append('thumbnailFile', fileInput.files[0]);
+    if (categoryThumbRemoved) {
+      formData.append('removeThumbnail', 'true');
+    } else {
+      if (thumbUrl) formData.append('thumbnail', thumbUrl);
+      if (fileInput && fileInput.files && fileInput.files[0]) {
+        formData.append('thumbnailFile', fileInput.files[0]);
+      }
     }
 
     const res = await fetch(`/api/categories/${id}`, {

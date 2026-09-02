@@ -343,8 +343,10 @@ app.put('/api/categories/:id', requireAdmin, upload.single('thumbnailFile'), asy
     cat.description = description.trim();
   }
 
-  // Handle uploaded thumbnail file
-  if (req.file) {
+  // Handle uploaded thumbnail file or remove request
+  if (req.body.removeThumbnail === 'true') {
+    cat.thumbnail = '';
+  } else if (req.file) {
     const supabaseThumb = await uploadToSupabaseStorage('thumbnails', req.file.path, req.file.filename, req.file.mimetype);
     cat.thumbnail = supabaseThumb || `/uploads/${req.file.filename}`;
   } else if (thumbnail && thumbnail.trim()) {
