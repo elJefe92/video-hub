@@ -79,30 +79,16 @@ function getMailTransporter() {
   if (mailTransporter) return mailTransporter;
 
   const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER || 'ia.project.pro2k26@gmail.com';
-  const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
+  const smtpPass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD || 'rxcqdfrtywmzzaym').replace(/\s+/g, '');
 
-  if (smtpPass) {
-    mailTransporter = nodemailer.createTransport({
-      service: process.env.SMTP_SERVICE || 'gmail',
-      host: process.env.SMTP_HOST || 'smtp.gmail.com',
-      port: parseInt(process.env.SMTP_PORT || '465'),
-      secure: process.env.SMTP_PORT === '587' ? false : true,
-      auth: {
-        user: smtpUser,
-        pass: smtpPass
-      }
-    });
-  } else {
-    // Ethereal/Local fallback transporter
-    mailTransporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      auth: {
-        user: 'ethereal.user@ethereal.email',
-        pass: 'ethereal.pass'
-      }
-    });
-  }
+  mailTransporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: smtpUser,
+      pass: smtpPass
+    }
+  });
+
   return mailTransporter;
 }
 
@@ -116,8 +102,8 @@ async function sendWelcomeEmail(toEmail, username) {
     html: `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
         <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 32px 24px; text-align: center;">
-          <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Video<span style="color: #0f172a;">Hub</span></h1>
-          <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 15px; font-weight: 600;">Plateforme & Blog Vidéo Communautaire</p>
+          <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Video<span style="color: #0f172a; background: #ffffff; padding: 2px 8px; border-radius: 6px; margin-left: 4px;">Hub</span></h1>
+          <p style="margin: 8px 0 0; color: rgba(255,255,255,0.95); font-size: 15px; font-weight: 600;">Plateforme & Hub Vidéo Communautaire</p>
         </div>
         <div style="padding: 32px 24px; line-height: 1.6;">
           <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bienvenue sur VideoHub, ${username || 'Cher Membre'} ! 👋</h2>
@@ -125,7 +111,7 @@ async function sendWelcomeEmail(toEmail, username) {
             Votre compte a bien été créé avec succès. Vous pouvez dès à présent vous connecter et profiter de tous nos services :
           </p>
           <div style="background: #1e293b; border-radius: 8px; padding: 18px; margin: 20px 0; border: 1px solid #334155;">
-            <ul style="color: #cbd5e1; font-size: 14px; margin: 0; padding-left: 18px; line-height: 1.8;">
+            <ul style="color: #cbd5e1; font-size: 14px; margin: 0; padding-left: 18px; line-height: 1.9;">
               <li>🚀 <strong>Partager vos vidéos</strong> en haute définition avec la communauté</li>
               <li>💬 <strong>Interagir :</strong> likes, commentaires et retours en direct</li>
               <li>⭐ <strong>Accéder aux sélections exclusives</strong> et profils créateurs</li>
@@ -148,15 +134,9 @@ async function sendWelcomeEmail(toEmail, username) {
 
   try {
     const transporter = getMailTransporter();
-    const smtpPass = process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
-    if (smtpPass) {
-      await transporter.sendMail(mailOptions);
-      console.log(`[Email] Welcome email successfully sent to ${toEmail}`);
-      return true;
-    } else {
-      console.log(`[Email Notice] Welcome email logged for ${toEmail}. Set SMTP_PASS in Vercel to send actual live SMTP.`);
-      return true;
-    }
+    await transporter.sendMail(mailOptions);
+    console.log(`[Email] Welcome email successfully sent to ${toEmail}`);
+    return true;
   } catch (err) {
     console.error(`[Email Error] Failed sending welcome email to ${toEmail}:`, err.message);
     return false;
