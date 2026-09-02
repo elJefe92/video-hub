@@ -2147,6 +2147,147 @@ async function resendMyWelcomeEmail() {
   }
 }
 
+// ==================== FORGOT & RESET PASSWORD CONTROLLER ====================
+function openForgotPasswordModal() {
+  const modal = document.getElementById('forgotPasswordModal');
+  const step1 = document.getElementById('forgotStep1');
+  const step2 = document.getElementById('forgotStep2');
+  const emailInput = document.getElementById('forgotEmailInput');
+
+  if (step1) step1.classList.remove('hidden');
+  if (step2) step2.classList.add('hidden');
+  if (emailInput) {
+    const loginIdent = document.getElementById('loginIdentifier')?.value || '';
+    if (loginIdent && loginIdent.includes('@')) {
+      emailInput.value = loginIdent;
+    } else {
+      emailInput.value = '';
+    }
+  }
+
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeForgotPasswordModal(e) {
+  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn') && e.target.tagName !== 'BUTTON') {
+    return;
+  }
+  const modal = document.getElementById('forgotPasswordModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function backToForgotStep1() {
+  document.getElementById('forgotStep1')?.classList.remove('hidden');
+  document.getElementById('forgotStep2')?.classList.add('hidden');
+}
+
+async function handleRequestResetCode(e) {
+  e.preventDefault();
+  const email = (document.getElementById('forgotEmailInput')?.value || '').trim();
+  const btn = document.getElementById('btnRequestResetCode');
+
+  if (!email) {
+    showToast('Veuillez saisir votre adresse e-mail.');
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Envoi du code...';
+  }
+
+  try {
+    const res = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'Erreur lors de la demande.');
+      return;
+    }
+
+    showToast(data.message || 'Code envoyé ! Vérifiez votre boîte mail.');
+    document.getElementById('resetEmailHidden').value = email;
+    const subTitle = document.getElementById('forgotStep2Subtitle');
+    if (subTitle) {
+      subTitle.textContent = `Un code de sécurité à 6 chiffres a été envoyé à ${email}.`;
+    }
+
+    document.getElementById('forgotStep1')?.classList.add('hidden');
+    document.getElementById('forgotStep2')?.classList.remove('hidden');
+    document.getElementById('resetCodeInput')?.focus();
+  } catch (err) {
+    showToast('Erreur de communication avec le serveur.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Envoyer le code de sécurité';
+    }
+  }
+}
+
+async function handleConfirmResetPassword(e) {
+  e.preventDefault();
+  const email = document.getElementById('resetEmailHidden')?.value || document.getElementById('forgotEmailInput')?.value;
+  const code = (document.getElementById('resetCodeInput')?.value || '').trim();
+  const newPassword = document.getElementById('resetNewPasswordInput')?.value;
+  const confirmPassword = document.getElementById('resetNewPasswordConfirm')?.value;
+  const btn = document.getElementById('btnConfirmReset');
+
+  if (!email || !code || !newPassword) {
+    showToast('Veuillez renseigner tous les champs.');
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    showToast('Les deux mots de passe ne correspondent pas.');
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    showToast('Le mot de passe doit comporter au moins 6 caractères.');
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Modification...';
+  }
+
+  try {
+    const res = await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code, newPassword })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'Code invalide ou expiré.');
+      return;
+    }
+
+    showToast(data.message || 'Mot de passe modifié avec succès !');
+    closeForgotPasswordModal();
+
+    if (data.token && data.user) {
+      AUTH.setAuth(data.token, data.user);
+      renderProfileView();
+      switchTab('profil');
+    }
+  } catch (err) {
+    showToast('Erreur de communication avec le serveur.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Changer mon mot de passe';
+    }
+  }
+}
+
 // ==================== CGU MODAL CONTROLLER ====================
 function openCguModal() {
   const modal = document.getElementById('cguModal');

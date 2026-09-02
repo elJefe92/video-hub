@@ -143,6 +143,56 @@ async function sendWelcomeEmail(toEmail, username) {
   }
 }
 
+// In-memory store for password reset codes: email -> { code, expiresAt, userId }
+const passwordResetCodes = new Map();
+
+async function sendPasswordResetEmail(toEmail, username, resetCode) {
+  if (!toEmail) return false;
+  const siteUrl = 'https://video-hub-mu-nine.vercel.app';
+  const mailOptions = {
+    from: `"VideoHub" <${process.env.SMTP_USER || 'ia.project.pro2k26@gmail.com'}>`,
+    to: toEmail,
+    subject: 'Réinitialisation de votre mot de passe VideoHub',
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
+        <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 32px 24px; text-align: center;">
+          <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Video<span style="color: #0f172a; background: #ffffff; padding: 2px 8px; border-radius: 6px; margin-left: 4px;">Hub</span></h1>
+          <p style="margin: 8px 0 0; color: rgba(255,255,255,0.95); font-size: 15px; font-weight: 600;">Récupération de compte sécurisée</p>
+        </div>
+        <div style="padding: 32px 24px; line-height: 1.6;">
+          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bonjour ${username || ''},</h2>
+          <p style="color: #cbd5e1; font-size: 15px;">
+            Vous avez demandé la réinitialisation de votre mot de passe sur <strong>VideoHub</strong>.
+          </p>
+          <p style="color: #cbd5e1; font-size: 15px;">
+            Voici votre code de sécurité temporaire (valable 15 minutes) :
+          </p>
+          <div style="background: #1e293b; border-radius: 8px; padding: 20px; text-align: center; margin: 24px 0; border: 1px dashed #f97316;">
+            <span style="font-size: 32px; font-weight: 900; letter-spacing: 6px; color: #f97316; font-family: monospace;">${resetCode}</span>
+          </div>
+          <p style="color: #cbd5e1; font-size: 14px;">
+            Entrez ce code sur le site pour définir votre nouveau mot de passe.
+          </p>
+          <p style="color: #94a3b8; font-size: 13px; border-top: 1px solid #334155; padding-top: 20px; margin-bottom: 0;">
+            Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail en toute sécurité. Votre mot de passe actuel reste inchangé.
+          </p>
+        </div>
+      </div>
+    `,
+    text: `Bonjour ${username || ''},\n\nVotre code de réinitialisation VideoHub est : ${resetCode}\n(Valable 15 minutes)\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.`
+  };
+
+  try {
+    const transporter = getMailTransporter();
+    await transporter.sendMail(mailOptions);
+    console.log(`[Email] Password reset email sent to ${toEmail}`);
+    return true;
+  } catch (err) {
+    console.error(`[Email Error] Failed sending password reset email to ${toEmail}:`, err.message);
+    return false;
+  }
+}
+
 // Multer config for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -337,6 +387,91 @@ app.post('/api/auth/login', (req, res) => {
 
   res.json({
     message: 'Connexion réussie !',
+    token,
+    user: userSafe
+  });
+});
+
+// Forgot Password - Request 6-digit Reset Code by Email
+app.post('/api/auth/forgot-password', async (req, res) => {
+  const { email } = req.body;
+  if (!email || !email.trim()) {
+    return res.status(400).json({ error: 'Veuillez saisir votre adresse e-mail.' });
+  }
+
+  const db = loadDb();
+  const cleanEmail = email.trim().toLowerCase();
+  const user = db.users.find(u => u.email && u.email.toLowerCase() === cleanEmail);
+
+  if (!user) {
+    return res.status(404).json({ error: `Aucun compte n'est associé à l'adresse "${cleanEmail}".` });
+  }
+
+  // Generate 6-digit code valid for 15 minutes
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = Date.now() + 15 * 60 * 1000;
+
+  passwordResetCodes.set(cleanEmail, { code, expiresAt, userId: user.id });
+
+  // Send reset code email
+  const sent = await sendPasswordResetEmail(user.email, user.username, code);
+  addLog('Demande Mot de Passe Oublié', `Code de réinitialisation généré pour ${user.email}`);
+
+  res.json({
+    success: true,
+    message: `Un code de sécurité à 6 chiffres a été envoyé à ${user.email}. Consultez votre boîte de réception.`
+  });
+});
+
+// Reset Password - Verify 6-digit code and set new password
+app.post('/api/auth/reset-password', async (req, res) => {
+  const { email, code, newPassword } = req.body;
+  if (!email || !code || !newPassword) {
+    return res.status(400).json({ error: 'Veuillez renseigner tous les champs obligatoires.' });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: 'Le nouveau mot de passe doit comporter au moins 6 caractères.' });
+  }
+
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanCode = code.toString().trim();
+
+  const resetEntry = passwordResetCodes.get(cleanEmail);
+  if (!resetEntry) {
+    return res.status(400).json({ error: 'Aucune demande de réinitialisation en cours pour cette adresse ou code expiré.' });
+  }
+
+  if (Date.now() > resetEntry.expiresAt) {
+    passwordResetCodes.delete(cleanEmail);
+    return res.status(400).json({ error: 'Ce code a expiré. Veuillez refaire une demande.' });
+  }
+
+  if (resetEntry.code !== cleanCode) {
+    return res.status(400).json({ error: 'Code de sécurité incorrect. Vérifiez vos e-mails.' });
+  }
+
+  const db = loadDb();
+  const user = db.users.find(u => u.id === resetEntry.userId || (u.email && u.email.toLowerCase() === cleanEmail));
+
+  if (!user) {
+    return res.status(404).json({ error: 'Utilisateur introuvable.' });
+  }
+
+  // Hash new password and save
+  const salt = bcrypt.genSaltSync(10);
+  user.passwordHash = bcrypt.hashSync(newPassword, salt);
+  saveDb(db);
+
+  passwordResetCodes.delete(cleanEmail);
+  addLog('Mot de Passe Réinitialisé', `Nouveau mot de passe défini pour ${user.email}`);
+
+  const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
+  const { passwordHash: _, ...userSafe } = user;
+
+  res.json({
+    success: true,
+    message: 'Votre mot de passe a été modifié avec succès ! Connexion automatique...',
     token,
     user: userSafe
   });
