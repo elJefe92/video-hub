@@ -5250,3 +5250,39 @@ html.age-verified #adultWarningOverlay {
     align-items: stretch;
   }
 }
+
+/* ==================== PASSWORD TOGGLE EYE ==================== */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-input-wrapper .form-input {
+  padding-right: 44px;
+  width: 100%;
+}
+
+.btn-toggle-password {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color 0.15s ease, transform 0.15s ease;
+  z-index: 2;
+}
+
+.btn-toggle-password:hover {
+  color: var(--primary);
+  transform: translateY(-50%) scale(1.1);
+}

@@ -19,6 +19,16 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Automatically sync latest cloud state on every API request across all serverless lambdas
+app.use(async (req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    try {
+      await syncDbFromCloud();
+    } catch (e) {}
+  }
+  next();
+});
+
 const uploadsDir = process.env.VERCEL ? path.join('/tmp', 'uploads') : path.join(__dirname, 'public', 'uploads');
 try {
   if (!fs.existsSync(uploadsDir)) {

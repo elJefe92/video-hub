@@ -82,6 +82,27 @@ function normalizeData(db) {
 let memoryDb = null;
 
 async function syncDbFromCloud() {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  if (supabaseUrl) {
+    try {
+      const publicUrl = `${supabaseUrl}/storage/v1/object/public/thumbnails/videohub_db_state.json?t=${Date.now()}`;
+      const res = await fetch(publicUrl);
+      if (res.ok) {
+        const remoteDb = await res.json();
+        if (remoteDb && Array.isArray(remoteDb.users) && remoteDb.users.length > 0) {
+          memoryDb = normalizeData(remoteDb);
+          const targetPath = getDbPath();
+          try {
+            fs.writeFileSync(targetPath, JSON.stringify(memoryDb, null, 2), 'utf-8');
+          } catch (e) {}
+          return memoryDb;
+        }
+      }
+    } catch (err) {
+      // ignore
+    }
+  }
+
   if (!supabase) return;
   try {
     const { data, error } = await supabase.storage.from('thumbnails').download('videohub_db_state.json');
@@ -94,7 +115,7 @@ async function syncDbFromCloud() {
         try {
           fs.writeFileSync(targetPath, JSON.stringify(memoryDb, null, 2), 'utf-8');
         } catch (e) {}
-        console.log(`[Database Cloud] Synced ${memoryDb.users.length} users and ${memoryDb.videos ? memoryDb.videos.length : 0} videos.`);
+        return memoryDb;
       }
     }
   } catch (err) {
@@ -105,12 +126,17 @@ async function syncDbFromCloud() {
 async function syncDbToCloud(data) {
   if (!supabase || !data) return;
   try {
-    const buffer = Buffer.from(JSON.stringify(data, null, 2), 'utf-8');
-    await supabase.storage.from('thumbnails').upload('videohub_db_state.json', buffer, {
+    const raw = JSON.stringify(data, null, 2);
+    const { error } = await supabase.storage.from('thumbnails').upload('videohub_db_state.json', raw, {
       contentType: 'application/json',
       upsert: true
     });
-    console.log('[Database Cloud] Persisted to cloud state.');
+    if (error) {
+      await supabase.storage.from('thumbnails').upload('videohub_db_state.json', Buffer.from(raw, 'utf-8'), {
+        contentType: 'application/json',
+        upsert: true
+      });
+    }
   } catch (err) {
     console.error('[Database Cloud Save Error]', err.message);
   }
