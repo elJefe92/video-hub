@@ -2445,14 +2445,17 @@ body.theme-light .btn-sort-cat.active {
 .profile-email {
   font-size: 0.85rem;
   color: var(--text-muted);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .profile-bio {
-  font-size: 0.88rem;
+  font-size: 0.90rem;
   color: var(--text-main);
-  max-width: 440px;
-  margin: 0 auto 16px;
+  max-width: 520px;
+  margin: 6px auto 18px;
+  line-height: 1.5;
+  white-space: pre-line;
+  word-break: break-word;
 }
 
 .profile-actions {

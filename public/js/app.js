@@ -2100,6 +2100,19 @@ async function saveAdminCategoryEdit(e) {
 }
 
 // ==================== PROFILE EDIT CONTROLLER ====================
+function updateBioCounter(el) {
+  const counter = document.getElementById('bioCharCounter');
+  if (counter && el) {
+    const len = el.value.length;
+    counter.textContent = `${len} / 300`;
+    if (len > 300) {
+      counter.style.color = '#f59e0b';
+    } else {
+      counter.style.color = 'var(--text-muted)';
+    }
+  }
+}
+
 function openEditProfileModal() {
   if (!AUTH || !AUTH.user) {
     showToast('Vous devez être connecté pour modifier votre profil.');
@@ -2108,9 +2121,18 @@ function openEditProfileModal() {
   }
 
   const user = AUTH.user;
-  document.getElementById('editProfileUsername').value = user.username || '';
-  document.getElementById('editProfileBio').value = user.bio || '';
-  document.getElementById('editProfileAvatarPreview').src = user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150';
+  const usernameInput = document.getElementById('editProfileUsername');
+  const bioInput = document.getElementById('editProfileBio');
+  const avatarPreview = document.getElementById('editProfileAvatarPreview');
+  const avatarFile = document.getElementById('editProfileAvatarFile');
+
+  if (usernameInput) usernameInput.value = user.username || '';
+  if (bioInput) {
+    bioInput.value = user.bio || '';
+    updateBioCounter(bioInput);
+  }
+  if (avatarPreview) avatarPreview.src = user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150';
+  if (avatarFile) avatarFile.value = '';
 
   const modal = document.getElementById('editProfileModal');
   if (modal) modal.classList.remove('hidden');
@@ -2172,7 +2194,7 @@ async function handleSaveProfile(e) {
 
     const data = await res.json();
     if (!res.ok) {
-      showToast('' + (data.error || 'Erreur lors de la modification'));
+      showToast(data.error || 'Erreur lors de la modification');
       return;
     }
 

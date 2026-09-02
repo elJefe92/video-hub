@@ -1242,7 +1242,7 @@
       <button class="modal-close-btn" onclick="closeEditProfileModal()"></button>
       <div class="modal-header-box">
         <h3>Personnaliser mon Profil</h3>
-        <p>Modifiez votre surnom, votre description et votre photo de profil.</p>
+        <p>Modifiez votre photo de profil, votre surnom et votre description.</p>
       </div>
 
       <form id="editProfileForm" class="custom-form" onsubmit="handleSaveProfile(event)">
@@ -1252,11 +1252,12 @@
           <label class="form-label" style="text-align:center;">Photo de Profil</label>
           <div class="avatar-edit-container">
             <img id="editProfileAvatarPreview" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150" class="avatar-preview-img" alt="Avatar">
-            <label class="btn-avatar-upload" for="editProfileAvatarFile" title="Changer la photo">
-              Changer
+            <label class="btn-avatar-upload" for="editProfileAvatarFile" title="Sélectionner une photo depuis vos fichiers">
+              Choisir une photo
             </label>
-            <input type="file" id="editProfileAvatarFile" accept="image/*" style="display:none;" onchange="previewEditAvatar(this)">
+            <input type="file" id="editProfileAvatarFile" accept="image/png,image/jpeg,image/webp,image/jpg" style="display:none;" onchange="previewEditAvatar(this)">
           </div>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-top:6px;">JPG, PNG ou WebP. Recadré automatiquement au format carré.</p>
         </div>
 
         <!-- Surnom / Pseudo -->
@@ -1265,10 +1266,14 @@
           <input type="text" id="editProfileUsername" class="form-input" placeholder="Votre surnom public..." required>
         </div>
 
-        <!-- Petite Description / Bio -->
+        <!-- Description / Bio sous l'e-mail -->
         <div class="form-group">
-          <label class="form-label">Description / Bio</label>
-          <textarea id="editProfileBio" class="form-textarea" rows="3" placeholder="Ex: Passionné par les vidéos, créateur de contenu..."></textarea>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label class="form-label" style="margin-bottom:0;">Description de votre profil (Bio)</label>
+            <span id="bioCharCounter" style="font-size:0.78rem; color:var(--text-muted);">0 / 300</span>
+          </div>
+          <textarea id="editProfileBio" class="form-textarea" rows="4" maxlength="500" placeholder="Présentez-vous, partagez vos centres d'intérêts ou décrivez votre chaîne..." oninput="updateBioCounter(this)"></textarea>
+          <p style="font-size:0.76rem; color:var(--text-muted); margin-top:4px;">Cette description apparaît directement sous votre adresse e-mail sur votre profil public.</p>
         </div>
 
         <button type="submit" id="btnSaveProfileSubmit" class="btn btn-primary btn-block">

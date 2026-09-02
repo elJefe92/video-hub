@@ -2,7 +2,15 @@ const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 
-const DB_PATH = path.join(__dirname, 'data.json');
+const LOCAL_DB_PATH = path.join(__dirname, 'data.json');
+const TMP_DB_PATH = path.join('/tmp', 'data.json');
+
+function getDbPath() {
+  if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    return TMP_DB_PATH;
+  }
+  return LOCAL_DB_PATH;
+}
 
 const defaultData = {
   users: [
@@ -74,32 +82,48 @@ let memoryDb = null;
 
 function loadDb() {
   if (memoryDb) return memoryDb;
-  if (!fs.existsSync(DB_PATH)) {
+
+  const targetPath = getDbPath();
+
+  // Try /tmp/data.json first on serverless
+  if (fs.existsSync(targetPath)) {
     try {
-      fs.writeFileSync(DB_PATH, JSON.stringify(defaultData, null, 2), 'utf-8');
-    } catch (e) {
-      // Read-only filesystem on serverless
-    }
-    memoryDb = normalizeData(JSON.parse(JSON.stringify(defaultData)));
-    return memoryDb;
+      const raw = fs.readFileSync(targetPath, 'utf-8');
+      const data = JSON.parse(raw);
+      memoryDb = normalizeData(data);
+      return memoryDb;
+    } catch (e) {}
   }
+
+  // Check bundled data.json
+  if (fs.existsSync(LOCAL_DB_PATH)) {
+    try {
+      const raw = fs.readFileSync(LOCAL_DB_PATH, 'utf-8');
+      const data = JSON.parse(raw);
+      memoryDb = normalizeData(data);
+      try {
+        fs.writeFileSync(targetPath, JSON.stringify(memoryDb, null, 2), 'utf-8');
+      } catch (err) {}
+      return memoryDb;
+    } catch (e) {}
+  }
+
+  memoryDb = normalizeData(JSON.parse(JSON.stringify(defaultData)));
   try {
-    const raw = fs.readFileSync(DB_PATH, 'utf-8');
-    const data = JSON.parse(raw);
-    memoryDb = normalizeData(data);
-    return memoryDb;
-  } catch (e) {
-    memoryDb = normalizeData(JSON.parse(JSON.stringify(defaultData)));
-    return memoryDb;
-  }
+    fs.writeFileSync(targetPath, JSON.stringify(memoryDb, null, 2), 'utf-8');
+  } catch (err) {}
+  return memoryDb;
 }
 
 function saveDb(data) {
   memoryDb = data;
+  const targetPath = getDbPath();
   try {
-    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    fs.writeFileSync(targetPath, JSON.stringify(data, null, 2), 'utf-8');
   } catch (e) {
-    // Gracefully handle read-only filesystem on Vercel Serverless
+    try {
+      fs.writeFileSync(TMP_DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (err) {}
   }
 }
 

@@ -666,7 +666,7 @@ app.get('/api/auth/me', authenticate, (req, res) => {
 });
 
 // Update Profile (Nickname, Bio, Avatar)
-app.put('/api/user/profile', authenticate, upload.single('avatarFile'), (req, res) => {
+app.put('/api/user/profile', authenticate, upload.single('avatarFile'), async (req, res) => {
   const { username, bio, avatarUrl } = req.body;
   const db = loadDb();
   const user = db.users.find(u => u.id === req.user.id);
@@ -690,11 +690,12 @@ app.put('/api/user/profile', authenticate, upload.single('avatarFile'), (req, re
   }
 
   if (typeof bio === 'string') {
-    user.bio = bio.trim();
+    user.bio = bio.trim().slice(0, 600);
   }
 
   if (req.file) {
-    user.avatar = `/uploads/${req.file.filename}`;
+    const supabaseAvatar = await uploadToSupabaseStorage('thumbnails', req.file.path, req.file.filename, req.file.mimetype);
+    user.avatar = supabaseAvatar || `/uploads/${req.file.filename}`;
   } else if (avatarUrl && avatarUrl.trim()) {
     user.avatar = avatarUrl.trim();
   }
@@ -708,13 +709,13 @@ app.put('/api/user/profile', authenticate, upload.single('avatarFile'), (req, re
   });
 
   saveDb(db);
-  addLog('Profil Modifié', `Utilisateur "${user.username}" a mis à jour son profil`);
+  addLog('Profil Modifié', `Utilisateur "${user.username}" a mis à jour son profil (avatar & bio)`);
 
   const { passwordHash: _, ...userSafe } = user;
   const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
 
   res.json({
-    message: 'Profil mis à jour avec succès ! ',
+    message: 'Votre profil a été mis à jour avec succès !',
     token,
     user: userSafe
   });
