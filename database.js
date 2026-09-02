@@ -70,22 +70,37 @@ function normalizeData(db) {
   return db;
 }
 
+let memoryDb = null;
+
 function loadDb() {
+  if (memoryDb) return memoryDb;
   if (!fs.existsSync(DB_PATH)) {
-    fs.writeFileSync(DB_PATH, JSON.stringify(defaultData, null, 2), 'utf-8');
-    return defaultData;
+    try {
+      fs.writeFileSync(DB_PATH, JSON.stringify(defaultData, null, 2), 'utf-8');
+    } catch (e) {
+      // Read-only filesystem on serverless
+    }
+    memoryDb = normalizeData(JSON.parse(JSON.stringify(defaultData)));
+    return memoryDb;
   }
   try {
     const raw = fs.readFileSync(DB_PATH, 'utf-8');
     const data = JSON.parse(raw);
-    return normalizeData(data);
+    memoryDb = normalizeData(data);
+    return memoryDb;
   } catch (e) {
-    return defaultData;
+    memoryDb = normalizeData(JSON.parse(JSON.stringify(defaultData)));
+    return memoryDb;
   }
 }
 
 function saveDb(data) {
-  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+  memoryDb = data;
+  try {
+    fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (e) {
+    // Gracefully handle read-only filesystem on Vercel Serverless
+  }
 }
 
 module.exports = {
