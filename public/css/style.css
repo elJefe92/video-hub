@@ -5116,21 +5116,21 @@ html.age-verified #adultWarningOverlay {
 /* ==================== ADMIN EMAIL TEST & PREVIEW SUITE ==================== */
 .admin-email-tester-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  border: 1.5px solid #3b82f6;
+  border-radius: 12px;
   padding: 24px;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.08);
   margin-top: 10px;
 }
 
 .email-tester-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
   border-bottom: 1px solid var(--border-color);
-  padding-bottom: 18px;
-  margin-bottom: 22px;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .email-tester-toggle-btns {
@@ -5139,40 +5139,47 @@ html.age-verified #adultWarningOverlay {
   flex-shrink: 0;
 }
 
+.email-tester-toggle-btns .btn {
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 6px 12px;
+}
+
 .email-templates-checkbox-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 14px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
 }
 
 .email-check-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   background: var(--bg-subtle);
   border: 1px solid var(--border-color);
-  padding: 12px 16px;
-  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   user-select: none;
 }
 
 .email-check-item:hover {
-  border-color: var(--primary);
-  background: rgba(249, 115, 22, 0.04);
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.06);
 }
 
 .email-check-item input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--primary);
+  width: 17px;
+  height: 17px;
+  accent-color: #3b82f6;
   cursor: pointer;
 }
 
 .email-check-label {
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 600;
   color: var(--text-main);
 }
@@ -5183,8 +5190,8 @@ html.age-verified #adultWarningOverlay {
   align-items: center;
   background: var(--bg-subtle);
   border: 1px solid var(--border-color);
-  padding: 14px 18px;
-  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  border-radius: 8px;
 }
 
 .email-tester-action-bar .email-input-wrap {
@@ -5194,11 +5201,22 @@ html.age-verified #adultWarningOverlay {
 .email-tester-action-bar .form-input {
   margin-bottom: 0;
   background: var(--bg-card);
+  height: 42px;
+}
+
+.email-tester-action-bar .btn {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {
   .email-tester-header {
     flex-direction: column;
+    align-items: flex-start;
   }
   .email-tester-action-bar {
     flex-direction: column;
