@@ -1507,8 +1507,8 @@ app.post('/api/reports/submit', (req, res) => {
   });
 });
 
-// ---------------- CONTACT FORM MESSAGES ----------------
-app.post('/api/contact/submit', (req, res) => {
+// ---------------- CONTACT FORM MESSAGES & REAL EMAIL NOTIFICATION ----------------
+app.post('/api/contact/submit', async (req, res) => {
   const { name, email, subject, message } = req.body;
   if (!name || !email || !subject || !message) {
     return res.status(400).json({ error: 'Veuillez remplir tous les champs obligatoires (*).' });
@@ -1531,8 +1531,79 @@ app.post('/api/contact/submit', (req, res) => {
 
   addLog('Contact', `Nouveau message de ${newContact.name} (${newContact.email}) - Objet: ${newContact.subject}`);
 
+  const adminEmail = process.env.SMTP_USER || 'ia.project.pro2k26@gmail.com';
+  const transporter = getMailTransporter();
+
+  // 1. Send direct notification email to Admin (ia.project.pro2k26@gmail.com)
+  try {
+    await transporter.sendMail({
+      from: `"VideoHub Support" <${adminEmail}>`,
+      to: adminEmail,
+      replyTo: newContact.email,
+      subject: `[VideoHub Contact] ${newContact.subject} (de ${newContact.name})`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
+          <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 24px; text-align: center;">
+            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800;">Nouveau Message de Contact</h1>
+            <p style="margin: 6px 0 0; color: rgba(255,255,255,0.95); font-size: 13px;">Formulaire Nous Contacter - VideoHub</p>
+          </div>
+          <div style="padding: 24px; line-height: 1.6;">
+            <p style="margin: 0 0 12px 0;"><strong style="color:#f97316;">Expéditeur :</strong> ${newContact.name} (<a href="mailto:${newContact.email}" style="color:#38bdf8;">${newContact.email}</a>)</p>
+            <p style="margin: 0 0 16px 0;"><strong style="color:#f97316;">Objet :</strong> ${newContact.subject}</p>
+            <div style="background: #1e293b; border-radius: 8px; padding: 18px; border: 1px solid #334155; margin-bottom: 20px;">
+              <strong style="color:#cbd5e1; font-size:13px; display:block; margin-bottom:8px;">Message :</strong>
+              <p style="color: #f8fafc; font-size: 14px; margin: 0; white-space: pre-wrap;">${newContact.message}</p>
+            </div>
+            <div style="text-align: center;">
+              <a href="mailto:${newContact.email}?subject=Re: ${encodeURIComponent(newContact.subject)}" style="background-color: #f97316; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 700; font-size: 14px; display: inline-block;">
+                Répondre directement à ${newContact.name}
+              </a>
+            </div>
+          </div>
+        </div>
+      `,
+      text: `Nouveau message de contact VideoHub\n\nDe : ${newContact.name} (${newContact.email})\nObjet : ${newContact.subject}\n\nMessage :\n${newContact.message}`
+    });
+  } catch (err) {
+    console.error('[Contact Email Error] Failed to notify admin:', err.message);
+  }
+
+  // 2. Send automatic confirmation email to the user who submitted the form
+  if (newContact.email.toLowerCase() !== adminEmail.toLowerCase()) {
+    try {
+      await transporter.sendMail({
+        from: `"VideoHub Support" <${adminEmail}>`,
+        to: newContact.email,
+        subject: `Confirmation de réception de votre message - VideoHub`,
+        html: `
+          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
+            <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 24px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800;">VideoHub</h1>
+              <p style="margin: 6px 0 0; color: rgba(255,255,255,0.95); font-size: 13px;">Accusé de réception - Support</p>
+            </div>
+            <div style="padding: 24px; line-height: 1.6;">
+              <h2 style="color: #ffffff; font-size: 18px; margin-top: 0;">Bonjour ${newContact.name},</h2>
+              <p style="color: #cbd5e1; font-size: 14px;">
+                Nous vous confirmons la bonne réception de votre message concernant : <strong>"${newContact.subject}"</strong>.
+              </p>
+              <div style="background: #1e293b; border-radius: 8px; padding: 16px; border: 1px solid #334155; margin: 18px 0; color: #94a3b8; font-size: 13px; font-style: italic;">
+                "${newContact.message}"
+              </div>
+              <p style="color: #cbd5e1; font-size: 14px;">
+                Notre équipe de support traite votre demande et vous répondra dans les plus brefs délais.
+              </p>
+            </div>
+          </div>
+        `,
+        text: `Bonjour ${newContact.name},\n\nNous avons bien reçu votre message concernant "${newContact.subject}".\nNotre équipe vous répondra dans les plus brefs délais.\n\nVideoHub Support`
+      });
+    } catch (err) {
+      console.error('[Contact Email Error] Failed to send user confirmation:', err.message);
+    }
+  }
+
   res.status(201).json({
-    message: 'Votre message a été envoyé avec succès ! Notre équipe vous répondra dans les plus brefs délais.',
+    message: 'Votre message a été envoyé avec succès ! Notre équipe a été notifiée par e-mail.',
     contact: newContact
   });
 });
