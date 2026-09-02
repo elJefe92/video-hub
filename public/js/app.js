@@ -642,6 +642,39 @@ function renderExplorerTagsCloud() {
       </button>
     `;
   }).join('');
+
+  // Also update category photo cards grid if on default view
+  if (selectedExplorerTags.size === 0) {
+    renderCategoryPhotoCardsGrid(sortedCategories);
+  }
+}
+
+function renderCategoryPhotoCardsGrid(categories) {
+  const contentArea = document.getElementById('explorerContentArea');
+  if (!contentArea) return;
+
+  contentArea.innerHTML = `
+    <div class="category-cards-grid">
+      ${categories.map(c => {
+        const thumbUrl = c.thumbnail || (c.videos && c.videos[0] ? c.videos[0].thumbnail : '');
+        return `
+          <div class="category-photo-card" onclick="quickFilterByTag('${c.id}')" title="Explorer la catégorie ${c.name}">
+            ${thumbUrl ? `
+              <img src="${thumbUrl}" class="cat-photo-img" alt="${c.name}" loading="lazy">
+            ` : `
+              <div class="cat-photo-fallback-bg">
+                <span>${c.name}</span>
+              </div>
+            `}
+            <div class="cat-photo-overlay">
+              <span class="cat-photo-title-badge">${c.name}</span>
+              <span class="cat-photo-count-badge">${c.count || 0}</span>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
 }
 
 async function loadExplorerData() {
@@ -657,7 +690,7 @@ async function loadExplorerData() {
     const data = await res.json();
     cachedExplorerCategories = data.categories || [];
 
-    // Render tag chips with active sort mode
+    // Render tag chips with active sort mode & photo cards
     renderExplorerTagsCloud();
 
     // If tags are selected, show filtered multi-tag results
@@ -690,36 +723,14 @@ async function loadExplorerData() {
       renderVideoGrid(matchedVideos, 'explorerMatchedGrid');
 
     } else {
-      // No tag selected: Display directory of Category Showcases
+      // No tag selected: Display directory of Category Photo Cards Grid (Top / A-Z)
       if (clearBtn) clearBtn.style.display = 'none';
       if (statusEl) {
-        statusEl.innerHTML = `<small style="color:var(--text-muted);">Cliquez sur un ou plusieurs tags ci-dessus pour combiner les thématiques.</small>`;
+        statusEl.innerHTML = `<small style="color:var(--text-muted);">Cliquez sur une catégorie pour afficher ses vidéos ou combinez plusieurs thématiques ci-dessus.</small>`;
       }
 
-      contentArea.innerHTML = categories.map(c => `
-        <div class="category-showcase-block">
-          <div class="showcase-header">
-            <div class="showcase-title-left">
-              
-              <div>
-                <h3 class="showcase-name">${c.name}</h3>
-                <p class="showcase-desc">${c.description || 'Découvrez toutes les créations de cette catégorie.'}</p>
-              </div>
-            </div>
-            <button class="btn-showcase-explore" onclick="quickFilterByTag('${c.id}')">
-              Explorer (${c.count}) →
-            </button>
-          </div>
-
-          <div class="video-grid" id="showcase_grid_${c.id}">
-            ${c.videos.length > 0 ? c.videos.map(v => renderVideoCard(v)).join('') : `
-              <p style="grid-column:1/-1;color:var(--text-muted);font-size:0.88rem;padding:12px;background:#f8fafc;border-radius:8px;">
-                Aucune vidéo pour le moment dans cette catégorie.
-              </p>
-            `}
-          </div>
-        </div>
-      `).join('');
+      const sortedList = sortCategoriesList(cachedExplorerCategories);
+      renderCategoryPhotoCardsGrid(sortedList);
     }
 
   } catch (err) {
