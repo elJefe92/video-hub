@@ -79,6 +79,10 @@ async function uploadBase64ToSupabaseStorage(bucket, base64Data, filename) {
     return publicData ? publicData.publicUrl : null;
   } catch (err) {
     console.error(`Error uploading base64 to Supabase (${bucket}):`, err);
+    return null;
+  }
+}
+
 app.get('/api/debug-supabase', async (req, res) => {
   if (!supabase) {
     return res.json({ supabaseConfigured: false, envUrl: !!process.env.SUPABASE_URL, envKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY });
