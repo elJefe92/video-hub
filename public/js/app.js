@@ -642,39 +642,6 @@ function renderExplorerTagsCloud() {
       </button>
     `;
   }).join('');
-
-  // Also update category photo cards grid if on default view
-  if (selectedExplorerTags.size === 0) {
-    renderCategoryPhotoCardsGrid(sortedCategories);
-  }
-}
-
-function renderCategoryPhotoCardsGrid(categories) {
-  const contentArea = document.getElementById('explorerContentArea');
-  if (!contentArea) return;
-
-  contentArea.innerHTML = `
-    <div class="category-cards-grid">
-      ${categories.map(c => {
-        const thumbUrl = c.thumbnail || (c.videos && c.videos[0] ? c.videos[0].thumbnail : '');
-        return `
-          <div class="category-photo-card" onclick="quickFilterByTag('${c.id}')" title="Explorer la catégorie ${c.name}">
-            ${thumbUrl ? `
-              <img src="${thumbUrl}" class="cat-photo-img" alt="${c.name}" loading="lazy">
-            ` : `
-              <div class="cat-photo-fallback-bg">
-                <span>${c.name}</span>
-              </div>
-            `}
-            <div class="cat-photo-overlay">
-              <span class="cat-photo-title-badge">${c.name}</span>
-              <span class="cat-photo-count-badge">${c.count || 0}</span>
-            </div>
-          </div>
-        `;
-      }).join('')}
-    </div>
-  `;
 }
 
 async function loadExplorerData() {
@@ -690,7 +657,7 @@ async function loadExplorerData() {
     const data = await res.json();
     cachedExplorerCategories = data.categories || [];
 
-    // Render tag chips with active sort mode & photo cards
+    // Render tag chips with active sort mode
     renderExplorerTagsCloud();
 
     // If tags are selected, show filtered multi-tag results
@@ -723,14 +690,37 @@ async function loadExplorerData() {
       renderVideoGrid(matchedVideos, 'explorerMatchedGrid');
 
     } else {
-      // No tag selected: Display directory of Category Photo Cards Grid (Top / A-Z)
+      // No tag selected: Display directory of Category Showcases
       if (clearBtn) clearBtn.style.display = 'none';
       if (statusEl) {
-        statusEl.innerHTML = `<small style="color:var(--text-muted);">Cliquez sur une catégorie pour afficher ses vidéos ou combinez plusieurs thématiques ci-dessus.</small>`;
+        statusEl.innerHTML = `<small style="color:var(--text-muted);">Cliquez sur une ou plusieurs catégories ci-dessus pour combiner les thématiques.</small>`;
       }
 
       const sortedList = sortCategoriesList(cachedExplorerCategories);
-      renderCategoryPhotoCardsGrid(sortedList);
+
+      contentArea.innerHTML = sortedList.map(c => `
+        <div class="category-showcase-block">
+          <div class="showcase-header">
+            <div class="showcase-title-left">
+              <div>
+                <h3 class="showcase-name">${c.name}</h3>
+                <p class="showcase-desc">${c.description || 'Découvrez toutes les créations de cette catégorie.'}</p>
+              </div>
+            </div>
+            <button class="btn-showcase-explore" onclick="quickFilterByTag('${c.id}')">
+              Explorer (${c.count || 0}) →
+            </button>
+          </div>
+
+          <div class="video-grid" id="showcase_grid_${c.id}">
+            ${c.videos && c.videos.length > 0 ? c.videos.map(v => renderVideoCard(v)).join('') : `
+              <p style="grid-column:1/-1;color:var(--text-muted);font-size:0.88rem;padding:12px;background:var(--bg-subtle);border-radius:8px;">
+                Aucune vidéo pour le moment dans cette catégorie.
+              </p>
+            `}
+          </div>
+        </div>
+      `).join('');
     }
 
   } catch (err) {
@@ -1939,95 +1929,37 @@ function renderAdminCategoriesManager() {
       allCategoriesList.filter(c => c.id !== 'all').map(c => `<option value="${c.id}">${c.name}</option>`).join('');
   }
 
-  container.innerHTML = allCategoriesList.map(cat => {
-    return `
-      <div class="category-manager-item">
-        <div class="cat-item-left" style="display:flex;align-items:center;gap:12px;">
-          ${cat.thumbnail ? `
-            <img src="${cat.thumbnail}" class="cat-thumb-mini" alt="${cat.name}" onclick="openAdminEditCategoryModal('${cat.id}')" title="Cliquer pour modifier la miniature" style="cursor:pointer;">
-          ` : ''}
-          <div>
-            <strong>${cat.name}</strong>
-            ${cat.isSystem ? '<small style="color:var(--text-light);font-size:0.7rem;display:block;">(Système)</small>' : ''}
-            ${cat.description ? `<small style="color:var(--text-muted);display:block;font-size:0.75rem;">${cat.description}</small>` : ''}
-          </div>
-        </div>
-        <div class="cat-item-actions" style="display:flex;gap:6px;align-items:center;">
-          ${!cat.isSystem ? `
-            <button class="btn btn-sm btn-secondary" onclick="openAdminEditCategoryModal('${cat.id}')" style="border-color:var(--primary);color:var(--primary);font-weight:700;">
-              ${cat.thumbnail ? 'Modifier' : 'Miniature & Nom'}
-            </button>
-            <button class="btn btn-sm btn-danger" onclick="deleteCategory('${cat.id}')" title="Supprimer la catégorie">Supprimer</button>
-          ` : `
-            <button class="btn btn-sm btn-secondary" onclick="openAdminEditCategoryModal('${cat.id}')" title="Ajouter une miniature à la catégorie">
-              Miniature
-            </button>
-            <span style="font-size:0.75rem;color:var(--text-light);">Protégée</span>
-          `}
+  container.innerHTML = allCategoriesList.map(cat => `
+    <div class="category-manager-item">
+      <div class="cat-item-left">
+        <div>
+          <strong>${cat.name}</strong>
+          ${cat.isSystem ? '<small style="color:var(--text-light);font-size:0.7rem;display:block;">(Système)</small>' : ''}
+          ${cat.description ? `<small style="color:var(--text-muted);display:block;font-size:0.75rem;">${cat.description}</small>` : ''}
         </div>
       </div>
-    `;
-  }).join('');
+      <div class="cat-item-actions" style="display:flex;gap:6px;align-items:center;">
+        ${!cat.isSystem ? `
+          <button class="btn btn-sm btn-secondary" onclick="openAdminEditCategoryModal('${cat.id}')">Modifier</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteCategory('${cat.id}')" title="Supprimer la catégorie">Supprimer</button>
+        ` : '<span style="font-size:0.75rem;color:var(--text-light);">Protégée</span>'}
+      </div>
+    </div>
+  `).join('');
 }
 
-// Category Edit & Thumbnail Modal Handlers
-let categoryThumbRemoved = false;
-
+// Category Edit Modal Handlers
 function openAdminEditCategoryModal(catId) {
   const cat = allCategoriesList.find(c => c.id === catId);
   if (!cat) return;
-  categoryThumbRemoved = false;
 
   document.getElementById('editCatId').value = cat.id;
   document.getElementById('editCatName').value = cat.name || '';
   const descEl = document.getElementById('editCatDesc');
   if (descEl) descEl.value = cat.description || '';
 
-  const previewImg = document.getElementById('editCatThumbPreview');
-  const emptyBox = document.getElementById('editCatThumbEmpty');
-  const btnRemove = document.getElementById('btnRemoveCatThumb');
-  const urlInput = document.getElementById('editCatThumbUrl');
-  const fileInput = document.getElementById('editCatThumbFile');
-
-  if (fileInput) fileInput.value = '';
-  if (urlInput) urlInput.value = (cat.thumbnail && cat.thumbnail.startsWith('http')) ? cat.thumbnail : '';
-
-  if (cat.thumbnail) {
-    if (previewImg) {
-      previewImg.src = cat.thumbnail;
-      previewImg.classList.remove('hidden');
-    }
-    if (emptyBox) emptyBox.classList.add('hidden');
-    if (btnRemove) btnRemove.classList.remove('hidden');
-  } else {
-    if (previewImg) {
-      previewImg.src = '';
-      previewImg.classList.add('hidden');
-    }
-    if (emptyBox) emptyBox.classList.remove('hidden');
-    if (btnRemove) btnRemove.classList.add('hidden');
-  }
-
   const modal = document.getElementById('adminEditCategoryModal');
   if (modal) modal.classList.remove('hidden');
-}
-
-function removeCategoryThumb() {
-  categoryThumbRemoved = true;
-  const previewImg = document.getElementById('editCatThumbPreview');
-  const emptyBox = document.getElementById('editCatThumbEmpty');
-  const btnRemove = document.getElementById('btnRemoveCatThumb');
-  const urlInput = document.getElementById('editCatThumbUrl');
-  const fileInput = document.getElementById('editCatThumbFile');
-
-  if (previewImg) {
-    previewImg.src = '';
-    previewImg.classList.add('hidden');
-  }
-  if (emptyBox) emptyBox.classList.remove('hidden');
-  if (btnRemove) btnRemove.classList.add('hidden');
-  if (urlInput) urlInput.value = '';
-  if (fileInput) fileInput.value = '';
 }
 
 function closeAdminEditCategoryModal(e) {
@@ -2038,54 +1970,11 @@ function closeAdminEditCategoryModal(e) {
   if (modal) modal.classList.add('hidden');
 }
 
-let currentCategoryThumbBase64 = null;
-
-function previewCategoryThumb(input) {
-  if (input.files && input.files[0]) {
-    const file = input.files[0];
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      currentCategoryThumbBase64 = e.target.result;
-      const previewImg = document.getElementById('editCatThumbPreview');
-      const emptyBox = document.getElementById('editCatThumbEmpty');
-      const btnRemove = document.getElementById('btnRemoveCatThumb');
-
-      if (previewImg) {
-        previewImg.src = e.target.result;
-        previewImg.classList.remove('hidden');
-      }
-      if (emptyBox) emptyBox.classList.add('hidden');
-      if (btnRemove) btnRemove.classList.remove('hidden');
-      categoryThumbRemoved = false;
-      showToast(`Image sélectionnée : ${file.name}`);
-    };
-    reader.readAsDataURL(file);
-  }
-}
-
-function updateCatThumbFromUrl(url) {
-  const previewImg = document.getElementById('editCatThumbPreview');
-  const emptyBox = document.getElementById('editCatThumbEmpty');
-  const btnRemove = document.getElementById('btnRemoveCatThumb');
-  if (url && url.trim().startsWith('http')) {
-    currentCategoryThumbBase64 = url.trim();
-    if (previewImg) {
-      previewImg.src = url.trim();
-      previewImg.classList.remove('hidden');
-    }
-    if (emptyBox) emptyBox.classList.add('hidden');
-    if (btnRemove) btnRemove.classList.remove('hidden');
-    categoryThumbRemoved = false;
-  }
-}
-
 async function saveAdminCategoryEdit(e) {
   e.preventDefault();
   const id = document.getElementById('editCatId').value;
   const name = document.getElementById('editCatName').value.trim();
   const description = (document.getElementById('editCatDesc')?.value || '').trim();
-  const thumbUrl = (document.getElementById('editCatThumbUrl')?.value || '').trim();
-  const fileInput = document.getElementById('editCatThumbFile');
   const btnSubmit = document.getElementById('btnSaveCatEditSubmit');
 
   if (!name) {
@@ -2099,28 +1988,13 @@ async function saveAdminCategoryEdit(e) {
   }
 
   try {
-    const formData = new FormData();
-    formData.append('name', name);
-    formData.append('description', description);
-    if (categoryThumbRemoved) {
-      formData.append('removeThumbnail', 'true');
-    } else {
-      if (currentCategoryThumbBase64) {
-        formData.append('thumbnail', currentCategoryThumbBase64);
-      } else if (thumbUrl) {
-        formData.append('thumbnail', thumbUrl);
-      }
-      if (fileInput && fileInput.files && fileInput.files[0]) {
-        formData.append('thumbnailFile', fileInput.files[0]);
-      }
-    }
-
     const res = await fetch(`/api/categories/${id}`, {
       method: 'PUT',
       headers: {
+        'Content-Type': 'application/json',
         'Authorization': `Bearer ${AUTH.token}`
       },
-      body: formData
+      body: JSON.stringify({ name, description })
     });
 
     const data = await res.json();
@@ -2129,8 +2003,7 @@ async function saveAdminCategoryEdit(e) {
       return;
     }
 
-    showToast(data.message || 'Catégorie et miniature mises à jour avec succès !');
-    currentCategoryThumbBase64 = null;
+    showToast(data.message || 'Catégorie modifiée avec succès !');
     closeAdminEditCategoryModal();
 
     await loadCategories();

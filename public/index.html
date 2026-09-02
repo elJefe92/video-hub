@@ -1217,38 +1217,13 @@
     <div class="modal-card modal-category" onclick="event.stopPropagation()">
       <button class="modal-close-btn" onclick="closeAdminEditCategoryModal()">✕</button>
       <div class="modal-header-box">
-        <h3>Modifier la Catégorie & Miniature</h3>
-        <p>Définissez le nom, la description et l'image de couverture de cette catégorie.</p>
+        <h3>Modifier la Catégorie</h3>
+        <p>Changez le nom ou la description de cette catégorie.</p>
       </div>
 
       <form id="adminEditCategoryForm" class="custom-form" onsubmit="saveAdminCategoryEdit(event)">
         <input type="hidden" id="editCatId">
         
-        <!-- Category Thumbnail Preview & Upload -->
-        <div class="form-group" style="text-align:center;">
-          <label class="form-label" style="text-align:center;">Miniature / Image de Couverture (Optionnel)</label>
-          <div class="category-thumb-edit-box">
-            <img id="editCatThumbPreview" src="" class="category-thumb-preview-img hidden" alt="Miniature Catégorie">
-            <div id="editCatThumbEmpty" class="category-thumb-empty-placeholder">
-              <span>Aucune image définie</span>
-            </div>
-            <div class="thumb-upload-row mt-2" style="display:flex;gap:8px;justify-content:center;align-items:center;">
-              <label class="btn btn-sm btn-secondary" for="editCatThumbFile" style="cursor:pointer;">
-                Choisir une image
-              </label>
-              <input type="file" id="editCatThumbFile" accept="image/*" style="display:none;" onchange="previewCategoryThumb(this)">
-              <button type="button" class="btn btn-sm btn-danger hidden" id="btnRemoveCatThumb" onclick="removeCategoryThumb()">
-                Retirer l'image
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Ou Coller l'URL d'une Image Web (Optionnel)</label>
-          <input type="url" id="editCatThumbUrl" class="form-input" placeholder="https://..." oninput="updateCatThumbFromUrl(this.value)">
-        </div>
-
         <div class="form-group">
           <label class="form-label">Nom de la catégorie *</label>
           <input type="text" id="editCatName" class="form-input" placeholder="Ex: Gaming, Musique, Interviews..." required>
@@ -1256,7 +1231,7 @@
 
         <div class="form-group">
           <label class="form-label">Description (optionnelle)</label>
-          <textarea id="editCatDesc" class="form-textarea" rows="2" placeholder="Description de la thématique..."></textarea>
+          <textarea id="editCatDesc" class="form-textarea" rows="3" placeholder="Description de la thématique..."></textarea>
         </div>
 
         <div class="modal-actions-box mt-3" style="display:flex;gap:10px;justify-content:flex-end;">
