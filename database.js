@@ -82,33 +82,12 @@ function normalizeData(db) {
 let memoryDb = null;
 
 async function syncDbFromCloud() {
-  const supabaseUrl = process.env.SUPABASE_URL;
-  if (supabaseUrl) {
-    try {
-      const publicUrl = `${supabaseUrl}/storage/v1/object/public/thumbnails/videohub_db_state.json?t=${Date.now()}`;
-      const res = await fetch(publicUrl);
-      if (res.ok) {
-        const remoteDb = await res.json();
-        if (remoteDb && Array.isArray(remoteDb.users) && remoteDb.users.length > 0) {
-          memoryDb = normalizeData(remoteDb);
-          const targetPath = getDbPath();
-          try {
-            fs.writeFileSync(targetPath, JSON.stringify(memoryDb, null, 2), 'utf-8');
-          } catch (e) {}
-          return memoryDb;
-        }
-      }
-    } catch (err) {
-      // ignore
-    }
-  }
-
   if (!supabase) return;
   try {
     const { data, error } = await supabase.storage.from('thumbnails').download('videohub_db_state.json');
     if (data && !error) {
-      const text = await data.text();
-      const remoteDb = JSON.parse(text);
+      const buf = Buffer.from(await data.arrayBuffer());
+      const remoteDb = JSON.parse(buf.toString('utf-8'));
       if (remoteDb && Array.isArray(remoteDb.users) && remoteDb.users.length > 0) {
         memoryDb = normalizeData(remoteDb);
         const targetPath = getDbPath();
@@ -119,23 +98,23 @@ async function syncDbFromCloud() {
       }
     }
   } catch (err) {
-    // ignore
+    console.error('[Database Cloud Download Error]', err.message);
   }
 }
 
 async function syncDbToCloud(data) {
-  if (!supabase || !data) return;
+  if (!supabase) return;
   try {
-    const raw = JSON.stringify(data, null, 2);
-    const { error } = await supabase.storage.from('thumbnails').upload('videohub_db_state.json', raw, {
-      contentType: 'application/json',
-      upsert: true
-    });
-    if (error) {
-      await supabase.storage.from('thumbnails').upload('videohub_db_state.json', Buffer.from(raw, 'utf-8'), {
+    const targetPath = getDbPath();
+    if (fs.existsSync(targetPath)) {
+      const fileBuffer = fs.readFileSync(targetPath);
+      const { error } = await supabase.storage.from('thumbnails').upload('videohub_db_state.json', fileBuffer, {
         contentType: 'application/json',
         upsert: true
       });
+      if (error) {
+        console.error('[Database Cloud Upload Error]', error.message);
+      }
     }
   } catch (err) {
     console.error('[Database Cloud Save Error]', err.message);
