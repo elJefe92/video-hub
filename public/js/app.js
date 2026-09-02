@@ -593,6 +593,57 @@ function filterVideosByCategoryIds(catIds) {
 }
 
 // ==================== EXPLORATEUR MULTI-TAGS CONTROLLER ====================
+let currentCategorySortMode = 'popular'; // 'popular' (les plus sélectionnées) ou 'alpha' (ordre alphabétique A-Z)
+let cachedExplorerCategories = [];
+
+function setCategorySortMode(mode) {
+  currentCategorySortMode = mode;
+  const btnPop = document.getElementById('btnSortPopular');
+  const btnAlpha = document.getElementById('btnSortAlpha');
+  if (btnPop && btnAlpha) {
+    if (mode === 'popular') {
+      btnPop.classList.add('active');
+      btnAlpha.classList.remove('active');
+    } else {
+      btnAlpha.classList.add('active');
+      btnPop.classList.remove('active');
+    }
+  }
+  renderExplorerTagsCloud();
+}
+
+function sortCategoriesList(categories) {
+  const list = [...categories];
+  if (currentCategorySortMode === 'popular') {
+    // Plus sélectionnées / populaires en premier, puis alphabétique
+    return list.sort((a, b) => {
+      const diff = (b.count || 0) - (a.count || 0);
+      if (diff !== 0) return diff;
+      return (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' });
+    });
+  } else {
+    // Ordre alphabétique pur A-Z
+    return list.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }));
+  }
+}
+
+function renderExplorerTagsCloud() {
+  const tagsContainer = document.getElementById('explorerTagsCloud');
+  if (!tagsContainer || !cachedExplorerCategories) return;
+
+  const sortedCategories = sortCategoriesList(cachedExplorerCategories);
+
+  tagsContainer.innerHTML = sortedCategories.map(c => {
+    const isSelected = selectedExplorerTags.has(c.id);
+    return `
+      <button class="tag-chip ${isSelected ? 'active' : ''}" onclick="toggleExplorerTag('${c.id}')">
+        <span>${c.name}</span>
+        <span class="tag-chip-count">${c.count || 0}</span>
+      </button>
+    `;
+  }).join('');
+}
+
 async function loadExplorerData() {
   const tagsContainer = document.getElementById('explorerTagsCloud');
   const contentArea = document.getElementById('explorerContentArea');
@@ -604,25 +655,16 @@ async function loadExplorerData() {
   try {
     const res = await fetch('/api/explorer');
     const data = await res.json();
-    const categories = data.categories || [];
+    cachedExplorerCategories = data.categories || [];
 
-    // Render tag chips
-    tagsContainer.innerHTML = categories.map(c => {
-      const isSelected = selectedExplorerTags.has(c.id);
-      return `
-        <button class="tag-chip ${isSelected ? 'active' : ''}" onclick="toggleExplorerTag('${c.id}')">
-          
-          <span>${c.name}</span>
-          <span class="tag-chip-count">${c.count}</span>
-        </button>
-      `;
-    }).join('');
+    // Render tag chips with active sort mode
+    renderExplorerTagsCloud();
 
     // If tags are selected, show filtered multi-tag results
     if (selectedExplorerTags.size > 0) {
       if (clearBtn) clearBtn.style.display = 'inline-block';
       const tagNames = Array.from(selectedExplorerTags).map(t => {
-        const found = categories.find(c => c.id === t);
+        const found = cachedExplorerCategories.find(c => c.id === t);
         return found ? `${found.name}` : `#${t}`;
       }).join(' + ');
 

@@ -243,8 +243,19 @@
           <!-- Multi-Tag Selector Cloud -->
           <div class="explorer-tags-wrapper">
             <div class="explorer-tags-title">
-              <span>Choisir des catégories :</span>
-              <button class="btn-clear-tags" id="btnClearTags" onclick="clearSelectedExplorerTags()" style="display:none;"> Réinitialiser les filtres</button>
+              <div class="explorer-title-left">
+                <span>Choisir des catégories :</span>
+              </div>
+              <div class="explorer-sort-controls">
+                <span class="sort-label">Trier par :</span>
+                <button type="button" class="btn-sort-cat active" id="btnSortPopular" onclick="setCategorySortMode('popular')">
+                  Plus sélectionnées
+                </button>
+                <button type="button" class="btn-sort-cat" id="btnSortAlpha" onclick="setCategorySortMode('alpha')">
+                  Ordre alphabétique (A-Z)
+                </button>
+              </div>
+              <button class="btn-clear-tags" id="btnClearTags" onclick="clearSelectedExplorerTags()" style="display:none;">Réinitialiser les filtres</button>
             </div>
             <div class="explorer-tags-cloud" id="explorerTagsCloud">
               <!-- Dynamically populated tag chips -->
