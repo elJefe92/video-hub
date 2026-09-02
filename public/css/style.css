@@ -4238,6 +4238,24 @@ html.age-verified #adultWarningOverlay {
   transform: translateY(-1px);
 }
 
+.btn-forgot-password {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s;
+  font-family: inherit;
+}
+
+.btn-forgot-password:hover {
+  color: #fb923c;
+}
+
 /* ==================== THUMBNAIL SNAPSHOTS SELECTOR ==================== */
 .thumbnail-snapshots-wrap {
   background: var(--bg-subtle);
