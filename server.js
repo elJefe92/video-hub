@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const { loadDb, saveDb } = require('./database');
 const { supabase } = require('./supabase');
+const stripe = process.env.STRIPE_SECRET_KEY ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -1426,7 +1427,92 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
   });
 });
 
-// ---------------- VIP SUBSCRIPTION (9,99€) ----------------
+// ---------------- VIP SUBSCRIPTION (9,99€) & STRIPE ----------------
+app.post('/api/vip/create-checkout-session', authenticate, async (req, res) => {
+  const user = req.user;
+  const siteUrl = 'https://video-hub-mu-nine.vercel.app';
+
+  if (!stripe) {
+    // If Stripe is not configured with a secret key yet, allow simulation fallback
+    return res.json({ simulation: true });
+  }
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      line_items: [
+        {
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: 'Abonnement VIP VideoHub (9,99€ / mois)',
+              description: 'Accès illimité aux vidéos exclusives VIP, badge certifié, suppression des pubs et priorité',
+            },
+            unit_amount: 999, // 9.99 EUR
+            recurring: {
+              interval: 'month'
+            }
+          },
+          quantity: 1,
+        }
+      ],
+      customer_email: user.email,
+      client_reference_id: user.id,
+      metadata: {
+        userId: user.id,
+        username: user.username
+      },
+      success_url: `${siteUrl}/?vip_status=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${siteUrl}/?vip_status=cancelled`
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('Stripe checkout session error:', err);
+    res.status(500).json({ error: "Erreur lors de la création de la session Stripe." });
+  }
+});
+
+// Verify Stripe Checkout Session and grant VIP
+app.post('/api/vip/verify-session', authenticate, async (req, res) => {
+  const { sessionId } = req.body;
+  if (!stripe || !sessionId) {
+    return res.status(400).json({ error: 'Session Stripe introuvable.' });
+  }
+
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.payment_status === 'paid' || session.status === 'complete') {
+      const db = loadDb();
+      const user = db.users.find(u => u.id === req.user.id || u.id === session.client_reference_id);
+      if (user) {
+        const expiry = new Date();
+        expiry.setMonth(expiry.getMonth() + 1);
+        user.isVip = true;
+        user.vipExpiry = expiry.toISOString().split('T')[0];
+
+        db.videos.forEach(v => {
+          if (v.authorId === user.id) v.isVipAuthor = true;
+        });
+
+        saveDb(db);
+        addLog('Abonnement VIP Stripe', `${user.username} a souscrit au Pass VIP 9,99€ via Stripe`);
+
+        const { passwordHash: _, ...userSafe } = user;
+        return res.json({
+          success: true,
+          message: 'Paiement validé ! Vous êtes désormais Membre VIP (9,99€/mois).',
+          user: userSafe
+        });
+      }
+    }
+    res.status(400).json({ error: 'Paiement non confirmé.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur de vérification du paiement Stripe.' });
+  }
+});
+
 app.post('/api/vip/subscribe', authenticate, (req, res) => {
   const { durationMonths } = req.body;
   const db = loadDb();
@@ -1454,7 +1540,7 @@ app.post('/api/vip/subscribe', authenticate, (req, res) => {
 
   const { passwordHash: _, ...userSafe } = user;
   res.json({
-    message: 'Félicitations ! Vous êtes désormais Membre VIP  (9,99€)',
+    message: 'Félicitations ! Vous êtes désormais Membre VIP (9,99€/mois)',
     user: userSafe,
     amount: "9.99€",
     validUntil: user.vipExpiry
