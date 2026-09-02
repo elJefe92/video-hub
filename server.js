@@ -1013,8 +1013,38 @@ app.post('/api/reports/submit', (req, res) => {
   addLog('Signalement Abus', `Signalement reçu pour "${newReport.videoTitle || newReport.videoUrl}" (Motif : ${newReport.reason}) par ${newReport.fullName}`);
 
   res.status(201).json({
-    message: 'Votre signalement a été enregistré avec succès et transmis à notre équipe de modération. Il sera traité sous 24h à 48h. ️',
+    message: 'Votre signalement a été enregistré avec succès et transmis à notre équipe de modération. Il sera traité sous 24h à 48h.',
     report: newReport
+  });
+});
+
+// ---------------- CONTACT FORM MESSAGES ----------------
+app.post('/api/contact/submit', (req, res) => {
+  const { name, email, subject, message } = req.body;
+  if (!name || !email || !subject || !message) {
+    return res.status(400).json({ error: 'Veuillez remplir tous les champs obligatoires (*).' });
+  }
+
+  const db = loadDb();
+  db.contactMessages = db.contactMessages || [];
+
+  const newContact = {
+    id: 'contact_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+    name: name.trim(),
+    email: email.trim(),
+    subject: subject.trim(),
+    message: message.trim(),
+    createdAt: new Date().toISOString()
+  };
+
+  db.contactMessages.unshift(newContact);
+  saveDb(db);
+
+  addLog('Contact', `Nouveau message de ${newContact.name} (${newContact.email}) - Objet: ${newContact.subject}`);
+
+  res.status(201).json({
+    message: 'Votre message a été envoyé avec succès ! Notre équipe vous répondra dans les plus brefs délais.',
+    contact: newContact
   });
 });
 

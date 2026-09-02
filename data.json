@@ -1502,6 +1502,12 @@
   ],
   "logs": [
     {
+      "id": "log_1788336298706",
+      "action": "Contact",
+      "details": "Nouveau message de Jean Test (test@example.com) - Objet: Question générale",
+      "date": "2026-09-02T08:04:58.706Z"
+    },
+    {
       "id": "log_1788269706347",
       "action": "Signalement Abus",
       "details": "Signalement reçu pour \"hgu\" (Motif : Diffusion non consentie / Atteinte à la vie privée) par Test Signalement",
@@ -1696,6 +1702,16 @@
       "signature": "Test Signalement",
       "status": "pending",
       "createdAt": "2026-09-01T13:35:06.346Z"
+    }
+  ],
+  "contactMessages": [
+    {
+      "id": "contact_1788336298705_47is",
+      "name": "Jean Test",
+      "email": "test@example.com",
+      "subject": "Question générale",
+      "message": "Bonjour, ceci est un test du formulaire de contact.",
+      "createdAt": "2026-09-02T08:04:58.705Z"
     }
   ]
 }

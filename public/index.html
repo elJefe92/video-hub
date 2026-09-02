@@ -98,6 +98,9 @@
         <button class="btn-header-upload-top" onclick="switchTab('upload')" title="Déposer une vidéo">
           + Déposer une vidéo
         </button>
+        <button class="btn-header-contact" onclick="openContactModal()" title="Formulaire de contact">
+          Nous contacter
+        </button>
         
         <button class="btn-theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Basculer Mode Clair / Sombre" aria-label="Mode Clair / Sombre">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" id="themeToggleSvg">
@@ -1514,6 +1517,44 @@
       <button type="button" class="btn btn-primary btn-block mt-3" onclick="closeComplaintsModal()">
         Fermer la Politique de Plaintes
       </button>
+    </div>
+  </div>
+
+  <!-- ==================== FORMULAIRE NOUS CONTACTER ==================== -->
+  <div id="contactModal" class="modal-overlay hidden" onclick="closeContactModal(event)">
+    <div class="modal-card modal-cgu" onclick="event.stopPropagation()">
+      <button class="modal-close-btn" onclick="closeContactModal()">✕</button>
+      <div class="modal-header-box">
+        <h3>Nous contacter</h3>
+        <p>Une question, un problème technique ou une demande ? Écrivez-nous directement.</p>
+      </div>
+
+      <form id="contactForm" class="custom-form" onsubmit="handleSendContact(event)">
+        <div class="form-group">
+          <label class="form-label" for="contactName">Votre Nom ou Pseudo <span style="color:var(--primary);">*</span></label>
+          <input type="text" id="contactName" class="form-input" placeholder="Ex: Jean / Alex" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="contactEmail">Votre Adresse E-mail <span style="color:var(--primary);">*</span></label>
+          <input type="email" id="contactEmail" class="form-input" placeholder="votre.email@exemple.com" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="contactSubject">Objet du message <span style="color:var(--primary);">*</span></label>
+          <input type="text" id="contactSubject" class="form-input" placeholder="Ex: Question sur mon compte / Problème technique" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="contactMessage">Votre Message <span style="color:var(--primary);">*</span></label>
+          <textarea id="contactMessage" class="form-textarea" rows="5" placeholder="Décrivez votre message en détail..." required></textarea>
+        </div>
+
+        <div class="modal-actions-box mt-3" style="display:flex;gap:10px;justify-content:flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="closeContactModal()">Annuler</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitContact">Envoyer le message</button>
+        </div>
+      </form>
     </div>
   </div>
 

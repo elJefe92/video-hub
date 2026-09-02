@@ -201,6 +201,35 @@ body {
   border-color: var(--primary);
 }
 
+.btn-header-contact {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-subtle);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-header-contact:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 600px) {
+  .btn-header-contact {
+    display: none;
+  }
+}
+
 .btn-header-upload-top {
   display: inline-flex;
   align-items: center;

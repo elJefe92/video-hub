@@ -2322,4 +2322,77 @@ function acceptAdultWarning() {
   }
 }
 
+// ==================== CONTACT FORM HANDLERS ====================
+function openContactModal() {
+  const modal = document.getElementById('contactModal');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+
+  // Pre-fill user info if logged in
+  if (AUTH && AUTH.user) {
+    const nameInput = document.getElementById('contactName');
+    const emailInput = document.getElementById('contactEmail');
+    if (nameInput && !nameInput.value) nameInput.value = AUTH.user.username || '';
+    if (emailInput && !emailInput.value) emailInput.value = AUTH.user.email || '';
+  }
+}
+
+function closeContactModal(e) {
+  if (e && e.target && e.target.id !== 'contactModal' && !e.target.classList.contains('modal-close-btn') && e.target.tagName !== 'BUTTON') {
+    return;
+  }
+  const modal = document.getElementById('contactModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function handleSendContact(e) {
+  if (e) e.preventDefault();
+  const name = (document.getElementById('contactName')?.value || '').trim();
+  const email = (document.getElementById('contactEmail')?.value || '').trim();
+  const subject = (document.getElementById('contactSubject')?.value || '').trim();
+  const message = (document.getElementById('contactMessage')?.value || '').trim();
+  const btnSubmit = document.getElementById('btnSubmitContact');
+
+  if (!name || !email || !subject || !message) {
+    showToast('Veuillez remplir tous les champs obligatoires (*).');
+    return;
+  }
+
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Envoi en cours...';
+  }
+
+  try {
+    const res = await fetch('/api/contact/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, subject, message })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'Erreur lors de l\'envoi du message');
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Envoyer le message';
+      }
+      return;
+    }
+
+    showToast(data.message || 'Votre message a été envoyé avec succès !');
+    const form = document.getElementById('contactForm');
+    if (form) form.reset();
+    closeContactModal();
+  } catch (err) {
+    showToast('Erreur de communication avec le serveur.');
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = 'Envoyer le message';
+    }
+  }
+}
+
+
 
