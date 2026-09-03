@@ -150,22 +150,34 @@ const AUTH = {
   }
 };
 
+let currentPendingRegistrationToken = null;
+let currentPendingEmail = '';
+
 function switchAuthMode(mode) {
   const tabLogin = document.getElementById('tabLoginBtn');
   const tabRegister = document.getElementById('tabRegisterBtn');
   const loginForm = document.getElementById('loginForm');
   const registerForm = document.getElementById('registerForm');
+  const verifyOtpForm = document.getElementById('verifyOtpForm');
 
   if (mode === 'login') {
-    tabLogin.classList.add('active');
-    tabRegister.classList.remove('active');
-    loginForm.classList.remove('hidden');
-    registerForm.classList.add('hidden');
+    if (tabLogin) tabLogin.classList.add('active');
+    if (tabRegister) tabRegister.classList.remove('active');
+    if (loginForm) loginForm.classList.remove('hidden');
+    if (registerForm) registerForm.classList.add('hidden');
+    if (verifyOtpForm) verifyOtpForm.classList.add('hidden');
+  } else if (mode === 'verify_otp') {
+    if (tabRegister) tabRegister.classList.add('active');
+    if (tabLogin) tabLogin.classList.remove('active');
+    if (verifyOtpForm) verifyOtpForm.classList.remove('hidden');
+    if (registerForm) registerForm.classList.add('hidden');
+    if (loginForm) loginForm.classList.add('hidden');
   } else {
-    tabRegister.classList.add('active');
-    tabLogin.classList.remove('active');
-    registerForm.classList.remove('hidden');
-    loginForm.classList.add('hidden');
+    if (tabRegister) tabRegister.classList.add('active');
+    if (tabLogin) tabLogin.classList.remove('active');
+    if (registerForm) registerForm.classList.remove('hidden');
+    if (loginForm) loginForm.classList.add('hidden');
+    if (verifyOtpForm) verifyOtpForm.classList.add('hidden');
   }
 }
 
@@ -212,14 +224,21 @@ async function quickFillAdminLogin() {
   await handleLogin({ preventDefault: () => {} });
 }
 
+// Étape 1 : Envoi du code de vérification
 async function handleRegister(e) {
   e.preventDefault();
   const username = document.getElementById('regUsername').value.trim();
   const email = document.getElementById('regEmail').value.trim();
   const password = document.getElementById('regPassword').value;
+  const btnSubmit = document.getElementById('btnSubmitRegister');
+
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Envoi du code...';
+  }
 
   try {
-    const res = await fetch('/api/auth/register', {
+    const res = await fetch('/api/auth/send-verification-code', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, email, password })
@@ -227,16 +246,130 @@ async function handleRegister(e) {
 
     const data = await res.json();
     if (!res.ok) {
-      showToast(data.error || 'Erreur lors de l\'inscription');
+      showToast(data.error || 'Erreur lors de la demande d\'inscription');
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Continuer et recevoir mon code';
+      }
       return;
     }
 
-    AUTH.setAuth(data.token, data.user);
-    showToast('Inscription réussie ! Bienvenue ' + data.user.username);
-    switchTab('accueil');
+    currentPendingRegistrationToken = data.pendingToken;
+    currentPendingEmail = email;
+
+    const emailDisplay = document.getElementById('verifyOtpEmailDisplay');
+    if (emailDisplay) emailDisplay.textContent = email;
+
+    showToast(data.message || 'Code envoyé ! Vérifiez votre boîte e-mail.');
+    switchAuthMode('verify_otp');
+
+    const otpInput = document.getElementById('regOtpCode');
+    if (otpInput) {
+      otpInput.value = '';
+      otpInput.focus();
+    }
   } catch (err) {
     showToast('Erreur de connexion au serveur.');
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = 'Continuer et recevoir mon code';
+    }
   }
+}
+
+// Étape 2 : Confirmation du code OTP et création définitive du compte
+async function handleVerifyOtp(e) {
+  e.preventDefault();
+  const codeInput = document.getElementById('regOtpCode');
+  const code = codeInput ? codeInput.value.trim() : '';
+  const btnSubmit = document.getElementById('btnSubmitVerifyOtp');
+
+  if (!currentPendingRegistrationToken) {
+    showToast('Session expirée. Veuillez recommencer l\'inscription.');
+    switchAuthMode('register');
+    return;
+  }
+
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = 'Validation en cours...';
+  }
+
+  try {
+    const res = await fetch('/api/auth/verify-and-register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pendingToken: currentPendingRegistrationToken, code })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'Code invalide.');
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Confirmer et activer mon compte';
+      }
+      return;
+    }
+
+    currentPendingRegistrationToken = null;
+    AUTH.setAuth(data.token, data.user);
+    showToast('Compte vérifié et activé avec succès ! Bienvenue ' + data.user.username);
+    switchTab('accueil');
+  } catch (err) {
+    showToast('Erreur de communication avec le serveur.');
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = 'Confirmer et activer mon compte';
+    }
+  }
+}
+
+// Renvoyer le code de confirmation
+async function handleResendOtp() {
+  if (!currentPendingRegistrationToken) {
+    showToast('Aucune inscription en attente.');
+    switchAuthMode('register');
+    return;
+  }
+
+  const btn = document.getElementById('btnResendOtp');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Envoi...';
+  }
+
+  try {
+    const res = await fetch('/api/auth/resend-verification-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pendingToken: currentPendingRegistrationToken })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'Erreur lors du renvoi du code.');
+      return;
+    }
+
+    currentPendingRegistrationToken = data.pendingToken;
+    showToast(data.message || 'Nouveau code envoyé par e-mail !');
+  } catch (err) {
+    showToast('Erreur lors de la demande de nouveau code.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Renvoyer le code';
+    }
+  }
+}
+
+// Revenir à l'étape 1 pour modifier ses identifiants
+function handleCancelOtp() {
+  currentPendingRegistrationToken = null;
+  switchAuthMode('register');
 }
 
 function handleLogout() {

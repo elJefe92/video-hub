@@ -175,6 +175,18 @@ async function sendWelcomeEmail(toEmail, username) {
   });
 }
 
+async function sendVerificationEmail(toEmail, username, verificationCode) {
+  if (!toEmail) return false;
+  const tpl = generateEmailTemplate('verify_email', { username, toEmail, code: verificationCode });
+  return await sendRobustEmail({
+    to: toEmail,
+    subject: tpl.subject,
+    html: tpl.html,
+    text: tpl.text,
+    category: 'SECURITY'
+  });
+}
+
 // In-memory store for password reset codes: email -> { code, expiresAt, userId }
 const passwordResetCodes = new Map();
 
@@ -220,6 +232,27 @@ function generateEmailTemplate(type, data = {}) {
   `;
 
   switch(type) {
+    case 'verify_email':
+      const verifyCode = data.code || '123456';
+      return {
+        name: 'Vérification d\'inscription (Code 6 chiffres)',
+        subject: `Votre code de confirmation VideoHub : ${verifyCode}`,
+        html: baseHeader + `
+          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bonjour ${username},</h2>
+          <p style="color: #cbd5e1; font-size: 15px;">
+            Merci de rejoindre <strong>VideoHub</strong>. Pour valider votre adresse e-mail et finaliser la création de votre compte, veuillez saisir le code de vérification ci-dessous :
+          </p>
+          <div style="background: #1e293b; border-radius: 8px; padding: 22px; text-align: center; margin: 24px 0; border: 1px dashed #f97316;">
+            <span style="font-size: 34px; font-weight: 900; letter-spacing: 8px; color: #f97316; font-family: monospace;">${verifyCode}</span>
+            <p style="color: #94a3b8; font-size: 12px; margin: 8px 0 0 0;">Ce code de sécurité expire dans 15 minutes.</p>
+          </div>
+          <p style="color: #cbd5e1; font-size: 14px;">
+            Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail en toute sécurité. Aucun compte ne sera créé.
+          </p>
+        ` + baseFooter,
+        text: `Bonjour ${username},\n\nVotre code de confirmation VideoHub est : ${verifyCode}\nCe code expire dans 15 minutes.\n\nAccéder à VideoHub : ${siteUrl}`
+      };
+
     case 'welcome':
       return {
         name: 'Bienvenue & Inscription',
@@ -455,6 +488,202 @@ function isReservedAdminUsername(username, userEmail) {
 }
 
 // ---------------- AUTH ROUTES (Direct, No Google) ----------------
+
+// 1. Étape 1 : Demande de code de vérification pour inscription
+app.post('/api/auth/send-verification-code', async (req, res) => {
+  const { username, email, password, avatar } = req.body;
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: 'Tous les champs sont requis.' });
+  }
+
+  const trimmedUsername = username.trim();
+  const trimmedEmail = email.trim().toLowerCase();
+
+  // Validation format email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(trimmedEmail)) {
+    return res.status(400).json({ error: 'Adresse e-mail invalide.' });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 6 caractères.' });
+  }
+
+  // Vérification pseudo admin réservé
+  if (isReservedAdminUsername(trimmedUsername, trimmedEmail)) {
+    return res.status(400).json({ 
+      error: `Le pseudo "${trimmedUsername}" et les termes associés à l'administration sont strictement réservés au compte administrateur officiel.` 
+    });
+  }
+
+  await syncDbFromCloud();
+  const db = loadDb();
+
+  // Vérification pseudo unique
+  const existingUsername = db.users.find(u => u.username && u.username.trim().toLowerCase() === trimmedUsername.toLowerCase());
+  if (existingUsername) {
+    return res.status(400).json({ error: `Le nom d'utilisateur "${trimmedUsername}" est déjà utilisé. Veuillez en choisir un autre.` });
+  }
+
+  // Vérification email unique
+  const existingEmail = db.users.find(u => u.email && u.email.trim().toLowerCase() === trimmedEmail);
+  if (existingEmail) {
+    return res.status(400).json({ error: `L'adresse e-mail "${trimmedEmail}" est déjà associée à un compte.` });
+  }
+
+  // Génération du code à 6 chiffres
+  const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const codeHash = bcrypt.hashSync(verificationCode, 8);
+  const salt = bcrypt.genSaltSync(10);
+  const passwordHash = bcrypt.hashSync(password, salt);
+
+  // Envoi immédiat du code par e-mail
+  const emailSent = await sendVerificationEmail(trimmedEmail, trimmedUsername, verificationCode);
+  if (!emailSent) {
+    return res.status(400).json({ 
+      error: "Impossible d'envoyer le code de vérification sur cette adresse e-mail. Veuillez vérifier l'adresse saisie." 
+    });
+  }
+
+  addLog('Code Vérification Envoyé', `Code d'inscription envoyé à ${trimmedEmail}`);
+
+  // Jeton sécurisé temporaire (15 minutes) contenant les données prêtes à être validées
+  const pendingToken = jwt.sign(
+    {
+      username: trimmedUsername,
+      email: trimmedEmail,
+      passwordHash,
+      avatar: avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(trimmedUsername)}`,
+      codeHash,
+      type: 'registration_pending'
+    },
+    JWT_SECRET,
+    { expiresIn: '15m' }
+  );
+
+  res.json({
+    success: true,
+    message: `Un code de confirmation à 6 chiffres a été envoyé à ${trimmedEmail}.`,
+    pendingToken,
+    email: trimmedEmail
+  });
+});
+
+// 2. Étape 2 : Validation du code et création effective du compte
+app.post('/api/auth/verify-and-register', async (req, res) => {
+  const { pendingToken, code } = req.body;
+  if (!pendingToken || !code) {
+    return res.status(400).json({ error: 'Code de vérification requis.' });
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(pendingToken, JWT_SECRET);
+    if (decoded.type !== 'registration_pending') {
+      return res.status(400).json({ error: 'Jeton de vérification invalide.' });
+    }
+  } catch (err) {
+    return res.status(400).json({ error: 'Votre code de vérification a expiré (délai de 15 minutes). Veuillez recommencer.' });
+  }
+
+  // Vérification de la correspondance du code 6 chiffres
+  const cleanCode = code.toString().trim();
+  const isMatch = bcrypt.compareSync(cleanCode, decoded.codeHash);
+  if (!isMatch) {
+    return res.status(400).json({ error: 'Code de vérification incorrect. Veuillez vérifier votre boîte e-mail.' });
+  }
+
+  await syncDbFromCloud();
+  const db = loadDb();
+
+  // Re-vérification de sécurité de l'unicité
+  const existingEmail = db.users.find(u => u.email && u.email.trim().toLowerCase() === decoded.email.toLowerCase());
+  if (existingEmail) {
+    return res.status(400).json({ error: `L'adresse e-mail "${decoded.email}" est déjà associée à un compte.` });
+  }
+  const existingUsername = db.users.find(u => u.username && u.username.trim().toLowerCase() === decoded.username.toLowerCase());
+  if (existingUsername) {
+    return res.status(400).json({ error: `Le nom d'utilisateur "${decoded.username}" est déjà utilisé.` });
+  }
+
+  const isAdminEmail = decoded.email === 'ia.project.pro2k26@gmail.com';
+
+  const newUser = {
+    id: 'user_' + Date.now(),
+    username: decoded.username,
+    email: decoded.email,
+    passwordHash: decoded.passwordHash,
+    role: isAdminEmail ? "admin" : "user",
+    isVip: isAdminEmail,
+    vipExpiry: isAdminEmail ? "2030-01-01" : null,
+    avatar: decoded.avatar,
+    bio: 'Membre créateur sur la plateforme !',
+    emailVerified: true,
+    createdAt: new Date().toISOString()
+  };
+
+  db.users.push(newUser);
+  saveDb(db);
+  await syncDbToCloud(db);
+
+  addLog('Inscription Validée', `Nouveau compte certifié: ${newUser.username} (${newUser.email})`);
+
+  // Envoi de l'e-mail de bienvenue
+  try {
+    await sendWelcomeEmail(newUser.email, newUser.username);
+  } catch (err) {
+    console.error('Welcome email error:', err.message);
+  }
+
+  const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, { expiresIn: '30d' });
+  const { passwordHash: _, ...userSafe } = newUser;
+
+  res.status(201).json({
+    message: 'Compte validé et créé avec succès !',
+    token,
+    user: userSafe
+  });
+});
+
+// 3. Renvoyer un nouveau code de confirmation
+app.post('/api/auth/resend-verification-code', async (req, res) => {
+  const { pendingToken } = req.body;
+  if (!pendingToken) {
+    return res.status(400).json({ error: 'Jeton de vérification manquant.' });
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(pendingToken, JWT_SECRET);
+  } catch (err) {
+    return res.status(400).json({ error: 'Session de vérification expirée. Veuillez recommencer.' });
+  }
+
+  const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const newCodeHash = bcrypt.hashSync(newCode, 8);
+
+  const sent = await sendVerificationEmail(decoded.email, decoded.username, newCode);
+  if (!sent) {
+    return res.status(400).json({ error: "Impossible d'envoyer le nouvel e-mail. Veuillez réessayer plus tard." });
+  }
+
+  const refreshedToken = jwt.sign(
+    {
+      ...decoded,
+      codeHash: newCodeHash
+    },
+    JWT_SECRET,
+    { expiresIn: '15m' }
+  );
+
+  res.json({
+    success: true,
+    message: `Nouveau code envoyé à ${decoded.email}.`,
+    pendingToken: refreshedToken
+  });
+});
+
+// Ancien endpoint d'inscription direct (redirige vers le nouveau flux avec code)
 app.post('/api/auth/register', async (req, res) => {
   const { username, email, password, avatar } = req.body;
   if (!username || !email || !password) {
@@ -501,6 +730,7 @@ app.post('/api/auth/register', async (req, res) => {
     vipExpiry: isAdminEmail ? "2030-01-01" : null,
     avatar: avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(trimmedUsername)}`,
     bio: 'Membre créateur sur la plateforme !',
+    emailVerified: true,
     createdAt: new Date().toISOString()
   };
 
@@ -510,7 +740,6 @@ app.post('/api/auth/register', async (req, res) => {
 
   addLog('Inscription Utilisateur', `Nouveau compte: ${newUser.username} (${newUser.email})`);
 
-  // Await welcome email dispatch before serverless Lambda terminates
   try {
     await sendWelcomeEmail(newUser.email, newUser.username);
   } catch (err) {

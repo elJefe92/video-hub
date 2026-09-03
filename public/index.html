@@ -610,12 +610,37 @@
               </div>
             </div>
 
-            <button type="submit" class="btn btn-primary btn-block">Créer mon compte</button>
+            <button type="submit" id="btnSubmitRegister" class="btn btn-primary btn-block">Continuer et recevoir mon code</button>
 
             <div class="auth-switch-box">
               <span class="auth-switch-text">Déjà un compte membre ?</span>
               <button type="button" class="auth-switch-link" onclick="switchAuthMode('login')">
                 Connecte-toi ici
+              </button>
+            </div>
+          </form>
+
+          <!-- OTP Verification Form (Étape 2 Inscription) -->
+          <form id="verifyOtpForm" class="auth-form hidden" onsubmit="handleVerifyOtp(event)">
+            <div class="auth-header">
+              <h3>Vérifiez votre boîte e-mail</h3>
+              <p>Un code de confirmation à 6 chiffres a été envoyé à <strong id="verifyOtpEmailDisplay" style="color: var(--primary);">votre adresse</strong>.</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Code de sécurité à 6 chiffres *</label>
+              <input type="text" id="regOtpCode" class="form-input" placeholder="000000" maxlength="6" pattern="[0-9]{6}" required autocomplete="one-time-code" style="text-align: center; font-size: 1.6rem; letter-spacing: 8px; font-weight: 800;">
+              <small style="display: block; margin-top: 6px; color: var(--text-muted); font-size: 0.78rem;">Consultez vos e-mails (et le dossier spam au besoin). Valable 15 minutes.</small>
+            </div>
+
+            <button type="submit" id="btnSubmitVerifyOtp" class="btn btn-primary btn-block">Confirmer et activer mon compte</button>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--border-color); font-size: 0.82rem;">
+              <button type="button" class="auth-switch-link" id="btnResendOtp" onclick="handleResendOtp()" style="padding: 0; font-weight: 700;">
+                Renvoyer le code
+              </button>
+              <button type="button" class="auth-switch-link" onclick="handleCancelOtp()" style="padding: 0; color: var(--text-muted);">
+                Modifier mes infos
               </button>
             </div>
           </form>
