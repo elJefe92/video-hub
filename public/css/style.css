@@ -1572,6 +1572,7 @@ body.theme-light .btn-sort-cat.active {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text-main);
+  text-decoration: none;
   cursor: pointer;
   transition: all 0.2s ease;
 }

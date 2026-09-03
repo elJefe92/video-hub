@@ -55,6 +55,8 @@ function toggleTheme() {
 function handleUrlHash() {
   const pathname = window.location.pathname;
   const hash = window.location.hash.replace('#', '');
+  const urlParams = new URLSearchParams(window.location.search);
+  const catQuery = urlParams.get('cat') || urlParams.get('categorie') || urlParams.get('category');
 
   if (pathname === '/admin' || hash === 'admin') {
     if (AUTH.isAdmin()) {
@@ -68,7 +70,12 @@ function handleUrlHash() {
     return;
   }
 
-  if (hash.startsWith('tag=') || hash.startsWith('category=')) {
+  if (catQuery) {
+    quickFilterByTag(catQuery);
+    return;
+  }
+
+  if (hash.startsWith('tag=') || hash.startsWith('category=') || hash.startsWith('categorie=') || hash.startsWith('cat=')) {
     const tag = hash.split('=')[1];
     quickFilterByTag(tag);
   } else if (hash === 'explorer') {
@@ -636,15 +643,15 @@ function renderExplorerTagsCloud() {
   tagsContainer.innerHTML = sortedCategories.map(c => {
     const isSelected = selectedExplorerTags.has(c.id);
     return `
-      <button class="tag-chip ${isSelected ? 'active' : ''}" onclick="toggleExplorerTag('${c.id}')">
+      <a href="?cat=${encodeURIComponent(c.id)}" class="tag-chip ${isSelected ? 'active' : ''}" onclick="event.preventDefault(); toggleExplorerTag('${c.id}')" title="Filtrer et afficher les vidéos de la catégorie ${c.name}">
         <span>${c.name}</span>
         <span class="tag-chip-count">${c.count || 0}</span>
-      </button>
+      </a>
     `;
   }).join('');
 }
 
-async function loadExplorerData() {
+async function loadExplorerData(shouldScroll = false) {
   const tagsContainer = document.getElementById('explorerTagsCloud');
   const contentArea = document.getElementById('explorerContentArea');
   const clearBtn = document.getElementById('btnClearTags');
@@ -679,9 +686,9 @@ async function loadExplorerData() {
       const matchedVideos = vidData.videos || [];
 
       contentArea.innerHTML = `
-        <div class="section-heading mt-3">
+        <div class="section-heading mt-3" id="explorerResultsHeading">
           <h3>Résultats (${matchedVideos.length} vidéo${matchedVideos.length > 1 ? 's' : ''})</h3>
-          <span class="video-counter">${selectedExplorerTags.size} tag(s) actif(s)</span>
+          <span class="video-counter">${selectedExplorerTags.size} catégorie(s) sélectionnée(s)</span>
         </div>
         <div class="video-grid" id="explorerMatchedGrid">
           <!-- Dynamic Matched Cards -->
@@ -689,17 +696,27 @@ async function loadExplorerData() {
       `;
       renderVideoGrid(matchedVideos, 'explorerMatchedGrid');
 
+      // Défilement fluide vers les vidéos de la catégorie choisie
+      if (shouldScroll) {
+        setTimeout(() => {
+          const scrollTarget = document.getElementById('activeTagsStatus') || document.getElementById('explorerResultsHeading') || contentArea;
+          if (scrollTarget) {
+            scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 60);
+      }
+
     } else {
       // No tag selected: Display directory of Category Showcases
       if (clearBtn) clearBtn.style.display = 'none';
       if (statusEl) {
-        statusEl.innerHTML = `<small style="color:var(--text-muted);">Cliquez sur une ou plusieurs catégories ci-dessus pour combiner les thématiques.</small>`;
+        statusEl.innerHTML = `<small style="color:var(--text-muted);">Cliquez sur une ou plusieurs catégories ci-dessus pour accéder directement aux vidéos.</small>`;
       }
 
       const sortedList = sortCategoriesList(cachedExplorerCategories);
 
       contentArea.innerHTML = sortedList.map(c => `
-        <div class="category-showcase-block">
+        <div class="category-showcase-block" id="category_section_${c.id}">
           <div class="showcase-header">
             <div class="showcase-title-left">
               <div>
@@ -707,9 +724,9 @@ async function loadExplorerData() {
                 <p class="showcase-desc">${c.description || 'Découvrez toutes les créations de cette catégorie.'}</p>
               </div>
             </div>
-            <button class="btn-showcase-explore" onclick="quickFilterByTag('${c.id}')">
+            <a href="?cat=${encodeURIComponent(c.id)}" class="btn-showcase-explore" onclick="event.preventDefault(); quickFilterByTag('${c.id}')">
               Explorer (${c.count || 0}) →
-            </button>
+            </a>
           </div>
 
           <div class="video-grid" id="showcase_grid_${c.id}">
@@ -734,21 +751,32 @@ function toggleExplorerTag(tagId) {
   } else {
     selectedExplorerTags.add(tagId);
   }
-  loadExplorerData();
+
+  // Mise à jour de l'URL avec le lien hypertexte direct vers la catégorie
+  if (selectedExplorerTags.size > 0) {
+    const catsStr = Array.from(selectedExplorerTags).join(',');
+    window.history.replaceState(null, '', `?cat=${encodeURIComponent(catsStr)}`);
+  } else {
+    window.history.replaceState(null, '', window.location.pathname);
+  }
+
+  loadExplorerData(true);
 }
 
 function clearSelectedExplorerTags() {
   selectedExplorerTags.clear();
-  loadExplorerData();
+  window.history.replaceState(null, '', window.location.pathname);
+  loadExplorerData(false);
   showToast('Filtres réinitialisés.');
 }
 
 function quickFilterByTag(tagId) {
   selectedExplorerTags.clear();
   selectedExplorerTags.add(tagId);
+  window.history.replaceState(null, '', `?cat=${encodeURIComponent(tagId)}`);
   switchTab('explorer');
-  loadExplorerData();
-  showToast(`Filtré sur : #${tagId}`);
+  loadExplorerData(true);
+  showToast(`Filtré sur la catégorie : #${tagId}`);
 }
 
 // Video Player Modal with VIP Paywall check & Rich Details (Tags, Similar, Comments)
