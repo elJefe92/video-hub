@@ -109,19 +109,16 @@ async function syncDbFromCloud() {
 async function syncDbToCloud(data) {
   if (!supabase || !data) return;
   try {
-    const targetPath = getDbPath();
-    let fileBuffer;
-    if (fs.existsSync(targetPath)) {
-      fileBuffer = fs.readFileSync(targetPath);
-    } else {
-      fileBuffer = Buffer.from(JSON.stringify(data, null, 2), 'utf-8');
-    }
-    await supabase.storage.from('thumbnails').upload('videohub_db_state.json', fileBuffer, {
+    const jsonStr = JSON.stringify(data, null, 2);
+    const { error } = await supabase.storage.from('thumbnails').upload('videohub_db_state.json', jsonStr, {
       contentType: 'application/json',
       upsert: true
     });
+    if (error) {
+      console.error('[Database Cloud Upload Error]:', error.message);
+    }
   } catch (err) {
-    // Ignore error
+    console.error('[Database Cloud Save Error]:', err.message);
   }
 }
 
