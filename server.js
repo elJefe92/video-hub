@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const { loadDb, saveDb, syncDbFromCloud, syncDbToCloud } = require('./database');
 const { supabase } = require('./supabase');
+const { isBunnyConfigured, uploadToBunnyStream } = require('./bunnyStream');
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 const stripe = stripeSecret ? require('stripe')(stripeSecret) : null;
 
@@ -959,10 +960,31 @@ app.post('/api/videos/upload', optionalAuthenticate, upload.fields([
   const finalTitle = (title || '').trim() || `Vidéo partagée depuis ${resolvedRegion}`;
 
   let videoUrl = '';
+  let isBunny = false;
+  let bunnyVideoId = null;
+  let iframeUrl = null;
+  let previewAnimationUrl = null;
+
   if (req.files && req.files['videoFile'] && req.files['videoFile'][0]) {
     const videoFile = req.files['videoFile'][0];
-    const supabaseUrl = await uploadToSupabaseStorage('videos', videoFile.path, videoFile.filename, videoFile.mimetype);
-    videoUrl = supabaseUrl || `/uploads/${videoFile.filename}`;
+    
+    // Si Bunny Stream est configuré, on l'utilise en priorité pour le transcodage 4K et le CDN
+    if (isBunnyConfigured()) {
+      const bunnyRes = await uploadToBunnyStream(videoFile.path, finalTitle);
+      if (bunnyRes) {
+        videoUrl = bunnyRes.directPlayUrl;
+        isBunny = true;
+        bunnyVideoId = bunnyRes.videoId;
+        iframeUrl = bunnyRes.iframeUrl;
+        previewAnimationUrl = bunnyRes.previewAnimationUrl;
+      }
+    }
+
+    // Si Bunny n'est pas encore configuré ou en cas de secours, stockage Supabase / Local
+    if (!videoUrl) {
+      const supabaseUrl = await uploadToSupabaseStorage('videos', videoFile.path, videoFile.filename, videoFile.mimetype);
+      videoUrl = supabaseUrl || `/uploads/${videoFile.filename}`;
+    }
   } else if (externalVideoUrl) {
     videoUrl = externalVideoUrl;
   } else {
@@ -976,6 +998,11 @@ app.post('/api/videos/upload', optionalAuthenticate, upload.fields([
     thumbnail = supabaseThumbUrl || `/uploads/${thumbFile.filename}`;
   } else if (customThumbnailUrl) {
     thumbnail = customThumbnailUrl;
+  } else if (isBunny && bunnyVideoId) {
+    const customCdn = (process.env.BUNNY_STREAM_CDN_HOSTNAME || '').trim();
+    const libId = (process.env.BUNNY_STREAM_LIBRARY_ID || '').trim();
+    const hlsHost = customCdn || `vz-${libId}.b-cdn.net`;
+    thumbnail = `https://${hlsHost}/${bunnyVideoId}/thumbnail.jpg`;
   } else {
     thumbnail = "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=600&auto=format&fit=crop&q=80";
   }
@@ -1010,6 +1037,10 @@ app.post('/api/videos/upload', optionalAuthenticate, upload.fields([
     description: (description || '').trim(),
     videoUrl,
     thumbnail,
+    isBunnyStream: isBunny,
+    bunnyVideoId,
+    iframeUrl,
+    previewAnimationUrl,
     authorId: req.user ? req.user.id : 'guest_' + Date.now(),
     authorName,
     authorEmail: resolvedEmail,
