@@ -162,6 +162,23 @@ async function sendRobustEmail({ to, subject, html, text, replyTo, category }) {
   }
 }
 
+// Helper: add a notification to a user
+function addNotificationToUser(db, userId, { type, message, link }) {
+  const user = db.users.find(u => u.id === userId);
+  if (!user) return;
+  if (!user.notifications) user.notifications = [];
+  user.notifications.unshift({
+    id: 'notif_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    type,
+    message,
+    link: link || null,
+    read: false,
+    createdAt: new Date().toISOString()
+  });
+  // Keep last 30 notifications
+  if (user.notifications.length > 30) user.notifications = user.notifications.slice(0, 30);
+}
+
 async function sendWelcomeEmail(toEmail, username) {
   if (!toEmail) return false;
   const siteUrl = 'https://video-hub-mu-nine.vercel.app';
@@ -966,6 +983,76 @@ app.get('/api/users/:id/profile', async (req, res) => {
   });
 });
 
+// Toggle favorite video
+app.post('/api/user/favorites/:videoId', authenticate, async (req, res) => {
+  const videoId = req.params.videoId;
+  const user = req.user;
+  const db = loadDb();
+
+  const userRecord = db.users.find(u => u.id === user.id);
+  if (!userRecord) return res.status(404).json({ error: 'Utilisateur introuvable.' });
+
+  if (!userRecord.favorites) userRecord.favorites = [];
+
+  const idx = userRecord.favorites.indexOf(videoId);
+  let added = false;
+  if (idx === -1) {
+    userRecord.favorites.push(videoId);
+    added = true;
+  } else {
+    userRecord.favorites.splice(idx, 1);
+    added = false;
+  }
+
+  saveDb(db);
+  await syncDbToCloud(db);
+
+  res.json({ success: true, added, favorites: userRecord.favorites });
+});
+
+// Get favorites list
+app.get('/api/user/favorites', authenticate, async (req, res) => {
+  const user = req.user;
+  const db = loadDb();
+  const userRecord = db.users.find(u => u.id === user.id);
+  const favoriteIds = userRecord?.favorites || [];
+  const favoriteVideos = (db.videos || []).filter(v => favoriteIds.includes(v.id));
+  res.json({ favorites: favoriteIds, videos: favoriteVideos });
+});
+
+// GET notifications
+app.get('/api/user/notifications', authenticate, (req, res) => {
+  const db = loadDb();
+  const user = db.users.find(u => u.id === req.user.id);
+  const notifications = (user?.notifications || []).slice(0, 20);
+  const unreadCount = notifications.filter(n => !n.read).length;
+  res.json({ notifications, unreadCount });
+});
+
+// Mark notification(s) as read
+app.put('/api/user/notifications/read-all', authenticate, async (req, res) => {
+  const db = loadDb();
+  const user = db.users.find(u => u.id === req.user.id);
+  if (user && user.notifications) {
+    user.notifications.forEach(n => { n.read = true; });
+    saveDb(db);
+    await syncDbToCloud(db);
+  }
+  res.json({ success: true });
+});
+
+app.put('/api/user/notifications/:notifId/read', authenticate, async (req, res) => {
+  const db = loadDb();
+  const user = db.users.find(u => u.id === req.user.id);
+  if (user && user.notifications) {
+    const notif = user.notifications.find(n => n.id === req.params.notifId);
+    if (notif) notif.read = true;
+    saveDb(db);
+    await syncDbToCloud(db);
+  }
+  res.json({ success: true });
+});
+
 // Reset Password - Verify 6-digit code and set new password
 app.post('/api/auth/reset-password', async (req, res) => {
   const { email, code, newPassword } = req.body;
@@ -1439,6 +1526,15 @@ app.post('/api/videos/:id/like', (req, res) => {
     video.isVipExclusive = true;
     convertedToVip = true;
     addLog('Conversion VIP Automatique', `La vidéo "${video.title}" a atteint ${video.likes} mentions J'aime et est automatiquement passée en Contenu Exclusif VIP.`);
+  }
+
+  // Notify author of the like (if different user)
+  if (video.authorId && video.authorId !== req.user?.id) {
+    addNotificationToUser(db, video.authorId, {
+      type: 'like',
+      message: `Votre vidéo "${video.title.slice(0, 40)}" a reçu un nouveau j'aime.`,
+      link: `/?video=${video.id}`
+    });
   }
 
   saveDb(db);

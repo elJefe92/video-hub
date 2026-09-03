@@ -515,6 +515,16 @@ function renderVideoCard(v) {
           <span>${formattedDate ? 'Publiée le ' + formattedDate : 'Récemment'}</span>
           <span>${(v.views || 0).toLocaleString()} vues • ${v.likes || 0} j'aime</span>
         </div>
+        
+        <div style="display:flex;justify-content:flex-end;padding:4px 0 0;">
+          <button data-fav-btn="${v.id}" onclick="event.stopPropagation(); toggleFavorite('${v.id}')" 
+            style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;color:var(--text-muted);display:flex;align-items:center;gap:4px;font-size:0.78rem;">
+            ${isFavorite(v.id) 
+              ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="#ef4444" stroke="#ef4444" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+              : '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+            }
+          </button>
+        </div>
 
         <div class="video-stats-footer">
           <div class="video-tags-wrap">
@@ -815,6 +825,14 @@ function openVideoPlayerModal(videoId) {
   authorAvatar.onclick = () => openPublicUserProfile(video.authorId || video.authorName);
 
   likesCount.textContent = video.likes || 0;
+  
+  const modalFavBtn = document.getElementById('modalFavBtn');
+  if (modalFavBtn) {
+    modalFavBtn.setAttribute('data-fav-btn', video.id);
+    modalFavBtn.innerHTML = isFavorite(video.id) 
+      ? '<svg viewBox="0 0 24 24" width="16" height="16" fill="#ef4444" stroke="#ef4444" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Favori'
+      : '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Favori';
+  }
 
   if (dateEl) {
     const d = new Date(video.createdAt || Date.now());
@@ -2985,4 +3003,234 @@ function togglePasswordVisibility(inputId, btnEl) {
 }
 
 
+
+
+// --- WAVE 2 FEATURES ---
+
+// FAVORITES LOGIC
+async function toggleFavorite(videoId) {
+  if (!AUTH.isLoggedIn()) {
+    showToast('Connectez-vous pour ajouter des favoris.');
+    return;
+  }
+  try {
+    const res = await fetch(`/api/user/favorites/${videoId}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Erreur.'); return; }
+    
+    if (!AUTH.user.favorites) AUTH.user.favorites = [];
+    if (data.added) {
+      if (!AUTH.user.favorites.includes(videoId)) AUTH.user.favorites.push(videoId);
+      showToast('Ajout aux favoris.');
+    } else {
+      AUTH.user.favorites = AUTH.user.favorites.filter(id => id !== videoId);
+      showToast('Retiré des favoris.');
+    }
+    
+    updateFavoriteButtonsUI(videoId, data.added);
+  } catch(e) {
+    showToast('Erreur de communication.');
+  }
+}
+
+function isFavorite(videoId) {
+  return AUTH.isLoggedIn() && AUTH.user.favorites && AUTH.user.favorites.includes(videoId);
+}
+
+function updateFavoriteButtonsUI(videoId, isFav) {
+  document.querySelectorAll(`[data-fav-btn="${videoId}"]`).forEach(btn => {
+    btn.innerHTML = isFav
+      ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="#ef4444" stroke="#ef4444" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+      : '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+    btn.title = isFav ? 'Retirer des favoris' : 'Ajouter aux favoris';
+  });
+}
+
+async function loadAndShowFavorites() {
+  if (!AUTH.isLoggedIn()) return;
+  try {
+    const res = await fetch('/api/user/favorites', {
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) return;
+    if (AUTH.user) AUTH.user.favorites = data.favorites || [];
+    renderProfileFavorites(data.videos || []);
+  } catch(e) {}
+}
+
+function renderProfileFavorites(videos) {
+  const container = document.getElementById('profileFavoritesGrid');
+  if (!container) return;
+  if (!videos || videos.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">Aucune vidéo dans vos favoris.</p>';
+    return;
+  }
+  container.innerHTML = videos.map(v => renderVideoCard(v)).join('');
+}
+
+// CREATOR DASHBOARD LOGIC
+async function loadCreatorDashboard() {
+  if (!AUTH.isLoggedIn()) return;
+  const container = document.getElementById('creatorDashboardContent');
+  if (!container) return;
+
+  try {
+    const res = await fetch(`/api/users/${encodeURIComponent(AUTH.user.id)}/profile`);
+    if (!res.ok) return;
+    const profile = await res.json();
+
+    const videos = profile.videos || [];
+    const totalViews = profile.totalViews || 0;
+    const totalLikes = profile.totalLikes || 0;
+
+    container.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px;">
+        <div style="background:var(--bg-subtle);border:1px solid var(--border-color);border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-size:1.4rem;font-weight:800;color:var(--primary);">${videos.length}</div>
+          <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-top:4px;">Vidéos publiées</div>
+        </div>
+        <div style="background:var(--bg-subtle);border:1px solid var(--border-color);border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-size:1.4rem;font-weight:800;color:var(--text-main);">${totalViews.toLocaleString()}</div>
+          <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-top:4px;">Vues totales</div>
+        </div>
+        <div style="background:var(--bg-subtle);border:1px solid var(--border-color);border-radius:10px;padding:14px;text-align:center;">
+          <div style="font-size:1.4rem;font-weight:800;color:#ef4444;">${totalLikes.toLocaleString()}</div>
+          <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-top:4px;">Likes totaux</div>
+        </div>
+      </div>
+      <h4 style="font-size:0.9rem;font-weight:700;margin:0 0 10px;">Mes vidéos</h4>
+      ${videos.length === 0 
+        ? '<p style="color:var(--text-muted);font-size:0.85rem;">Aucune vidéo publiée.</p>'
+        : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;max-height:260px;overflow-y:auto;">${videos.map(v => `
+          <div style="cursor:pointer;border-radius:8px;overflow:hidden;background:var(--bg-subtle);border:1px solid var(--border-color);" onclick="openVideoPlayerModal('${v.id}')">
+            <img src="${v.thumbnail || 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300'}" style="width:100%;height:75px;object-fit:cover;display:block;">
+            <div style="padding:6px 8px;">
+              <div style="font-size:0.75rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.title}</div>
+              <div style="font-size:0.68rem;color:var(--text-muted);">${(v.views||0).toLocaleString()} vues · ${v.likes||0} likes</div>
+            </div>
+          </div>
+        `).join('')}</div>`
+      }
+    `;
+  } catch(e) {
+    container.innerHTML = '<p style="color:var(--text-muted);">Erreur de chargement.</p>';
+  }
+}
+
+// NOTIFICATIONS LOGIC
+let notificationPanelOpen = false;
+
+async function loadNotifications() {
+  if (!AUTH.isLoggedIn()) return;
+  const wrapper = document.getElementById('notifBellWrapper');
+  if (wrapper) wrapper.classList.remove('hidden');
+  
+  try {
+    const res = await fetch('/api/user/notifications', {
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    
+    const badge = document.getElementById('notifBadge');
+    if (badge) {
+      if (data.unreadCount > 0) {
+        badge.textContent = data.unreadCount > 9 ? '9+' : data.unreadCount;
+        badge.classList.remove('hidden');
+        badge.style.display = 'flex';
+      } else {
+        badge.classList.add('hidden');
+        badge.style.display = 'none';
+      }
+    }
+    
+    renderNotifications(data.notifications || []);
+  } catch(e) {}
+}
+
+function renderNotifications(notifications) {
+  const list = document.getElementById('notificationList');
+  if (!list) return;
+  if (!notifications || notifications.length === 0) {
+    list.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;font-size:0.85rem;">Aucune notification.</p>';
+    return;
+  }
+  list.innerHTML = notifications.map(n => `
+    <div onclick="handleNotifClick('${n.id}', '${n.link || ''}')" style="padding:10px 16px;cursor:pointer;border-bottom:1px solid var(--border-color);background:${n.read ? 'transparent' : 'rgba(249,115,22,0.06)'};transition:background 0.2s;">
+      <div style="font-size:0.82rem;color:var(--text-main);font-weight:${n.read ? '400' : '600'};">${n.message}</div>
+      <div style="font-size:0.72rem;color:var(--text-muted);margin-top:3px;">${new Date(n.createdAt).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>
+    </div>
+  `).join('');
+}
+
+async function handleNotifClick(notifId, link) {
+  try {
+    await fetch(`/api/user/notifications/${notifId}/read`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+  } catch(e) {}
+  closeNotificationPanel();
+  if (link) {
+    const urlParams = new URLSearchParams(link.split('?')[1] || '');
+    const videoId = urlParams.get('video');
+    if (videoId) openVideoPlayerModal(videoId);
+  }
+  loadNotifications();
+}
+
+function toggleNotificationPanel() {
+  const panel = document.getElementById('notificationPanel');
+  if (!panel) return;
+  notificationPanelOpen = !notificationPanelOpen;
+  if (notificationPanelOpen) {
+    panel.classList.remove('hidden');
+    loadNotifications();
+  } else {
+    panel.classList.add('hidden');
+  }
+}
+
+function closeNotificationPanel() {
+  const panel = document.getElementById('notificationPanel');
+  if (panel) panel.classList.add('hidden');
+  notificationPanelOpen = false;
+}
+
+async function markAllNotificationsRead() {
+  if (!AUTH.isLoggedIn()) return;
+  try {
+    await fetch('/api/user/notifications/read-all', {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    loadNotifications();
+    showToast('Toutes les notifications marquées comme lues.');
+  } catch(e) {}
+}
+
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('notificationPanel');
+  const bell = document.getElementById('notifBellBtn');
+  if (panel && bell && !panel.contains(e.target) && !bell.contains(e.target)) {
+    closeNotificationPanel();
+  }
+});
+
+// Periodic notification check & initial load
+setInterval(() => {
+  if (AUTH && AUTH.isLoggedIn()) {
+    loadNotifications();
+  }
+}, 120000);
+
+setTimeout(() => {
+  if (AUTH && AUTH.isLoggedIn()) {
+    loadNotifications();
+  }
+}, 2000);
 
