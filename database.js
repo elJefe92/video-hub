@@ -79,6 +79,46 @@ function normalizeData(db) {
   return db;
 }
 
+function mergeDbStates(local, remote) {
+  if (!remote || !Array.isArray(remote.users)) return local;
+  if (!local || !Array.isArray(local.users)) return remote;
+
+  // Merge users uniquely by ID and email
+  const userMap = new Map();
+  (remote.users || []).forEach(u => {
+    const key = (u.email || u.id || '').trim().toLowerCase();
+    if (key) userMap.set(key, u);
+  });
+  (local.users || []).forEach(u => {
+    const key = (u.email || u.id || '').trim().toLowerCase();
+    if (key) {
+      if (userMap.has(key)) {
+        userMap.set(key, { ...userMap.get(key), ...u });
+      } else {
+        userMap.set(key, u);
+      }
+    }
+  });
+
+  // Merge videos uniquely by ID
+  const videoMap = new Map();
+  (remote.videos || []).forEach(v => { if (v.id) videoMap.set(v.id, v); });
+  (local.videos || []).forEach(v => { if (v.id) videoMap.set(v.id, v); });
+
+  // Merge categories uniquely by name / id
+  const catMap = new Map();
+  (remote.categories || []).forEach(c => { const k = (c.id || c.name || '').toLowerCase(); if (k) catMap.set(k, c); });
+  (local.categories || []).forEach(c => { const k = (c.id || c.name || '').toLowerCase(); if (k) catMap.set(k, c); });
+
+  return {
+    ...remote,
+    ...local,
+    users: Array.from(userMap.values()),
+    videos: Array.from(videoMap.values()),
+    categories: Array.from(catMap.values())
+  };
+}
+
 let memoryDb = null;
 
 async function syncDbFromCloud() {
@@ -93,7 +133,7 @@ async function syncDbFromCloud() {
     if (!text || text.trim().length === 0) return null;
     const remoteDb = JSON.parse(text);
     if (remoteDb && Array.isArray(remoteDb.users) && remoteDb.users.length > 0) {
-      memoryDb = normalizeData(remoteDb);
+      memoryDb = normalizeData(mergeDbStates(memoryDb, remoteDb));
       const targetPath = getDbPath();
       try {
         fs.writeFileSync(targetPath, JSON.stringify(memoryDb, null, 2), 'utf-8');
@@ -109,7 +149,18 @@ async function syncDbFromCloud() {
 async function syncDbToCloud(data) {
   if (!supabase || !data) return;
   try {
-    const jsonStr = JSON.stringify(data, null, 2);
+    let merged = data;
+    try {
+      const { data: remoteData, error: dlErr } = await supabase.storage.from('thumbnails').download('videohub_db_state.json');
+      if (remoteData && !dlErr) {
+        const buf = Buffer.from(await remoteData.arrayBuffer());
+        const remoteDb = JSON.parse(buf.toString('utf-8'));
+        merged = mergeDbStates(data, remoteDb);
+      }
+    } catch (e) {}
+
+    memoryDb = normalizeData(merged);
+    const jsonStr = JSON.stringify(memoryDb, null, 2);
     const { error } = await supabase.storage.from('thumbnails').upload('videohub_db_state.json', jsonStr, {
       contentType: 'application/json',
       upsert: true
