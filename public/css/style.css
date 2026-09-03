@@ -4048,7 +4048,7 @@ body.theme-light .payment-radio.selected {
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 16px 20px;
+  padding: 12px;
   margin: 0 0 24px;
   text-align: center;
   position: relative;
@@ -4056,31 +4056,15 @@ body.theme-light .payment-radio.selected {
   transition: all 0.2s ease;
 }
 
-.ad-badge-prime {
-  display: inline-block;
-  font-size: 0.68rem;
-  font-weight: 800;
-  color: var(--primary);
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  background: rgba(249, 115, 22, 0.12);
-  border: 1px solid rgba(249, 115, 22, 0.3);
-  padding: 3px 10px;
-  border-radius: 999px;
-  margin-bottom: 10px;
-}
-
 .ad-box-content {
   background: var(--bg-subtle);
-  border: 1px dashed var(--border-color);
+  border: 1px dashed var(--border-subtle);
   border-radius: var(--radius-sm);
-  padding: 20px 16px;
   min-height: 90px;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  overflow: hidden;
 }
 
 .ad-box-content .ad-title {
