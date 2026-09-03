@@ -1987,8 +1987,8 @@ function filterAndRenderAdminUsers() {
 
   if (filtered.length === 0) {
     container.innerHTML = `
-      <div style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; background: #1e293b; border-radius: 12px; border: 1px dashed #334155; color: var(--text-muted);">
-        <p style="margin:0; font-size:0.95rem;">Aucun membre ne correspond à ce filtre.</p>
+      <div class="empty-state-box" style="grid-column: 1 / -1; text-align: center; padding: 40px 20px; background: var(--bg-card); border-radius: 12px; border: 1px dashed var(--border-color); color: var(--text-muted);">
+        <p style="margin:0; font-size:0.95rem; font-weight:600;">Aucun membre ne correspond à ce filtre.</p>
       </div>
     `;
     return;
@@ -1999,27 +1999,27 @@ function filterAndRenderAdminUsers() {
     const isUserAdmin = u.role === 'admin' || (u.email && u.email.toLowerCase() === 'ia.project.pro2k26@gmail.com');
 
     return `
-      <div class="admin-user-card" style="display:flex; justify-content:space-between; align-items:center; background:#1e293b; border:1px solid ${isUserVip ? '#f59e0b' : '#334155'}; padding:16px 20px; border-radius:12px; gap:16px;">
-        <div class="user-card-left" style="display:flex; align-items:center; gap:14px;">
-          <img src="${u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}" class="user-card-avatar" style="width:46px; height:46px; border-radius:50%; object-fit:cover; border:2px solid ${isUserVip ? '#f59e0b' : 'var(--primary)'};" alt="${u.username}">
+      <div class="admin-user-card ${isUserVip ? 'is-vip-user' : ''}">
+        <div class="user-card-left">
+          <img src="${u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}" class="user-card-avatar" alt="${u.username}">
           <div class="user-card-details">
-            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-              <h4 style="margin:0; font-size:1rem; color:#ffffff;">${u.username}</h4>
-              ${isUserAdmin ? '<span class="admin-badge" style="background:#dc2626; color:#fff; font-size:0.7rem; padding:2px 8px; border-radius:999px; font-weight:800;">Admin</span>' : ''}
+            <div class="user-card-header-row">
+              <h4 class="user-card-username">${u.username}</h4>
+              ${isUserAdmin ? '<span class="admin-badge-pill">Admin</span>' : ''}
               ${isUserVip ? 
-                '<span style="background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color:#ffffff; font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:999px;">MEMBRE VIP</span>' : 
-                '<span style="background:#334155; color:#94a3b8; font-size:0.7rem; font-weight:700; padding:2px 8px; border-radius:999px;">MEMBRE GRATUIT (FREE)</span>'
+                '<span class="badge-vip-pill">MEMBRE VIP</span>' : 
+                '<span class="badge-free-pill">MEMBRE GRATUIT (FREE)</span>'
               }
             </div>
-            <p style="margin:4px 0 0; font-size:0.84rem; color:var(--text-muted);">${u.email}</p>
-            ${u.bio ? `<p style="margin:3px 0 0; font-size:0.78rem; color:#cbd5e1; font-style:italic;">"${u.bio.length > 60 ? u.bio.slice(0, 60) + '...' : u.bio}"</p>` : ''}
-            <p style="font-size:0.75rem; margin:4px 0 0; color:${isUserVip ? '#fbbf24' : '#64748b'};">
+            <p class="user-card-email">${u.email}</p>
+            ${u.bio ? `<p class="user-card-bio">"${u.bio.length > 80 ? u.bio.slice(0, 80) + '...' : u.bio}"</p>` : ''}
+            <p class="user-card-status-info ${isUserVip ? 'text-vip-active' : 'text-free-active'}">
               ${isUserVip ? `Privilèges VIP actifs (${u.vipExpiry || 'Permanent'})` : 'Option standard gratuite (Free)'}
             </p>
           </div>
         </div>
 
-        <div>
+        <div class="user-card-actions">
           <button class="btn btn-sm ${isUserVip ? 'btn-secondary' : 'btn-vip-pill'}" onclick="toggleUserVip('${u.id}')" title="${isUserVip ? 'Rétrograder au compte standard Free' : 'Accorder les privilèges VIP à 9,99€'}">
             ${isUserVip ? 'Retirer VIP' : 'Passer VIP'}
           </button>
