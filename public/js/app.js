@@ -2341,6 +2341,50 @@ function updateBioCounter(el) {
     }
   }
 }
+function openDeleteAccountModal() {
+  const modal = document.getElementById('deleteAccountModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    const input = document.getElementById('deleteAccountConfirmInput');
+    if (input) input.value = '';
+  }
+}
+
+function closeDeleteAccountModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  const modal = document.getElementById('deleteAccountModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+}
+
+async function handleDeleteAccount() {
+  const input = document.getElementById('deleteAccountConfirmInput');
+  if (!input || input.value.trim() !== 'DELETE') {
+    showToast('Tapez DELETE pour confirmer.');
+    return;
+  }
+  if (!AUTH.isLoggedIn()) return;
+
+  try {
+    const res = await fetch('/api/user/account', {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'Erreur lors de la suppression.');
+      return;
+    }
+    showToast('Votre compte a ete supprime.');
+    closeDeleteAccountModal();
+    AUTH.logout();
+  } catch (err) {
+    showToast('Erreur de communication.');
+  }
+}
 
 function openEditProfileModal() {
   if (!AUTH || !AUTH.user) {

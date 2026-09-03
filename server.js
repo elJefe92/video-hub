@@ -190,6 +190,12 @@ async function sendVerificationEmail(toEmail, username, verificationCode) {
 // In-memory store for password reset codes: email -> { code, expiresAt, userId }
 const passwordResetCodes = new Map();
 
+// In-memory rate limiting: IP -> { count, firstAttempt, lockedUntil }
+const loginAttempts = new Map();
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const RATE_LIMIT_LOCK_MS = 15 * 60 * 1000; // 15 minutes lock
+
 async function sendPasswordResetEmail(toEmail, username, resetCode) {
   if (!toEmail) return false;
   const tpl = generateEmailTemplate('reset_pwd', { username, toEmail, code: resetCode });
@@ -777,19 +783,53 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(400).json({ error: 'Veuillez renseigner votre identifiant et mot de passe.' });
   }
 
+  // Rate limiting by IP
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  const now = Date.now();
+  const attempts = loginAttempts.get(clientIp);
+  
+  if (attempts) {
+    if (attempts.lockedUntil && now < attempts.lockedUntil) {
+      const remaining = Math.ceil((attempts.lockedUntil - now) / 60000);
+      return res.status(429).json({ 
+        error: `Trop de tentatives de connexion. Réessayez dans ${remaining} minute(s).`,
+        retryAfter: attempts.lockedUntil
+      });
+    }
+    if (now - attempts.firstAttempt > RATE_LIMIT_WINDOW_MS) {
+      loginAttempts.delete(clientIp);
+    }
+  }
+
   await syncDbFromCloud();
   const db = loadDb();
   const query = emailOrUsername.trim().toLowerCase();
   const user = db.users.find(u => u.email.toLowerCase() === query || u.username.toLowerCase() === query);
 
   if (!user) {
+    // Track failed attempts
+    const cur = loginAttempts.get(clientIp) || { count: 0, firstAttempt: Date.now() };
+    cur.count += 1;
+    if (cur.count >= RATE_LIMIT_MAX) {
+      cur.lockedUntil = Date.now() + RATE_LIMIT_LOCK_MS;
+    }
+    loginAttempts.set(clientIp, cur);
     return res.status(400).json({ error: 'Identifiant ou mot de passe incorrect.' });
   }
 
   const isMatch = bcrypt.compareSync(password, user.passwordHash);
   if (!isMatch) {
+    // Track failed attempts
+    const cur = loginAttempts.get(clientIp) || { count: 0, firstAttempt: Date.now() };
+    cur.count += 1;
+    if (cur.count >= RATE_LIMIT_MAX) {
+      cur.lockedUntil = Date.now() + RATE_LIMIT_LOCK_MS;
+    }
+    loginAttempts.set(clientIp, cur);
     return res.status(400).json({ error: 'Identifiant ou mot de passe incorrect.' });
   }
+
+  loginAttempts.delete(clientIp);
 
   if (user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') {
     user.role = 'admin';
@@ -806,6 +846,42 @@ app.post('/api/auth/login', async (req, res) => {
     token,
     user: userSafe
   });
+});
+
+// DELETE account (RGPD - authenticated user)
+app.delete('/api/user/account', authenticate, async (req, res) => {
+  const user = req.user;
+  
+  // Admin cannot delete their own account
+  if (user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') {
+    return res.status(403).json({ error: 'Le compte administrateur principal ne peut pas etre supprime.' });
+  }
+
+  const db = loadDb();
+  
+  // Remove user
+  db.users = db.users.filter(u => u.id !== user.id);
+  
+  // Remove user videos
+  const videoCount = (db.videos || []).filter(v => v.authorId === user.id || v.authorEmail === user.email).length;
+  db.videos = (db.videos || []).filter(v => v.authorId !== user.id && v.authorEmail !== user.email);
+  
+  saveDb(db);
+  await syncDbToCloud(db);
+  
+  addLog('Suppression Compte', `Compte supprime: ${user.username} (${user.email}) + ${videoCount} video(s)`);
+
+  // Send farewell email
+  try {
+    await sendRobustEmail({
+      to: user.email,
+      subject: 'VideoHub - Votre compte a ete supprime',
+      html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#f8fafc;border-radius:12px;overflow:hidden;border:1px solid #334155;"><div style="background:linear-gradient(135deg,#f97316,#ea580c);padding:30px 24px;text-align:center;"><h1 style="margin:0;color:#fff;font-size:28px;font-weight:800;">VideoHub</h1></div><div style="padding:30px 24px;"><h2>Votre compte a ete supprime</h2><p>Bonjour ${user.username},</p><p>Votre compte VideoHub (${user.email}) ainsi que l'ensemble de vos donnees ont ete definitvement supprimes de notre plateforme, conformement au RGPD.</p><p style="color:#94a3b8;font-size:12px;margin-top:30px;">Si vous n'avez pas fait cette demande, contactez-nous immediatement.</p></div></div>`,
+      category: 'ACCOUNT'
+    });
+  } catch (e) {}
+
+  res.json({ success: true, message: 'Votre compte a ete supprime definitvement.' });
 });
 
 // Forgot Password - Request 6-digit Reset Code by Email
@@ -2230,6 +2306,49 @@ app.get('/admin', (req, res) => {
 
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Auto-generated XML Sitemap for SEO
+app.get('/sitemap.xml', async (req, res) => {
+  const db = loadDb();
+  const siteUrl = 'https://video-hub-mu-nine.vercel.app';
+  const today = new Date().toISOString().split('T')[0];
+
+  const staticUrls = [
+    { loc: siteUrl, priority: '1.0', changefreq: 'daily' },
+    { loc: `${siteUrl}/#explorer`, priority: '0.9', changefreq: 'daily' },
+    { loc: `${siteUrl}/#vip`, priority: '0.7', changefreq: 'monthly' },
+    { loc: `${siteUrl}/#faq`, priority: '0.6', changefreq: 'monthly' },
+  ];
+
+  const categoryUrls = (db.categories || []).filter(c => !c.isSystem).map(c => ({
+    loc: `${siteUrl}/?cat=${encodeURIComponent(c.id)}`,
+    priority: '0.8',
+    changefreq: 'daily'
+  }));
+
+  const videoUrls = (db.videos || []).filter(v => v.status !== 'pending').slice(0, 500).map(v => ({
+    loc: `${siteUrl}/?video=${encodeURIComponent(v.id)}`,
+    priority: '0.7',
+    lastmod: v.createdAt ? v.createdAt.split('T')[0] : today,
+    changefreq: 'weekly'
+  }));
+
+  const allUrls = [...staticUrls, ...categoryUrls, ...videoUrls];
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${allUrls.map(u => `  <url>
+    <loc>${u.loc}</loc>
+    <lastmod>${u.lastmod || today}</lastmod>
+    <changefreq>${u.changefreq}</changefreq>
+    <priority>${u.priority}</priority>
+  </url>`).join('\n')}
+</urlset>`;
+
+  res.set('Content-Type', 'application/xml; charset=utf-8');
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.send(xml);
+});
 
 // SPA Fallback
 app.use((req, res) => {

@@ -699,6 +699,7 @@
               <button id="btnAdminAccess" class="btn btn-secondary hidden" onclick="navigateToAdmin()">Espace Administration (URL: /admin)</button>
               <button id="btnUpgradeProfileVip" class="btn btn-vip-pill" onclick="switchTab('vip')">Devenir VIP (9,99€)</button>
               <button class="btn btn-secondary" onclick="handleLogout()">Se déconnecter</button>
+              <button id="btnDeleteAccount" class="btn btn-danger-outline" onclick="openDeleteAccountModal()" style="border:1px solid #ef4444;color:#ef4444;background:transparent;padding:8px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">Supprimer mon compte</button>
             </div>
           </div>
 
@@ -2069,5 +2070,23 @@
   <script src="js/upload.js?v=2.7"></script>
   <script src="js/vip.js?v=2.7"></script>
   <script src="js/app.js?v=2.7"></script>
+  <!-- DELETE ACCOUNT MODAL -->
+  <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;">
+      <div class="modal-header-box">
+        <h3 style="color:#ef4444;">Supprimer mon compte</h3>
+        <p>Cette action est <strong>irreversible</strong>. Toutes vos donnees et videos seront definitvement supprimees.</p>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirmez en tapant DELETE</label>
+        <input type="text" id="deleteAccountConfirmInput" class="form-input" placeholder="DELETE">
+      </div>
+      <div class="modal-actions-box" style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px;">
+        <button type="button" class="btn btn-secondary" onclick="closeDeleteAccountModal()">Annuler</button>
+        <button type="button" class="btn" style="background:#ef4444;color:#fff;" onclick="handleDeleteAccount()">Supprimer definitivement</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
