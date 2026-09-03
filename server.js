@@ -837,7 +837,56 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 
   res.json({
     success: true,
-    message: `Un code de sécurité à 6 chiffres a été envoyé à ${user.email}. Consultez votre boîte de réception.`
+    message: `Un code de sécurité à 6 chiffres a été envoyé à ${user.email}. Pensez à vérifier votre dossier Spam ou Courrier indésirable si l'e-mail tarde à arriver.`
+  });
+});
+
+// Profil public / membre avec statistiques et vidéos publiées
+app.get('/api/users/:id/profile', async (req, res) => {
+  await syncDbFromCloud();
+  const db = loadDb();
+  const targetIdOrUsername = (req.params.id || '').trim().toLowerCase();
+
+  const user = db.users.find(u => 
+    (u.id && u.id.toLowerCase() === targetIdOrUsername) || 
+    (u.username && u.username.toLowerCase() === targetIdOrUsername)
+  );
+
+  if (!user) {
+    return res.status(404).json({ error: 'Membre introuvable.' });
+  }
+
+  // Récupération des vidéos de l'utilisateur
+  const userVideos = (db.videos || []).filter(v => 
+    (v.authorId && v.authorId === user.id) || 
+    (v.authorName && v.authorName.toLowerCase() === user.username.toLowerCase()) ||
+    (v.authorEmail && v.authorEmail.toLowerCase() === user.email.toLowerCase())
+  );
+
+  const totalViews = userVideos.reduce((sum, v) => sum + (v.views || 0), 0);
+  const totalLikes = userVideos.reduce((sum, v) => sum + (v.likes || 0), 0);
+
+  res.json({
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    avatar: user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.username)}`,
+    bio: user.bio || 'Membre créateur sur la plateforme VideoHub.',
+    role: user.role || 'user',
+    isVip: Boolean(user.isVip),
+    vipExpiry: user.vipExpiry,
+    createdAt: user.createdAt || new Date().toISOString(),
+    videosCount: userVideos.length,
+    totalViews,
+    totalLikes,
+    videos: userVideos.map(v => ({
+      id: v.id,
+      title: v.title,
+      thumbnail: v.thumbnail,
+      views: v.views || 0,
+      likes: v.likes || 0,
+      createdAt: v.createdAt
+    }))
   });
 });
 

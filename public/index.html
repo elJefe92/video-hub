@@ -630,7 +630,11 @@
             <div class="form-group">
               <label class="form-label">Code de sécurité à 6 chiffres *</label>
               <input type="text" id="regOtpCode" class="form-input" placeholder="000000" maxlength="6" pattern="[0-9]{6}" required autocomplete="one-time-code" style="text-align: center; font-size: 1.6rem; letter-spacing: 8px; font-weight: 800;">
-              <small style="display: block; margin-top: 6px; color: var(--text-muted); font-size: 0.78rem;">Consultez vos e-mails (et le dossier spam au besoin). Valable 15 minutes.</small>
+              
+              <!-- Alerte spam bien visible -->
+              <div class="spam-reminder-box" style="background: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.25); border-radius: 8px; padding: 10px 14px; margin-top: 12px; font-size: 0.82rem; color: var(--text-main); line-height: 1.4;">
+                <strong style="color: #f97316;">Vérification :</strong> Si l'e-mail n'apparaît pas dans votre boîte principale d'ici 1 minute, pensez à vérifier votre dossier <strong>Spams / Courrier indésirable</strong>.
+              </div>
             </div>
 
             <button type="submit" id="btnSubmitVerifyOtp" class="btn btn-primary btn-block">Confirmer et activer mon compte</button>
@@ -1722,6 +1726,9 @@
         <div class="modal-header-box">
           <h3>Définir un nouveau mot de passe</h3>
           <p id="forgotStep2Subtitle">Entrez le code à 6 chiffres reçu par e-mail et votre nouveau mot de passe.</p>
+          <div class="spam-reminder-box" style="background: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.25); border-radius: 8px; padding: 10px 14px; margin-top: 10px; font-size: 0.82rem; color: var(--text-main); line-height: 1.4;">
+            <strong style="color: #f97316;">Astuce :</strong> Pensez à vérifier votre dossier <strong>Spams / Courrier indésirable</strong> si l'e-mail de réinitialisation tarde à arriver.
+          </div>
         </div>
 
         <form id="resetPasswordForm" class="custom-form" onsubmit="handleConfirmResetPassword(event)">
@@ -1759,6 +1766,53 @@
         </form>
       </div>
 
+    </div>
+  </div>
+
+  <!-- ==================== USER PUBLIC PROFILE MODAL ==================== -->
+  <div id="userProfileModal" class="modal-overlay hidden" onclick="closeUserProfileModal(event)">
+    <div class="modal-card modal-profile-view-card" onclick="event.stopPropagation()" style="max-width: 580px; width: 92%; padding: 0; overflow: hidden; border-radius: 16px; background: var(--bg-card); border: 1px solid var(--border-color); box-shadow: var(--shadow-lg);">
+      <div style="position: relative; height: 110px; background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);">
+        <button class="modal-close-btn" onclick="closeUserProfileModal()" style="position: absolute; top: 12px; right: 12px; background: rgba(0,0,0,0.4); color: #ffffff; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; font-size: 16px;">✕</button>
+      </div>
+      
+      <div style="padding: 0 24px 24px; position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: -45px; margin-bottom: 16px;">
+          <img id="publicProfileAvatar" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150" alt="Avatar" style="width: 86px; height: 86px; border-radius: 50%; border: 4px solid var(--bg-card); object-fit: cover; background: var(--bg-card); box-shadow: var(--shadow-md);">
+          <div id="publicProfileBadges" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+        </div>
+
+        <h3 id="publicProfileUsername" style="margin: 0 0 4px; font-size: 1.3rem; font-weight: 800; color: var(--text-main);">Pseudo</h3>
+        <p id="publicProfileEmail" style="margin: 0 0 12px; font-size: 0.88rem; color: var(--text-muted);">email@example.com</p>
+        <p id="publicProfileBio" style="margin: 0 0 18px; font-size: 0.9rem; color: var(--text-main); line-height: 1.5; font-style: italic; background: var(--bg-subtle); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border-color);"></p>
+
+        <!-- Stats Grid -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; text-align: center;">
+          <div style="background: var(--bg-subtle); border: 1px solid var(--border-color); padding: 12px 8px; border-radius: 10px;">
+            <div id="publicProfileVideosCount" style="font-size: 1.2rem; font-weight: 800; color: var(--primary);">0</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Vidéos</div>
+          </div>
+          <div style="background: var(--bg-subtle); border: 1px solid var(--border-color); padding: 12px 8px; border-radius: 10px;">
+            <div id="publicProfileViewsCount" style="font-size: 1.2rem; font-weight: 800; color: var(--text-main);">0</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Vues totales</div>
+          </div>
+          <div style="background: var(--bg-subtle); border: 1px solid var(--border-color); padding: 12px 8px; border-radius: 10px;">
+            <div id="publicProfileMemberSince" style="font-size: 0.95rem; font-weight: 700; color: var(--text-main); margin-top: 4px;">2026</div>
+            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Inscrit depuis</div>
+          </div>
+        </div>
+
+        <!-- User Videos section -->
+        <div style="margin-bottom: 20px;">
+          <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; color: var(--text-main);">Vidéos publiées</h4>
+          <div id="publicProfileVideosList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; max-height: 200px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- Actions -->
+        <div id="publicProfileActions" style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeUserProfileModal()">Fermer</button>
+        </div>
+      </div>
     </div>
   </div>
 

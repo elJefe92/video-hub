@@ -492,11 +492,11 @@ function renderVideoCard(v) {
 
       <div class="video-card-body">
         <div class="video-card-header">
-          <img src="${avatarUrl}" alt="${v.authorName}" class="creator-avatar">
+          <img src="${avatarUrl}" alt="${v.authorName}" class="creator-avatar" style="cursor:pointer;" onclick="event.stopPropagation(); openPublicUserProfile('${v.authorId || v.authorName}')" title="Voir le profil de ${v.authorName}">
           <div class="video-card-meta">
             <h4 class="video-card-title">${v.title}</h4>
             <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">
-              <span class="video-creator-name">
+              <span class="video-creator-name" style="cursor:pointer;" onclick="event.stopPropagation(); openPublicUserProfile('${v.authorId || v.authorName}')" title="Voir le profil de ${v.authorName}">
                 ${v.authorName} ${v.isVipAuthor ? '(VIP)' : ''}
               </span>
               <span class="badge-region-pill" title="Région">${regionName}</span>
@@ -777,7 +777,15 @@ function openVideoPlayerModal(videoId) {
   title.textContent = video.title;
   desc.textContent = video.description || 'Aucune description fournie.';
   authorName.textContent = video.authorName;
+  authorName.style.cursor = 'pointer';
+  authorName.title = `Voir le profil de ${video.authorName}`;
+  authorName.onclick = () => openPublicUserProfile(video.authorId || video.authorName);
+
   authorAvatar.src = video.authorAvatar || 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(video.authorName);
+  authorAvatar.style.cursor = 'pointer';
+  authorAvatar.title = `Voir le profil de ${video.authorName}`;
+  authorAvatar.onclick = () => openPublicUserProfile(video.authorId || video.authorName);
+
   likesCount.textContent = video.likes || 0;
 
   if (dateEl) {
@@ -2000,11 +2008,14 @@ function filterAndRenderAdminUsers() {
 
     return `
       <div class="admin-user-card ${isUserVip ? 'is-vip-user' : ''}">
-        <div class="user-card-left">
+        <div class="user-card-left" style="cursor:pointer;" onclick="openPublicUserProfile('${u.id}')" title="Cliquer pour afficher la fiche profil de ${u.username}">
           <img src="${u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150'}" class="user-card-avatar" alt="${u.username}">
           <div class="user-card-details">
             <div class="user-card-header-row">
-              <h4 class="user-card-username">${u.username}</h4>
+              <h4 class="user-card-username" style="display:flex; align-items:center; gap:6px;">
+                ${u.username}
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.6;"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              </h4>
               ${isUserAdmin ? '<span class="admin-badge-pill">Admin</span>' : ''}
               ${isUserVip ? 
                 '<span class="badge-vip-pill">MEMBRE VIP</span>' : 
@@ -2027,6 +2038,120 @@ function filterAndRenderAdminUsers() {
       </div>
     `;
   }).join('');
+}
+
+async function openPublicUserProfile(userIdOrUsername) {
+  if (!userIdOrUsername) return;
+  const modal = document.getElementById('userProfileModal');
+  if (!modal) return;
+
+  try {
+    const res = await fetch(`/api/users/${encodeURIComponent(userIdOrUsername)}/profile`);
+    if (!res.ok) {
+      showToast('Profil introuvable.');
+      return;
+    }
+    const profile = await res.json();
+
+    const avatarEl = document.getElementById('publicProfileAvatar');
+    const usernameEl = document.getElementById('publicProfileUsername');
+    const emailEl = document.getElementById('publicProfileEmail');
+    const bioEl = document.getElementById('publicProfileBio');
+    const badgesContainer = document.getElementById('publicProfileBadges');
+    const videosCountEl = document.getElementById('publicProfileVideosCount');
+    const viewsCountEl = document.getElementById('publicProfileViewsCount');
+    const memberSinceEl = document.getElementById('publicProfileMemberSince');
+    const videosListEl = document.getElementById('publicProfileVideosList');
+    const actionsEl = document.getElementById('publicProfileActions');
+
+    if (avatarEl) avatarEl.src = profile.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150';
+    if (usernameEl) usernameEl.textContent = profile.username;
+    
+    // N'afficher l'email que pour l'admin ou le propriétaire du compte
+    const canSeeEmail = AUTH.isAdmin() || (AUTH.user && AUTH.user.id === profile.id);
+    if (emailEl) {
+      if (canSeeEmail) {
+        emailEl.textContent = profile.email;
+        emailEl.style.display = 'block';
+      } else {
+        emailEl.style.display = 'none';
+      }
+    }
+
+    if (bioEl) {
+      bioEl.textContent = profile.bio ? `"${profile.bio}"` : 'Aucune description rédigée.';
+    }
+
+    if (badgesContainer) {
+      let badgesHtml = '';
+      if (profile.role === 'admin' || profile.email === 'ia.project.pro2k26@gmail.com') {
+        badgesHtml += '<span class="admin-badge-pill">Admin</span>';
+      }
+      if (profile.isVip) {
+        badgesHtml += '<span class="badge-vip-pill">MEMBRE VIP</span>';
+      } else {
+        badgesHtml += '<span class="badge-free-pill">MEMBRE GRATUIT</span>';
+      }
+      badgesContainer.innerHTML = badgesHtml;
+    }
+
+    if (videosCountEl) videosCountEl.textContent = profile.videosCount || 0;
+    if (viewsCountEl) viewsCountEl.textContent = (profile.totalViews || 0).toLocaleString();
+    if (memberSinceEl) {
+      const d = new Date(profile.createdAt || Date.now());
+      memberSinceEl.textContent = d.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
+    }
+
+    if (videosListEl) {
+      if (!profile.videos || profile.videos.length === 0) {
+        videosListEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.82rem;margin:0;grid-column:1/-1;">Aucune vidéo publiée pour le moment.</p>';
+      } else {
+        videosListEl.innerHTML = profile.videos.map(v => `
+          <div style="cursor:pointer; border-radius:8px; overflow:hidden; background:var(--bg-subtle); border:1px solid var(--border-color);" onclick="closeUserProfileModal(); openVideoPlayerModal('${v.id}')">
+            <img src="${v.thumbnail || 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300'}" style="width:100%; height:75px; object-fit:cover; display:block;">
+            <div style="padding:6px 8px;">
+              <div style="font-size:0.76rem; font-weight:700; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${v.title}</div>
+              <div style="font-size:0.68rem; color:var(--text-muted);">${v.views || 0} vues</div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    if (actionsEl) {
+      let actionsHtml = '';
+      if (AUTH.isAdmin() && profile.email !== 'ia.project.pro2k26@gmail.com') {
+        actionsHtml += `
+          <button type="button" class="btn btn-sm ${profile.isVip ? 'btn-secondary' : 'btn-vip-pill'}" onclick="toggleUserVip('${profile.id}'); closeUserProfileModal();">
+            ${profile.isVip ? 'Retirer VIP' : 'Passer VIP'}
+          </button>
+        `;
+      }
+      if (AUTH.isLoggedIn() && (!AUTH.user || AUTH.user.id !== profile.id)) {
+        actionsHtml += `
+          <button type="button" class="btn btn-sm btn-primary" onclick="closeUserProfileModal(); openDirectMessageModal({ username: '${profile.username}', avatar: '${profile.avatar}' })">
+            Envoyer un message
+          </button>
+        `;
+      }
+      actionsHtml += `<button type="button" class="btn btn-secondary btn-sm" onclick="closeUserProfileModal()">Fermer</button>`;
+      actionsEl.innerHTML = actionsHtml;
+    }
+
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  } catch (err) {
+    showToast('Erreur lors du chargement du profil.');
+  }
+}
+
+function closeUserProfileModal(e) {
+  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) return;
+  const modal = document.getElementById('userProfileModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
 }
 
 async function loadAdminUsers() {
