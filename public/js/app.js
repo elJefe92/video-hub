@@ -877,12 +877,27 @@ function formatTimeAgo(dateStr) {
 }
 
 // Video Player Modal with VIP Paywall check & Rich Details (Tags, Similar, Comments)
-function openVideoPlayerModal(videoId) {
-  let video = allVideosList.find(v => v.id === videoId);
+async function openVideoPlayerModal(videoId) {
+  let video = (allVideosList || []).find(v => v.id === videoId);
   if (!video && window.adminVideosList) {
     video = window.adminVideosList.find(v => v.id === videoId);
   }
-  if (!video) return;
+  if (!video && typeof allAdminOnlineVideos !== 'undefined') {
+    video = allAdminOnlineVideos.find(v => v.id === videoId);
+  }
+  if (!video) {
+    try {
+      const res = await fetch(`/api/videos/${encodeURIComponent(videoId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        video = data.video;
+      }
+    } catch (e) {}
+  }
+  if (!video) {
+    showToast('Vidéo introuvable.');
+    return;
+  }
 
   currentPlayingVideo = video;
   const modal = document.getElementById('videoModal');
@@ -900,19 +915,23 @@ function openVideoPlayerModal(videoId) {
   const viewsEl = document.getElementById('modalVideoViews');
   const regionEl = document.getElementById('modalVideoRegion');
 
-  title.textContent = video.title || 'Vidéo sans titre';
-  desc.textContent = video.description || 'Aucune description fournie.';
-  authorName.textContent = video.authorName || 'Membre VideoHub';
-  authorName.style.cursor = 'pointer';
-  authorName.title = `Voir le profil de ${video.authorName}`;
-  authorName.onclick = () => openPublicUserProfile(video.authorId || video.authorName);
+  if (title) title.textContent = video.title || 'Vidéo sans titre';
+  if (desc) desc.textContent = video.description || 'Aucune description fournie.';
+  if (authorName) {
+    authorName.textContent = video.authorName || 'Membre VideoHub';
+    authorName.style.cursor = 'pointer';
+    authorName.title = `Voir le profil de ${video.authorName}`;
+    authorName.onclick = () => openPublicUserProfile(video.authorId || video.authorName);
+  }
 
-  authorAvatar.src = video.authorAvatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(video.authorName || 'VideoHub'));
-  authorAvatar.style.cursor = 'pointer';
-  authorAvatar.title = `Voir le profil de ${video.authorName}`;
-  authorAvatar.onclick = () => openPublicUserProfile(video.authorId || video.authorName);
+  if (authorAvatar) {
+    authorAvatar.src = video.authorAvatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(video.authorName || 'VideoHub'));
+    authorAvatar.style.cursor = 'pointer';
+    authorAvatar.title = `Voir le profil de ${video.authorName}`;
+    authorAvatar.onclick = () => openPublicUserProfile(video.authorId || video.authorName);
+  }
 
-  likesCount.textContent = video.likes || 0;
+  if (likesCount) likesCount.textContent = video.likes || 0;
   
   const modalFavBtn = document.getElementById('modalFavBtn');
   if (modalFavBtn) {
@@ -1822,6 +1841,7 @@ async function loadAdminMessages() {
     if (!res.ok) throw new Error('Erreur');
     const data = await res.json();
     const messages = data.messages || [];
+    window.adminMessagesList = messages;
 
     const badgeEl = document.getElementById('adminMessagesCountText');
     const statEl = document.getElementById('statTotalMessages');
@@ -1841,25 +1861,122 @@ async function loadAdminMessages() {
       <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
           <div>
-            <div style="font-size:0.95rem;font-weight:700;color:var(--text-main);">${m.subject || 'Sans objet'}</div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="font-size:0.95rem;font-weight:700;color:var(--text-main);">${m.subject || 'Sans objet'}</span>
+              ${m.replied ? '<span style="background:rgba(16,185,129,0.15);color:#10b981;font-size:0.72rem;padding:2px 8px;border-radius:12px;font-weight:700;">Répondu</span>' : ''}
+            </div>
             <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px;">
               De : <strong>${m.name}</strong> (<a href="mailto:${m.email}" style="color:var(--primary);">${m.email}</a>) • ${new Date(m.createdAt).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
             </div>
           </div>
           <div style="display:flex;gap:8px;align-items:center;">
-            <a href="mailto:${m.email}?subject=Re: ${encodeURIComponent(m.subject)}" class="btn btn-sm btn-primary" style="text-decoration:none;">
-              Repondre
-            </a>
+            <button class="btn btn-sm btn-primary" onclick="openAdminReplyMessageModal('${m.id}')">
+              ${m.replied ? 'Répondre à nouveau' : 'Répondre'}
+            </button>
             <button class="btn btn-sm btn-danger-outline" onclick="handleAdminDeleteMessage('${m.id}')" style="border:1px solid #ef4444;color:#ef4444;background:transparent;">
               Supprimer
             </button>
           </div>
         </div>
         <div style="background:var(--bg-subtle);border:1px solid var(--border-color);border-radius:8px;padding:12px 14px;font-size:0.86rem;color:var(--text-main);line-height:1.5;white-space:pre-wrap;">${m.message}</div>
+        ${m.replied && m.lastReplyText ? `
+          <div style="background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.25);border-radius:8px;padding:10px 14px;font-size:0.84rem;color:var(--text-main);">
+            <div style="font-size:0.75rem;color:var(--primary);font-weight:700;margin-bottom:4px;">
+              Dernière réponse envoyée (${m.repliedAt ? new Date(m.repliedAt).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}) :
+            </div>
+            <div style="white-space:pre-wrap;line-height:1.4;">${m.lastReplyText}</div>
+          </div>
+        ` : ''}
       </div>
     `).join('');
   } catch (e) {
     container.innerHTML = '<div style="text-align:center;padding:30px;color:#ef4444;">Erreur lors du chargement des messages.</div>';
+  }
+}
+
+function openAdminReplyMessageModal(msgId) {
+  const messages = window.adminMessagesList || [];
+  const msg = messages.find(m => m.id === msgId);
+  if (!msg) {
+    showToast('Message introuvable.');
+    return;
+  }
+
+  const modal = document.getElementById('adminReplyMessageModal');
+  const targetIdInput = document.getElementById('replyTargetMsgId');
+  const recipientEl = document.getElementById('replyTargetRecipientText');
+  const subjectEl = document.getElementById('replyTargetSubjectText');
+  const originalEl = document.getElementById('replyTargetOriginalText');
+  const subjectInput = document.getElementById('replySubjectInput');
+  const textInput = document.getElementById('replyTextInput');
+
+  if (targetIdInput) targetIdInput.value = msg.id;
+  if (recipientEl) recipientEl.textContent = `${msg.name} <${msg.email}>`;
+  if (subjectEl) subjectEl.textContent = msg.subject || 'Sans objet';
+  if (originalEl) originalEl.textContent = msg.message || '';
+  if (subjectInput) subjectInput.value = `Re: ${msg.subject || 'Votre message sur VideoHub'}`;
+  if (textInput) textInput.value = '';
+
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => { if (textInput) textInput.focus(); }, 100);
+  }
+}
+
+function closeAdminReplyModal(e) {
+  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) {
+    return;
+  }
+  const modal = document.getElementById('adminReplyMessageModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+}
+
+async function handleSendAdminReply(e) {
+  if (e) e.preventDefault();
+  const msgId = document.getElementById('replyTargetMsgId')?.value;
+  const replySubject = document.getElementById('replySubjectInput')?.value?.trim();
+  const replyText = document.getElementById('replyTextInput')?.value?.trim();
+  const btn = document.getElementById('btnSubmitAdminReply');
+
+  if (!msgId || !replyText) {
+    showToast('Veuillez saisir votre réponse.');
+    return;
+  }
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Envoi en cours...';
+  }
+
+  try {
+    const res = await fetch(`/api/admin/messages/${encodeURIComponent(msgId)}/reply`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${AUTH.token}`
+      },
+      body: JSON.stringify({ replySubject, replyText })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || "Erreur lors de l'envoi de la réponse.");
+      return;
+    }
+
+    showToast(data.message || 'Réponse envoyée avec succès.');
+    closeAdminReplyModal();
+    loadAdminMessages();
+  } catch (err) {
+    showToast('Erreur de communication.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Envoyer la réponse par e-mail';
+    }
   }
 }
 
@@ -2012,7 +2129,7 @@ function renderAdminOnlineVideos(videos) {
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="btn btn-sm btn-secondary" onclick="openVideoPlayerModal('${v.id}')">Voir</button>
-        <button class="btn btn-sm btn-secondary" onclick="openEditVideoModal('${v.id}')">Modifier</button>
+        <button class="btn btn-sm btn-secondary" onclick="openAdminEditModal('${v.id}')">Modifier</button>
         <button class="btn btn-sm btn-danger" onclick="handleAdminDeleteVideo('${v.id}')">Supprimer</button>
       </div>
     </div>
@@ -2319,15 +2436,30 @@ async function rejectVideo(id) {
 // Edit video modal with live video frame capture & thumbnail studio
 window._adminExtractedSnapshots = [];
 
-function openAdminEditModal(videoId) {
+async function openAdminEditModal(videoId) {
   let v = (allVideosList || []).find(item => item.id === videoId);
   if (!v && window.adminVideosList) {
     v = window.adminVideosList.find(item => item.id === videoId);
   }
+  if (!v && typeof allAdminOnlineVideos !== 'undefined') {
+    v = allAdminOnlineVideos.find(item => item.id === videoId);
+  }
   if (!v && currentPlayingVideo && currentPlayingVideo.id === videoId) {
     v = currentPlayingVideo;
   }
-  if (!v) return;
+  if (!v) {
+    try {
+      const res = await fetch(`/api/videos/${encodeURIComponent(videoId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        v = data.video;
+      }
+    } catch (e) {}
+  }
+  if (!v) {
+    showToast('Vidéo introuvable pour la modification.');
+    return;
+  }
 
   document.getElementById('editVideoId').value = v.id;
   document.getElementById('editVideoTitle').value = v.title;
@@ -2370,6 +2502,7 @@ function openAdminEditModal(videoId) {
   const modal = document.getElementById('adminEditVideoModal');
   if (modal) modal.classList.remove('hidden');
 }
+window.openEditVideoModal = openAdminEditModal;
 
 function closeAdminEditModal(e) {
   if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) {

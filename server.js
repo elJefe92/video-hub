@@ -1393,6 +1393,22 @@ app.get('/api/videos', (req, res) => {
   res.json({ videos: list });
 });
 
+// Single video lookup
+app.get('/api/videos/:id', async (req, res) => {
+  const db = loadDb();
+  const video = (db.videos || []).find(v => v.id === req.params.id);
+  if (!video) return res.status(404).json({ error: 'Vidéo introuvable.' });
+
+  // Enrich with creator badge
+  const author = video.authorId ? (db.users || []).find(u => u.id === video.authorId) : null;
+  res.json({
+    video: {
+      ...video,
+      creatorBadge: author?.creatorBadge || video.creatorBadge || null
+    }
+  });
+});
+
 
 
 // Explorer Directory : group videos by category for fast search
@@ -2307,6 +2323,63 @@ app.delete('/api/admin/messages/:id', requireAdmin, async (req, res) => {
   saveDb(db);
   await syncDbToCloud(db);
   res.json({ message: 'Message supprime avec succes.' });
+});
+
+app.post('/api/admin/messages/:id/reply', requireAdmin, async (req, res) => {
+  const { replySubject, replyText } = req.body;
+  if (!replyText || !replyText.trim()) {
+    return res.status(400).json({ error: 'Veuillez saisir votre message de réponse.' });
+  }
+
+  await syncDbFromCloud();
+  const db = loadDb();
+  db.contactMessages = db.contactMessages || [];
+  const msg = db.contactMessages.find(m => m.id === req.params.id);
+  if (!msg) return res.status(404).json({ error: 'Message introuvable.' });
+
+  const subject = (replySubject && replySubject.trim()) || `Re: ${msg.subject || 'Votre message sur VideoHub'}`;
+
+  // Send real email to the user
+  try {
+    await sendRobustEmail({
+      to: msg.email,
+      from: 'ia.project.pro2k26@gmail.com',
+      replyTo: 'ia.project.pro2k26@gmail.com',
+      subject: subject,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#f8fafc;border-radius:12px;overflow:hidden;border:1px solid #334155;">
+          <div style="background:linear-gradient(135deg,#f97316,#ea580c);padding:24px;text-align:center;">
+            <h1 style="margin:0;color:#fff;font-size:22px;font-weight:800;">VideoHub Support</h1>
+          </div>
+          <div style="padding:24px;">
+            <p>Bonjour <strong>${msg.name || 'Membre'}</strong>,</p>
+            <p style="margin-top:14px;white-space:pre-wrap;line-height:1.6;color:#e2e8f0;">${replyText.trim()}</p>
+            <div style="margin-top:24px;padding:14px;background:#1e293b;border-radius:8px;border-left:3px solid #f97316;font-size:13px;color:#94a3b8;">
+              <p style="margin:0 0 6px;font-weight:700;color:#cbd5e1;">Rappel de votre message :</p>
+              <p style="margin:0;white-space:pre-wrap;">${msg.message}</p>
+            </div>
+            <p style="margin-top:24px;font-size:12px;color:#64748b;">Support officiel VideoHub • Contact : ia.project.pro2k26@gmail.com</p>
+          </div>
+        </div>
+      `,
+      category: 'CONTACT'
+    });
+  } catch (err) {
+    console.error('Error sending contact reply email', err);
+    return res.status(500).json({ error: "Échec de l'envoi de l'e-mail. Vérifiez la configuration SMTP." });
+  }
+
+  msg.replied = true;
+  msg.repliedAt = new Date().toISOString();
+  msg.lastReplyText = replyText.trim();
+  msg.lastReplySubject = subject;
+
+  saveDb(db);
+  await syncDbToCloud(db);
+
+  addLog('Réponse Contact', `Réponse envoyée à ${msg.email} (Sujet: ${subject}) par Admin`);
+
+  res.json({ success: true, message: `Réponse envoyée avec succès à ${msg.email}`, messageRecord: msg });
 });
 
 // ---------------- ADMIN REVIEWS & RATINGS ----------------

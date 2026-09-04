@@ -121,13 +121,16 @@
         </button>
         <button class="btn-add-cat-top" onclick="openAddCategoryModal()" title="Ajouter une catégorie">+ Catégorie</button>
         
-        <!-- Notification Bell -->
-        <div id="notifBellWrapper" class="hidden" style="position:relative;">
-          <button id="notifBellBtn" onclick="toggleNotificationPanel()" title="Notifications" style="background:none;border:none;cursor:pointer;padding:6px;color:var(--text-main);position:relative;display:flex;align-items:center;">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <span id="notifBadge" class="hidden" style="position:absolute;top:0;right:0;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;">0</span>
-          </button>
-        </div>
+        <!-- Bouton Déposer une vidéo (Caméra) à la place de la cloche -->
+        <button id="btnHeaderUploadCamera" class="btn-header-camera-upload" onclick="switchTab('upload')" title="Déposer une vidéo" aria-label="Déposer une vidéo">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="23 7 16 12 23 17 23 7"/>
+            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+            <line x1="8.5" y1="9" x2="8.5" y2="15"/>
+            <line x1="5.5" y1="12" x2="11.5" y2="12"/>
+          </svg>
+        </button>
+        <div id="notifBellWrapper" class="hidden"></div>
 
         <!-- Notification Panel -->
         <div id="notificationPanel" class="hidden" style="position:fixed;top:64px;right:16px;width:320px;max-height:400px;overflow-y:auto;background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;box-shadow:var(--shadow-lg);z-index:9000;">
@@ -909,8 +912,8 @@
             </div>
           </div>
 
-          <!-- Admin Sub-tabs (Shop Ton Partiel Style) -->
-          <div class="admin-tabs" style="display:flex; gap:6px; overflow-x:auto; padding:6px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; margin-bottom:20px;">
+          <!-- Admin Sub-tabs (Shop Ton Partiel Style - Full Width No Scrollbar) -->
+          <div class="admin-tabs" style="display:flex; flex-wrap:wrap; gap:8px; padding:10px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; margin-bottom:24px; width:100%;">
             <button class="admin-tab-btn active" id="adminTabVideosBtn" onclick="switchAdminSection('videos')">
               Vérifications (<span id="adminPendingCountText">0</span>)
             </button>
@@ -1357,6 +1360,9 @@
 
       <div class="modal-video-details">
 
+        <!-- Description de la vidéo -->
+        <p id="modalVideoDesc" class="modal-description">Description...</p>
+
         <!-- Star Rating Interactive Component (0 à 5 étoiles) -->
         <div class="modal-rating-container">
           <div class="modal-rating-left">
@@ -1384,9 +1390,8 @@
           </div>
         </div>
 
-        <!-- Meta info (Date, Vues, Région, Note) -->
+        <!-- Meta info (Vues, Région, Note) -->
         <div class="modal-meta-row">
-          <span id="modalVideoDate" class="modal-meta-pill">Publiée récemment</span>
           <span id="modalVideoViews" class="modal-meta-pill">0 vues</span>
           <span id="modalVideoRegion" class="modal-meta-pill">Région</span>
           <span id="modalVideoRatingMeta" class="modal-meta-pill">5.0 / 5</span>
@@ -2311,6 +2316,48 @@
         <button type="button" class="btn btn-secondary" onclick="closeDeleteAccountModal()">Annuler</button>
         <button type="button" class="btn" style="background:#ef4444;color:#fff;" onclick="handleDeleteAccount()">Supprimer definitivement</button>
       </div>
+    </div>
+  </div>
+
+  <!-- ==================== ADMIN REPLY TO CONTACT MESSAGE MODAL ==================== -->
+  <div id="adminReplyMessageModal" class="modal-overlay hidden" onclick="closeAdminReplyModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()" style="max-width:580px;">
+      <button class="modal-close-btn" onclick="closeAdminReplyModal()"></button>
+      <div class="modal-header-box">
+        <h3 style="color:var(--primary);margin:0 0 6px;">Répondre au message de contact</h3>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin:0;">L'e-mail de réponse sera envoyé directement au visiteur depuis votre adresse administrateur.</p>
+      </div>
+
+      <form id="adminReplyForm" onsubmit="handleSendAdminReply(event)">
+        <input type="hidden" id="replyTargetMsgId">
+        
+        <div style="background:var(--bg-subtle);border:1px solid var(--border-color);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:0.85rem;">
+          <div style="margin-bottom:4px;"><strong>Expéditeur :</strong> ia.project.pro2k26@gmail.com</div>
+          <div style="margin-bottom:4px;"><strong>Destinataire :</strong> <span id="replyTargetRecipientText"></span></div>
+          <div style="margin-bottom:6px;"><strong>Sujet d'origine :</strong> <span id="replyTargetSubjectText"></span></div>
+          <div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border-color);">
+            <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;margin-bottom:4px;">Message reçu :</div>
+            <div id="replyTargetOriginalText" style="white-space:pre-wrap;color:var(--text-main);line-height:1.4;"></div>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:12px;">
+          <label class="form-label">Objet de la réponse</label>
+          <input type="text" id="replySubjectInput" class="form-input" required>
+        </div>
+
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label">Votre message de réponse *</label>
+          <textarea id="replyTextInput" class="form-input" rows="6" placeholder="Bonjour, nous faisons suite à votre message..." required></textarea>
+        </div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="closeAdminReplyModal()">Annuler</button>
+          <button type="submit" id="btnSubmitAdminReply" class="btn btn-primary">
+            Envoyer la réponse par e-mail
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

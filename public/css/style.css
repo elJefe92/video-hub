@@ -253,6 +253,27 @@ body {
   transform: translateY(-1px);
 }
 
+.btn-header-camera-upload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), #ea580c);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.4);
+  flex-shrink: 0;
+}
+
+.btn-header-camera-upload:hover {
+  transform: scale(1.08);
+  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.6);
+}
+
 .btn-add-cat-top {
   display: none;
   align-items: center;
@@ -2588,22 +2609,25 @@ body.theme-light .btn-sort-cat.active {
 .admin-tabs,
 .admin-nav-tabs {
   display: flex;
+  flex-wrap: wrap;
   background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 4px;
+  padding: 8px;
   margin-bottom: 20px;
-  overflow-x: auto;
-  gap: 4px;
+  gap: 8px;
+  width: 100%;
 }
 
 .admin-tab-btn,
 .admin-nav-tab {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 130px;
   white-space: nowrap;
-  padding: 10px 14px;
-  background: transparent;
-  border: none;
+  text-align: center;
+  padding: 10px 16px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-color);
   font-family: inherit;
   font-size: 0.86rem;
   font-weight: 700;
@@ -2615,14 +2639,16 @@ body.theme-light .btn-sort-cat.active {
 
 .admin-tab-btn:hover,
 .admin-nav-tab:hover {
-  background: var(--bg-subtle);
+  background: var(--bg-card-hover);
   color: var(--text-main);
+  border-color: var(--primary);
 }
 
 .admin-tab-btn.active,
 .admin-nav-tab.active {
   background: var(--primary);
   color: #ffffff;
+  border-color: var(--primary);
 }
 
 .admin-filter-bar,
