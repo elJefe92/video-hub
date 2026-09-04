@@ -32,6 +32,8 @@ const defaultData = {
     { id: "all", name: "Tous les flux", icon: "", isSystem: true, description: "Flux général de toutes les vidéos" }
   ],
   videos: [],
+  reports: [],
+  contactMessages: [],
   logs: [
     {
       id: "log_reset",
@@ -110,14 +112,27 @@ function mergeDbStates(local, remote) {
   (remote.categories || []).forEach(c => { const k = (c.id || c.name || '').toLowerCase(); if (k) catMap.set(k, c); });
   (local.categories || []).forEach(c => { const k = (c.id || c.name || '').toLowerCase(); if (k) catMap.set(k, c); });
 
+  // Merge reports uniquely by ID
+  const reportMap = new Map();
+  (remote.reports || []).forEach(r => { if (r.id) reportMap.set(r.id, r); });
+  (local.reports || []).forEach(r => { if (r.id) reportMap.set(r.id, r); });
+
+  // Merge contactMessages uniquely by ID
+  const contactMap = new Map();
+  (remote.contactMessages || []).forEach(m => { if (m.id) contactMap.set(m.id, m); });
+  (local.contactMessages || []).forEach(m => { if (m.id) contactMap.set(m.id, m); });
+
   return {
     ...remote,
     ...local,
     users: Array.from(userMap.values()),
     videos: Array.from(videoMap.values()),
-    categories: Array.from(catMap.values())
+    categories: Array.from(catMap.values()),
+    reports: Array.from(reportMap.values()),
+    contactMessages: Array.from(contactMap.values())
   };
 }
+
 
 let memoryDb = null;
 

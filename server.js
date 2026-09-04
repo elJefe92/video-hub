@@ -2059,12 +2059,13 @@ app.put('/api/admin/videos/:id', requireAdmin, (req, res) => {
 });
 
 // ---------------- CONTENT ABUSE REPORTS (SIGNALEMENTS DE CONTENU ABUSIF / DMCA) ----------------
-app.post('/api/reports/submit', (req, res) => {
+app.post('/api/reports/submit', async (req, res) => {
   const { fullName, email, videoUrl, videoTitle, reason, details, signature } = req.body;
   if (!fullName || !email || !reason || !signature) {
     return res.status(400).json({ error: 'Veuillez remplir tous les champs obligatoires (*).' });
   }
 
+  await syncDbFromCloud();
   const db = loadDb();
   db.reports = db.reports || [];
 
@@ -2077,20 +2078,48 @@ app.post('/api/reports/submit', (req, res) => {
     reason: reason.trim(),
     details: (details || '').trim(),
     signature: signature.trim(),
-    status: 'pending', // pending, reviewed, resolved
+    status: 'pending', // pending, resolved, dismissed
     createdAt: new Date().toISOString()
   };
 
   db.reports.unshift(newReport);
   saveDb(db);
+  await syncDbToCloud(db);
 
-  addLog('Signalement Abus', `Signalement reçu pour "${newReport.videoTitle || newReport.videoUrl}" (Motif : ${newReport.reason}) par ${newReport.fullName}`);
+  addLog('Signalement Abus', `Signalement recu pour "${newReport.videoTitle || newReport.videoUrl}" (Motif : ${newReport.reason}) par ${newReport.fullName}`);
+
+  // Send alert email to Admin
+  try {
+    await sendRobustEmail({
+      to: 'ia.project.pro2k26@gmail.com',
+      subject: `Nouveau Signalement : ${newReport.reason} - VideoHub`,
+      html: `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#f8fafc;border-radius:12px;overflow:hidden;border:1px solid #334155;">
+          <div style="background:linear-gradient(135deg,#ef4444,#b91c1c);padding:24px;text-align:center;">
+            <h1 style="margin:0;color:#fff;font-size:22px;font-weight:800;">Nouveau Signalement Recu</h1>
+          </div>
+          <div style="padding:24px;">
+            <p><strong>Signaleur :</strong> ${newReport.fullName} (${newReport.email})</p>
+            <p><strong>Motif :</strong> ${newReport.reason}</p>
+            <p><strong>Video / URL :</strong> <a href="${newReport.videoUrl}" style="color:#f97316;">${newReport.videoUrl || 'Lien fourni'}</a></p>
+            <p><strong>Details :</strong> ${newReport.details || 'Aucun detail supplementaire'}</p>
+            <p><strong>Signature :</strong> ${newReport.signature}</p>
+            <p style="margin-top:20px;font-size:13px;color:#94a3b8;">Consultez votre Espace Administrateur pour traiter ce signalement.</p>
+          </div>
+        </div>
+      `,
+      category: 'REPORT'
+    });
+  } catch (e) {
+    console.error('Error sending report email notification', e);
+  }
 
   res.status(201).json({
-    message: 'Votre signalement a été enregistré avec succès et transmis à notre équipe de modération. Il sera traité sous 24h à 48h.',
+    message: 'Votre signalement a ete enregistre avec succes et transmis a notre equipe de moderation. Il sera traite sous 24h a 48h.',
     report: newReport
   });
 });
+
 
 // ---------------- CONTACT FORM MESSAGES & REAL EMAIL NOTIFICATION ----------------
 app.post('/api/contact/submit', async (req, res) => {
@@ -2113,6 +2142,7 @@ app.post('/api/contact/submit', async (req, res) => {
 
   db.contactMessages.unshift(newContact);
   saveDb(db);
+  await syncDbToCloud(db);
 
   addLog('Contact', `Nouveau message de ${newContact.name} (${newContact.email}) - Objet: ${newContact.subject}`);
 
@@ -2190,12 +2220,15 @@ app.post('/api/contact/submit', async (req, res) => {
   });
 });
 
-app.get('/api/admin/reports', requireAdmin, (req, res) => {
+// ---------------- ADMIN REPORTS (SIGNALEMENTS) ----------------
+app.get('/api/admin/reports', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
   const db = loadDb();
   res.json({ reports: db.reports || [] });
 });
 
-app.post('/api/admin/reports/:id/resolve', requireAdmin, (req, res) => {
+app.post('/api/admin/reports/:id/resolve', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
   const db = loadDb();
   db.reports = db.reports || [];
   const rep = db.reports.find(r => r.id === req.params.id);
@@ -2204,10 +2237,110 @@ app.post('/api/admin/reports/:id/resolve', requireAdmin, (req, res) => {
   rep.status = 'resolved';
   rep.resolvedAt = new Date().toISOString();
   saveDb(db);
+  await syncDbToCloud(db);
 
-  addLog('Signalement Traité', `Signalement #${rep.id} marqué comme résolu par Admin`);
-  res.json({ message: 'Signalement marqué comme traité.', report: rep });
+  addLog('Signalement Traite', `Signalement #${rep.id} marque comme resolu par Admin`);
+  res.json({ message: 'Signalement marque comme traite.', report: rep });
 });
+
+app.post('/api/admin/reports/:id/delete-video', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
+  const db = loadDb();
+  db.reports = db.reports || [];
+  const rep = db.reports.find(r => r.id === req.params.id);
+  if (!rep) return res.status(404).json({ error: 'Signalement introuvable.' });
+
+  // Try to find video by ID in videoUrl
+  const videoIdMatch = (rep.videoUrl || '').match(/vid_[a-zA-Z0-9_-]+/);
+  let deletedVideo = null;
+  if (videoIdMatch) {
+    const vId = videoIdMatch[0];
+    const idx = (db.videos || []).findIndex(v => v.id === vId);
+    if (idx !== -1) {
+      deletedVideo = db.videos.splice(idx, 1)[0];
+    }
+  } else if (rep.videoTitle) {
+    const idx = (db.videos || []).findIndex(v => (v.title || '').toLowerCase() === rep.videoTitle.toLowerCase());
+    if (idx !== -1) {
+      deletedVideo = db.videos.splice(idx, 1)[0];
+    }
+  }
+
+  rep.status = 'resolved';
+  rep.resolvedAt = new Date().toISOString();
+  rep.actionTaken = deletedVideo ? `Video "${deletedVideo.title}" supprimee.` : 'Video supprimee.';
+
+  saveDb(db);
+  await syncDbToCloud(db);
+
+  addLog('Suppression Video Signalement', `Video supprimee suite au signalement #${rep.id} (${rep.reason})`);
+  res.json({ message: 'Video supprimee et signalement resolu.', report: rep, deleted: !!deletedVideo });
+});
+
+app.post('/api/admin/reports/:id/dismiss', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
+  const db = loadDb();
+  db.reports = db.reports || [];
+  const rep = db.reports.find(r => r.id === req.params.id);
+  if (!rep) return res.status(404).json({ error: 'Signalement introuvable.' });
+
+  rep.status = 'dismissed';
+  rep.resolvedAt = new Date().toISOString();
+  saveDb(db);
+  await syncDbToCloud(db);
+
+  addLog('Signalement Classe', `Signalement #${rep.id} classe sans suite.`);
+  res.json({ message: 'Signalement classe sans suite.', report: rep });
+});
+
+// ---------------- ADMIN CONTACT MESSAGES ----------------
+app.get('/api/admin/messages', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
+  const db = loadDb();
+  res.json({ messages: db.contactMessages || [] });
+});
+
+app.delete('/api/admin/messages/:id', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
+  const db = loadDb();
+  db.contactMessages = (db.contactMessages || []).filter(m => m.id !== req.params.id);
+  saveDb(db);
+  await syncDbToCloud(db);
+  res.json({ message: 'Message supprime avec succes.' });
+});
+
+// ---------------- ADMIN REVIEWS & RATINGS ----------------
+app.get('/api/admin/reviews', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
+  const db = loadDb();
+  const reviews = [];
+  (db.videos || []).forEach(v => {
+    (v.comments || []).forEach(c => {
+      reviews.push({
+        ...c,
+        videoId: v.id,
+        videoTitle: v.title,
+        videoThumbnail: v.thumbnail,
+        authorName: v.authorName
+      });
+    });
+  });
+  reviews.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  res.json({ reviews });
+});
+
+app.delete('/api/admin/reviews/:videoId/:commentId', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
+  const db = loadDb();
+  const video = (db.videos || []).find(v => v.id === req.params.videoId);
+  if (video && video.comments) {
+    video.comments = video.comments.filter(c => c.id !== req.params.commentId);
+    saveDb(db);
+    await syncDbToCloud(db);
+  }
+  res.json({ message: 'Commentaire supprime avec succes.' });
+});
+
 
 // Admin Users Management
 app.get('/api/admin/users', requireAdmin, async (req, res) => {
@@ -2250,6 +2383,10 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
   const totalViews = db.videos.reduce((acc, v) => acc + (v.views || 0), 0);
   const totalLikes = db.videos.reduce((acc, v) => acc + (v.likes || 0), 0);
   const totalVips = db.users.filter(u => u.isVip).length;
+  const pendingReports = (db.reports || []).filter(r => r.status === 'pending').length;
+  const totalReports = (db.reports || []).length;
+  const totalMessages = (db.contactMessages || []).length;
+  const totalComments = (db.videos || []).reduce((acc, v) => acc + (v.comments ? v.comments.length : 0), 0);
 
   res.json({
     totalUsers: db.users.length,
@@ -2260,9 +2397,14 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
     totalViews,
     totalLikes,
     totalVips,
+    pendingReports,
+    totalReports,
+    totalMessages,
+    totalComments,
     logs: db.logs || []
   });
 });
+
 
 // ---------------- ADMIN EMAIL TEST & PREVIEW SUITE ----------------
 app.get('/api/admin/email-templates', requireAdmin, (req, res) => {

@@ -1529,8 +1529,9 @@ function toggleVipPerks() {
 }
 
 // ==================== ADMIN PANEL (Shop Ton Partiel Inspired) ====================
+// ==================== ADMIN PANEL (Shop Ton Partiel Inspired) ====================
 function switchAdminSection(sec) {
-  const tabs = ['videos', 'categories', 'users', 'logs', 'emails'];
+  const tabs = ['videos', 'online', 'reports', 'messages', 'reviews', 'categories', 'users', 'logs', 'emails'];
   tabs.forEach(t => {
     const btn = document.getElementById(`adminTab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`);
     const secEl = document.getElementById(`adminSection${t.charAt(0).toUpperCase() + t.slice(1)}`);
@@ -1539,11 +1540,427 @@ function switchAdminSection(sec) {
   });
 
   if (sec === 'videos') loadAdminVideos();
+  if (sec === 'online') loadAdminOnlineVideos();
+  if (sec === 'reports') loadAdminReports();
+  if (sec === 'messages') loadAdminMessages();
+  if (sec === 'reviews') loadAdminReviews();
   if (sec === 'categories') renderAdminCategoriesManager();
   if (sec === 'users') loadAdminUsers();
   if (sec === 'logs') loadAdminStats();
   if (sec === 'emails') initAdminEmailTester();
 }
+
+// ---------------- ADMIN REPORTS MANAGEMENT (SHOP TON PARTIEL STYLE) ----------------
+let currentAdminReportsFilter = 'pending';
+let allAdminReports = [];
+
+function setAdminReportsFilter(filter) {
+  currentAdminReportsFilter = filter;
+  ['pending', 'all', 'resolved'].forEach(f => {
+    const b = document.getElementById(`filterReports${f.charAt(0).toUpperCase() + f.slice(1)}Btn`);
+    if (b) b.classList.toggle('active', f === filter);
+  });
+  renderAdminReports();
+}
+
+async function loadAdminReports() {
+  if (!AUTH.isAdmin()) return;
+  const container = document.getElementById('adminReportsList');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">Chargement des signalements...</div>';
+
+  try {
+    const res = await fetch('/api/admin/reports', {
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    if (!res.ok) throw new Error('Erreur');
+    const data = await res.json();
+    allAdminReports = data.reports || [];
+
+    const pendingCount = allAdminReports.filter(r => r.status === 'pending').length;
+    const resolvedCount = allAdminReports.filter(r => r.status === 'resolved' || r.status === 'dismissed').length;
+
+    const countPendingEl = document.getElementById('reportCountPending');
+    const countAllEl = document.getElementById('reportCountAll');
+    const countResolvedEl = document.getElementById('reportCountResolved');
+    const adminRepText = document.getElementById('adminReportsCountText');
+    const statPendingRep = document.getElementById('statPendingReports');
+
+    if (countPendingEl) countPendingEl.textContent = pendingCount;
+    if (countAllEl) countAllEl.textContent = allAdminReports.length;
+    if (countResolvedEl) countResolvedEl.textContent = resolvedCount;
+    if (adminRepText) adminRepText.textContent = pendingCount;
+    if (statPendingRep) statPendingRep.textContent = pendingCount;
+
+    renderAdminReports();
+  } catch (e) {
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:#ef4444;">Erreur lors du chargement des signalements.</div>';
+  }
+}
+
+function renderAdminReports() {
+  const container = document.getElementById('adminReportsList');
+  if (!container) return;
+
+  let list = allAdminReports;
+  if (currentAdminReportsFilter === 'pending') {
+    list = allAdminReports.filter(r => r.status === 'pending');
+  } else if (currentAdminReportsFilter === 'resolved') {
+    list = allAdminReports.filter(r => r.status === 'resolved' || r.status === 'dismissed');
+  }
+
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div style="background:var(--bg-card);border:1px dashed var(--border-color);border-radius:12px;padding:60px 20px;text-align:center;">
+        <p style="color:var(--text-muted);font-size:1rem;margin:0;">Aucun signalement ${currentAdminReportsFilter === 'pending' ? 'en attente' : 'dans cette sélection'}.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = list.map(r => {
+    const isPending = r.status === 'pending';
+    const isResolved = r.status === 'resolved';
+    const statusColor = isPending ? '#ef4444' : (isResolved ? '#10b981' : '#94a3b8');
+    const statusLabel = isPending ? 'En attente d action' : (isResolved ? 'Traite / Resolu' : 'Classe sans suite');
+    const formattedDate = new Date(r.createdAt).toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+
+    return `
+      <div style="background:var(--bg-card);border:1px solid ${isPending ? '#ef4444' : 'var(--border-color)'};border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="background:${statusColor}20;color:${statusColor};border:1px solid ${statusColor}40;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;">
+                ${statusLabel}
+              </span>
+              <span style="background:rgba(249,115,22,0.1);color:var(--primary);border:1px solid rgba(249,115,22,0.3);padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;">
+                ${r.reason}
+              </span>
+            </div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px;">
+              Recu le ${formattedDate} • ID: ${r.id}
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            ${isPending ? `
+              <button class="btn btn-sm btn-danger" onclick="handleAdminDeleteReportVideo('${r.id}')" title="Supprimer definitivement la video signalee">
+                Supprimer la video
+              </button>
+              <button class="btn btn-sm" style="background:#10b981;color:#fff;" onclick="handleAdminResolveReport('${r.id}')" title="Marquer le signalement comme resolu">
+                Marquer comme traite
+              </button>
+              <button class="btn btn-sm btn-secondary" onclick="handleAdminDismissReport('${r.id}')" title="Classer sans suite">
+                Classer sans suite
+              </button>
+            ` : `
+              <span style="font-size:0.8rem;color:#10b981;font-weight:700;">Dossier cloture</span>
+            `}
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;background:var(--bg-subtle);border:1px solid var(--border-color);border-radius:8px;padding:12px 14px;">
+          <div>
+            <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Signaleur</div>
+            <div style="font-size:0.88rem;font-weight:700;color:var(--text-main);margin-top:2px;">${r.fullName}</div>
+            <div style="font-size:0.8rem;margin-top:2px;">
+              <a href="mailto:${r.email}?subject=Concernant votre signalement sur VideoHub" style="color:var(--primary);text-decoration:none;">
+                ${r.email}
+              </a>
+            </div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">Signature : <em>${r.signature}</em></div>
+          </div>
+
+          <div>
+            <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Video signalee</div>
+            <div style="font-size:0.88rem;font-weight:700;color:var(--text-main);margin-top:2px;">
+              ${r.videoTitle || 'Lien fourni ci-dessous'}
+            </div>
+            <div style="font-size:0.8rem;margin-top:4px;word-break:break-all;">
+              <a href="${r.videoUrl}" target="_blank" rel="noopener noreferrer" style="color:#38bdf8;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+                Ouvrir la video
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;margin-bottom:4px;">Description des faits</div>
+          <div style="font-size:0.85rem;color:var(--text-main);line-height:1.5;background:var(--bg-main);border:1px solid var(--border-color);border-radius:6px;padding:10px 12px;white-space:pre-wrap;">${r.details || 'Aucune description additionnelle fournie.'}</div>
+        </div>
+
+        ${r.actionTaken ? `
+          <div style="font-size:0.78rem;color:#10b981;background:rgba(16,185,129,0.1);padding:6px 12px;border-radius:6px;border:1px solid rgba(16,185,129,0.25);">
+            Action effectuee : ${r.actionTaken} (le ${new Date(r.resolvedAt).toLocaleDateString('fr-FR')})
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+async function handleAdminDeleteReportVideo(reportId) {
+  if (!confirm('Confirmez-vous la suppression de la video signalee ? Cette action est irreversible.')) return;
+  try {
+    const res = await fetch(`/api/admin/reports/${reportId}/delete-video`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Erreur'); return; }
+    showToast(data.message || 'Video supprimee et signalement resolu.');
+    loadAdminReports();
+    loadAdminStats();
+  } catch (e) {
+    showToast('Erreur de communication.');
+  }
+}
+
+async function handleAdminResolveReport(reportId) {
+  try {
+    const res = await fetch(`/api/admin/reports/${reportId}/resolve`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Erreur'); return; }
+    showToast('Signalement marque comme traite.');
+    loadAdminReports();
+    loadAdminStats();
+  } catch (e) {
+    showToast('Erreur de communication.');
+  }
+}
+
+async function handleAdminDismissReport(reportId) {
+  try {
+    const res = await fetch(`/api/admin/reports/${reportId}/dismiss`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Erreur'); return; }
+    showToast('Signalement classe sans suite.');
+    loadAdminReports();
+    loadAdminStats();
+  } catch (e) {
+    showToast('Erreur de communication.');
+  }
+}
+
+// ---------------- ADMIN MESSAGES MANAGEMENT ----------------
+async function loadAdminMessages() {
+  if (!AUTH.isAdmin()) return;
+  const container = document.getElementById('adminMessagesList');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">Chargement des messages...</div>';
+
+  try {
+    const res = await fetch('/api/admin/messages', {
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    if (!res.ok) throw new Error('Erreur');
+    const data = await res.json();
+    const messages = data.messages || [];
+
+    const badgeEl = document.getElementById('adminMessagesCountText');
+    const statEl = document.getElementById('statTotalMessages');
+    if (badgeEl) badgeEl.textContent = messages.length;
+    if (statEl) statEl.textContent = messages.length;
+
+    if (messages.length === 0) {
+      container.innerHTML = `
+        <div style="background:var(--bg-card);border:1px dashed var(--border-color);border-radius:12px;padding:60px 20px;text-align:center;">
+          <p style="color:var(--text-muted);font-size:1rem;margin:0;">Aucun message recu via le formulaire de contact.</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = messages.map(m => `
+      <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div style="font-size:0.95rem;font-weight:700;color:var(--text-main);">${m.subject || 'Sans objet'}</div>
+            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px;">
+              De : <strong>${m.name}</strong> (<a href="mailto:${m.email}" style="color:var(--primary);">${m.email}</a>) • ${new Date(m.createdAt).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <a href="mailto:${m.email}?subject=Re: ${encodeURIComponent(m.subject)}" class="btn btn-sm btn-primary" style="text-decoration:none;">
+              Repondre
+            </a>
+            <button class="btn btn-sm btn-danger-outline" onclick="handleAdminDeleteMessage('${m.id}')" style="border:1px solid #ef4444;color:#ef4444;background:transparent;">
+              Supprimer
+            </button>
+          </div>
+        </div>
+        <div style="background:var(--bg-subtle);border:1px solid var(--border-color);border-radius:8px;padding:12px 14px;font-size:0.86rem;color:var(--text-main);line-height:1.5;white-space:pre-wrap;">${m.message}</div>
+      </div>
+    `).join('');
+  } catch (e) {
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:#ef4444;">Erreur lors du chargement des messages.</div>';
+  }
+}
+
+async function handleAdminDeleteMessage(msgId) {
+  if (!confirm('Supprimer ce message ?')) return;
+  try {
+    const res = await fetch(`/api/admin/messages/${msgId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    if (!res.ok) throw new Error('Erreur');
+    showToast('Message supprime.');
+    loadAdminMessages();
+    loadAdminStats();
+  } catch (e) {
+    showToast('Erreur lors de la suppression.');
+  }
+}
+
+// ---------------- ADMIN REVIEWS MANAGEMENT ----------------
+async function loadAdminReviews() {
+  if (!AUTH.isAdmin()) return;
+  const container = document.getElementById('adminReviewsList');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">Chargement des avis et commentaires...</div>';
+
+  try {
+    const res = await fetch('/api/admin/reviews', {
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    if (!res.ok) throw new Error('Erreur');
+    const data = await res.json();
+    const reviews = data.reviews || [];
+
+    const badgeEl = document.getElementById('adminReviewsCountText');
+    if (badgeEl) badgeEl.textContent = reviews.length;
+
+    if (reviews.length === 0) {
+      container.innerHTML = `
+        <div style="background:var(--bg-card);border:1px dashed var(--border-color);border-radius:12px;padding:60px 20px;text-align:center;">
+          <p style="color:var(--text-muted);font-size:1rem;margin:0;">Aucun commentaire ou avis poste sur les videos.</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = reviews.map(c => `
+      <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+        <img src="${c.videoThumbnail || 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300'}" style="width:70px;height:45px;object-fit:cover;border-radius:6px;flex-shrink:0;">
+        <div style="flex:1;min-width:200px;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <strong style="font-size:0.86rem;color:var(--text-main);">${c.authorName || c.userName || 'Utilisateur'}</strong>
+            <span style="font-size:0.75rem;color:var(--text-muted);">sur "${c.videoTitle || 'Video'}"</span>
+            <span style="font-size:0.72rem;color:var(--text-muted);">${new Date(c.createdAt).toLocaleDateString('fr-FR')}</span>
+          </div>
+          <p style="font-size:0.84rem;color:var(--text-main);margin:4px 0 0;line-height:1.4;">${c.text || c.comment || ''}</p>
+        </div>
+        <button class="btn btn-sm btn-danger-outline" onclick="handleAdminDeleteReview('${c.videoId}', '${c.id}')" style="border:1px solid #ef4444;color:#ef4444;background:transparent;">
+          Supprimer
+        </button>
+      </div>
+    `).join('');
+  } catch (e) {
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:#ef4444;">Erreur lors du chargement des avis.</div>';
+  }
+}
+
+async function handleAdminDeleteReview(videoId, commentId) {
+  if (!confirm('Supprimer ce commentaire ?')) return;
+  try {
+    const res = await fetch(`/api/admin/reviews/${videoId}/${commentId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    if (!res.ok) throw new Error('Erreur');
+    showToast('Commentaire supprime.');
+    loadAdminReviews();
+    loadAdminStats();
+  } catch (e) {
+    showToast('Erreur lors de la suppression.');
+  }
+}
+
+// ---------------- ADMIN ONLINE VIDEOS MANAGEMENT ----------------
+let allAdminOnlineVideos = [];
+
+async function loadAdminOnlineVideos() {
+  if (!AUTH.isAdmin()) return;
+  const container = document.getElementById('adminOnlineVideosList');
+  if (!container) return;
+  container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">Chargement des videos en ligne...</div>';
+
+  try {
+    const res = await fetch('/api/admin/videos?status=approved', {
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    if (!res.ok) throw new Error('Erreur');
+    const data = await res.json();
+    allAdminOnlineVideos = data.videos || [];
+
+    const badgeEl = document.getElementById('adminOnlineCountText');
+    const statEl = document.getElementById('statApprovedVideos');
+    if (badgeEl) badgeEl.textContent = allAdminOnlineVideos.length;
+    if (statEl) statEl.textContent = allAdminOnlineVideos.length;
+
+    renderAdminOnlineVideos(allAdminOnlineVideos);
+  } catch (e) {
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:#ef4444;">Erreur lors du chargement des videos en ligne.</div>';
+  }
+}
+
+function filterAdminOnlineVideos() {
+  const query = (document.getElementById('adminOnlineSearchInput')?.value || '').toLowerCase().trim();
+  if (!query) {
+    renderAdminOnlineVideos(allAdminOnlineVideos);
+    return;
+  }
+  const filtered = allAdminOnlineVideos.filter(v =>
+    (v.title && v.title.toLowerCase().includes(query)) ||
+    (v.authorName && v.authorName.toLowerCase().includes(query)) ||
+    (v.region && v.region.toLowerCase().includes(query))
+  );
+  renderAdminOnlineVideos(filtered);
+}
+
+function renderAdminOnlineVideos(videos) {
+  const container = document.getElementById('adminOnlineVideosList');
+  if (!container) return;
+
+  if (videos.length === 0) {
+    container.innerHTML = `
+      <div style="background:var(--bg-card);border:1px dashed var(--border-color);border-radius:12px;padding:60px 20px;text-align:center;">
+        <p style="color:var(--text-muted);font-size:1rem;margin:0;">Aucune video en ligne trouvee.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = videos.map(v => `
+    <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <img src="${v.thumbnail || 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300'}" style="width:110px;height:70px;object-fit:cover;border-radius:8px;cursor:pointer;" onclick="openVideoPlayerModal('${v.id}')">
+      <div style="flex:1;min-width:220px;">
+        <h4 style="margin:0 0 4px;font-size:0.95rem;color:var(--text-main);">${v.title}</h4>
+        <div style="font-size:0.78rem;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap;">
+          <span>Par <strong>${v.authorName}</strong></span>
+          <span>• ${v.region || 'France'}</span>
+          <span>• ${(v.views||0).toLocaleString()} vues</span>
+          <span>• ${v.likes||0} likes</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-sm btn-secondary" onclick="openVideoPlayerModal('${v.id}')">Voir</button>
+        <button class="btn btn-sm btn-secondary" onclick="openEditVideoModal('${v.id}')">Modifier</button>
+        <button class="btn btn-sm btn-danger" onclick="handleAdminDeleteVideo('${v.id}')">Supprimer</button>
+      </div>
+    </div>
+  `).join('');
+}
+
 
 function initAdminEmailTester() {
   const input = document.getElementById('adminTestEmailTargetInput');
@@ -1649,6 +2066,8 @@ async function loadAdminStats() {
 
     setVal('statPendingVideos', stats.pendingVideos || 0);
     setVal('statApprovedVideos', stats.approvedVideos || 0);
+    setVal('statPendingReports', stats.pendingReports || 0);
+    setVal('statTotalMessages', stats.totalMessages || 0);
     setVal('statTotalUsers', stats.totalUsers || 0);
     setVal('statTotalVips', stats.totalVips || 0);
     setVal('statTotalCategories', stats.totalCategories || 0);
@@ -1656,6 +2075,11 @@ async function loadAdminStats() {
 
     setVal('sidebarPendingBadge', stats.pendingVideos || 0);
     setVal('adminPendingCountText', stats.pendingVideos || 0);
+    setVal('adminOnlineCountText', stats.approvedVideos || 0);
+    setVal('adminReportsCountText', stats.pendingReports || 0);
+    setVal('adminMessagesCountText', stats.totalMessages || 0);
+    setVal('adminReviewsCountText', stats.totalComments || 0);
+    setVal('reportCountPending', stats.pendingReports || 0);
 
     const logsContainer = document.getElementById('adminLogsContainer');
     if (logsContainer && stats.logs) {
@@ -2827,8 +3251,9 @@ function openReportModal(videoInfo = null) {
   const emailInput = document.getElementById('reportEmail');
 
   if (videoInfo) {
-    if (urlInput) urlInput.value = `${window.location.origin}/#video-${videoInfo.id} (${videoInfo.title})`;
+    if (urlInput) urlInput.value = `${window.location.origin}/?video=${videoInfo.id}`;
   }
+
 
   if (AUTH.isLoggedIn()) {
     if (nameInput && !nameInput.value) nameInput.value = AUTH.user.username;

@@ -860,68 +860,86 @@
       <section id="tab-admin" class="tab-content">
         <div class="admin-container standalone-admin-portal">
           
-          <div class="admin-top-bar">
+          <div class="admin-top-bar" style="background:#0f172a; border:1px solid #334155; border-radius:12px; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
             <div class="admin-title-wrap">
-              <span class="admin-pill">PANNEAU D'ADMINISTRATION</span>
-              <h2>Centre de Contrôle & Modération</h2>
-              <p>Gestion des vidéos, validation, modération des catégories, utilisateurs et journal d'activité.</p>
-            </div>
-            <div class="admin-header-actions">
-              <div class="admin-header-badge">
-                <span class="dot-online"></span> Connecté : <strong>ia.project.pro2k26@gmail.com</strong>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#38bdf8" stroke-width="2">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <h2 style="font-size:1.25rem; font-weight:800; color:#ffffff; margin:0;">Administration • VideoHub</h2>
+                <span style="background:rgba(56,189,248,0.15); color:#38bdf8; font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:999px; border:1px solid rgba(56,189,248,0.3);">ADMIN</span>
               </div>
-              <button class="btn btn-sm btn-secondary" onclick="switchTab('accueil')" title="Retour au site public">
-                Retour au site public
+              <p style="font-size:0.8rem; color:#94a3b8; margin:4px 0 0;">• Connecté : <strong>ia.project.pro2k26@gmail.com</strong></p>
+            </div>
+            <div class="admin-header-actions" style="display:flex; gap:10px; align-items:center;">
+              <button class="btn btn-sm" onclick="switchTab('accueil')" style="background:#1e293b; color:#f8fafc; border:1px solid #334155;" title="Retour au site public">
+                Retour au site
+              </button>
+              <button class="btn btn-sm btn-danger" onclick="AUTH.logout()" title="Déconnexion administrateur">
+                Déconnexion admin
               </button>
             </div>
           </div>
 
-          <!-- Admin KPI Summary Grid (Clickable) -->
-          <div class="admin-stats-grid">
-            <div class="admin-stat-card stat-pending" onclick="filterAdminVideosFromKpi('pending')" title="Voir les vidéos en attente de modération">
-              <div class="stat-number" id="statPendingVideos">0</div>
-              <div class="stat-label">À modérer</div>
+          <!-- Admin KPI Summary Grid (Clickable, inspired by Shop Ton Partiel) -->
+          <div class="admin-stats-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px, 1fr)); gap:14px; margin-bottom:20px;">
+            <div class="admin-stat-card stat-pending" onclick="switchAdminSection('videos')" title="Voir les vidéos en attente de modération">
+              <div class="stat-number" id="statPendingVideos" style="color:var(--primary); font-size:1.6rem; font-weight:800;">0</div>
+              <div class="stat-label" style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-top:4px;">DOCUMENTS EN ATTENTE</div>
             </div>
-            <div class="admin-stat-card stat-online" onclick="filterAdminVideosFromKpi('approved')" title="Voir les vidéos en ligne validées">
-              <div class="stat-number" id="statApprovedVideos">0</div>
-              <div class="stat-label">Vidéos en ligne</div>
+            <div class="admin-stat-card stat-reports" onclick="switchAdminSection('reports')" style="border-left:4px solid #ef4444;" title="Gérer les signalements">
+              <div class="stat-number" id="statPendingReports" style="color:#ef4444; font-size:1.6rem; font-weight:800;">0</div>
+              <div class="stat-label" style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-top:4px;">SIGNALEMENTS</div>
+            </div>
+            <div class="admin-stat-card stat-messages" onclick="switchAdminSection('messages')" style="border-left:4px solid #3b82f6;" title="Gérer les messages reçus">
+              <div class="stat-number" id="statTotalMessages" style="color:#3b82f6; font-size:1.6rem; font-weight:800;">0</div>
+              <div class="stat-label" style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-top:4px;">MESSAGES SUPPORT</div>
+            </div>
+            <div class="admin-stat-card stat-online" onclick="switchAdminSection('online')" title="Voir les vidéos en ligne validées">
+              <div class="stat-number" id="statApprovedVideos" style="color:#10b981; font-size:1.6rem; font-weight:800;">0</div>
+              <div class="stat-label" style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-top:4px;">TOTAL EN LIGNE</div>
             </div>
             <div class="admin-stat-card stat-users" onclick="switchAdminSection('users')" title="Gérer les membres inscrits">
-              <div class="stat-number" id="statTotalUsers">0</div>
-              <div class="stat-label">Membres inscrits</div>
+              <div class="stat-number" id="statTotalUsers" style="color:#8b5cf6; font-size:1.6rem; font-weight:800;">0</div>
+              <div class="stat-label" style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-top:4px;">TOTAL MEMBRES</div>
             </div>
-            <div class="admin-stat-card stat-vip" onclick="switchAdminSection('users')" title="Gérer les membres VIP">
-              <div class="stat-number" id="statTotalVips">0</div>
-              <div class="stat-label">Membres VIP (9,99€)</div>
-            </div>
-            <div class="admin-stat-card stat-cats" onclick="switchAdminSection('categories')" title="Gérer les catégories & tags">
-              <div class="stat-number" id="statTotalCategories">0</div>
-              <div class="stat-label">Catégories</div>
-            </div>
-            <div class="admin-stat-card stat-views" onclick="switchAdminSection('logs')" title="Consulter le journal d'activité">
-              <div class="stat-number" id="statTotalViews">0</div>
-              <div class="stat-label">Vues cumulées</div>
+            <div class="admin-stat-card stat-views" onclick="switchAdminSection('logs')" title="Consulter les vues cumulées">
+              <div class="stat-number" id="statTotalViews" style="color:#f59e0b; font-size:1.6rem; font-weight:800;">0</div>
+              <div class="stat-label" style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-top:4px;">VUES CUMULÉES</div>
             </div>
           </div>
 
-          <!-- Admin Sub-tabs -->
-          <div class="admin-tabs">
-            <button class="admin-tab-btn active" id="adminTabVidsBtn" onclick="switchAdminSection('videos')">
-              Modération Vidéos (<span id="adminPendingCountText">0</span>)
+          <!-- Admin Sub-tabs (Shop Ton Partiel Style) -->
+          <div class="admin-tabs" style="display:flex; gap:6px; overflow-x:auto; padding:6px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:10px; margin-bottom:20px;">
+            <button class="admin-tab-btn active" id="adminTabVideosBtn" onclick="switchAdminSection('videos')">
+              Vérifications (<span id="adminPendingCountText">0</span>)
             </button>
-            <button class="admin-tab-btn" id="adminTabCatsBtn" onclick="switchAdminSection('categories')">
-              Catégories
+            <button class="admin-tab-btn" id="adminTabOnlineBtn" onclick="switchAdminSection('online')">
+              En ligne (<span id="adminOnlineCountText">0</span>)
+            </button>
+            <button class="admin-tab-btn" id="adminTabReportsBtn" onclick="switchAdminSection('reports')" style="color:#ef4444; font-weight:700;">
+              Signalements (<span id="adminReportsCountText">0</span>)
+            </button>
+            <button class="admin-tab-btn" id="adminTabMessagesBtn" onclick="switchAdminSection('messages')">
+              Messages (<span id="adminMessagesCountText">0</span>)
+            </button>
+            <button class="admin-tab-btn" id="adminTabReviewsBtn" onclick="switchAdminSection('reviews')">
+              Avis (<span id="adminReviewsCountText">0</span>)
+            </button>
+            <button class="admin-tab-btn" id="adminTabCategoriesBtn" onclick="switchAdminSection('categories')">
+              Suggestions & Catégories
             </button>
             <button class="admin-tab-btn" id="adminTabUsersBtn" onclick="switchAdminSection('users')">
-              Membres & VIP
+              Utilisateurs & Membres
             </button>
             <button class="admin-tab-btn" id="adminTabLogsBtn" onclick="switchAdminSection('logs')">
-              Journal d'Audit
+              Historique
             </button>
             <button class="admin-tab-btn" id="adminTabEmailsBtn" onclick="switchAdminSection('emails')">
-              Test & Aperçu E-mails
+              Test E-mails
             </button>
           </div>
+
 
           <!-- Section 1 : Modération Vidéos (Filtres & Liste) -->
           <div id="adminSectionVideos" class="admin-section-body">
@@ -954,8 +972,97 @@
             </div>
           </div>
 
+          <!-- Section En Ligne : Vidéos Actives sur la plateforme -->
+          <div id="adminSectionOnline" class="admin-section-body hidden">
+            <div class="section-subheading" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+              <div>
+                <h3 style="margin:0;">Vidéos en Ligne sur la Plateforme</h3>
+                <p style="font-size:0.82rem; color:var(--text-muted); margin:4px 0 0;">Gestion des vidéos approuvées, mise en avant, modification et suppression.</p>
+              </div>
+              <button class="btn btn-sm btn-secondary" onclick="loadAdminOnlineVideos()">Actualiser</button>
+            </div>
+            <div class="admin-filter-bar">
+              <div class="filter-group search-filter" style="flex:1;">
+                <input type="text" id="adminOnlineSearchInput" class="form-input-sm" placeholder="Rechercher une vidéo en ligne..." oninput="filterAdminOnlineVideos()">
+              </div>
+            </div>
+            <div id="adminOnlineVideosList" class="pending-videos-list">
+              <!-- Dynamically populated online videos -->
+            </div>
+          </div>
+
+          <!-- Section Signalements : DMCA & Violations (Shop Ton Partiel Style) -->
+          <div id="adminSectionReports" class="admin-section-body hidden">
+            <div class="section-subheading" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+              <div>
+                <h3 style="margin:0; color:#ef4444; display:flex; align-items:center; gap:8px;">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ef4444" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  SIGNALEMENTS DMCA & VIOLATIONS
+                </h3>
+                <p style="font-size:0.82rem; color:var(--text-muted); margin:4px 0 0;">Traitement prioritaire des signalements et demandes de retrait de contenu.</p>
+              </div>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <button class="btn btn-sm btn-secondary" onclick="loadAdminReports()">Actualiser les signalements</button>
+              </div>
+            </div>
+
+            <!-- Toolbar Filtres Signalements -->
+            <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+              <button id="filterReportsPendingBtn" class="btn-filter-pill active" onclick="setAdminReportsFilter('pending')">
+                En attente (<span id="reportCountPending">0</span>)
+              </button>
+              <button id="filterReportsAllBtn" class="btn-filter-pill" onclick="setAdminReportsFilter('all')">
+                Tous les signalements (<span id="reportCountAll">0</span>)
+              </button>
+              <button id="filterReportsResolvedBtn" class="btn-filter-pill" onclick="setAdminReportsFilter('resolved')">
+                Traités & Résolus (<span id="reportCountResolved">0</span>)
+              </button>
+            </div>
+
+            <div id="adminReportsList" style="display:flex; flex-direction:column; gap:14px;">
+              <!-- Dynamically populated reports list -->
+            </div>
+          </div>
+
+          <!-- Section Messages : Formulaire de contact -->
+          <div id="adminSectionMessages" class="admin-section-body hidden">
+            <div class="section-subheading" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+              <div>
+                <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#3b82f6" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  MESSAGES DE CONTACT & SUPPORT
+                </h3>
+                <p style="font-size:0.82rem; color:var(--text-muted); margin:4px 0 0;">Messages envoyés par les visiteurs et membres via le formulaire de contact.</p>
+              </div>
+              <button class="btn btn-sm btn-secondary" onclick="loadAdminMessages()">Actualiser</button>
+            </div>
+
+            <div id="adminMessagesList" style="display:flex; flex-direction:column; gap:12px;">
+              <!-- Dynamically populated messages list -->
+            </div>
+          </div>
+
+          <!-- Section Avis & Notations : Commentaires des vidéos -->
+          <div id="adminSectionReviews" class="admin-section-body hidden">
+            <div class="section-subheading" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+              <div>
+                <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#f59e0b" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  AVIS & MODÉRATION DES COMMENTAIRES
+                </h3>
+                <p style="font-size:0.82rem; color:var(--text-muted); margin:4px 0 0;">Tous les avis et commentaires postés sur les vidéos pour modération.</p>
+              </div>
+              <button class="btn btn-sm btn-secondary" onclick="loadAdminReviews()">Actualiser</button>
+            </div>
+
+            <div id="adminReviewsList" style="display:flex; flex-direction:column; gap:10px;">
+              <!-- Dynamically populated reviews list -->
+            </div>
+          </div>
+
           <!-- Section 2 : Gestion des Catégories -->
           <div id="adminSectionCategories" class="admin-section-body hidden">
+
             <div class="section-subheading">
               <h3>Gestion des Catégories</h3>
               <button class="btn btn-sm btn-primary" onclick="openAddCategoryModal()">+ Ajouter une Catégorie</button>
@@ -1935,13 +2042,13 @@
           <label class="form-label">Motif principal du signalement *</label>
           <select id="reportReason" class="form-select" required>
             <option value="">-- Sélectionnez le motif --</option>
-            <option value="Diffusion non consentie / Atteinte à la vie privée">Diffusion non consentie de mon image / Atteinte à la vie privée</option>
-            <option value="Contenu impliquant un mineur (CSAM - Urgence)">Contenu impliquant ou suggérant un mineur (CSAM - Urgence Absolue)</option>
-            <option value="Violation de droits d'auteur (DMCA)">Violation de droits d'auteur (DMCA / Copyright)</option>
-            <option value="Revenge Porn / Chantage / Intimidation">Revenge Porn / Chantage / Intimidation</option>
-            <option value="Divulgation de données personnelles (Doxxing)">Divulgation de données personnelles (Doxxing)</option>
-            <option value="Violence / Propos haineux / Illégal">Violence / Propos haineux / Contenu illégal</option>
-            <option value="Autre">Autre motif</option>
+            <option value="Atteinte à la vie privée ou diffusion non consentie">Atteinte à la vie privée ou diffusion non consentie</option>
+            <option value="Contenu impliquant ou suggérant un mineur">Contenu impliquant ou suggérant un mineur</option>
+            <option value="Violation de droits d'auteur">Violation de droits d'auteur</option>
+            <option value="Chantage, intimidation ou contenu intime">Chantage, intimidation ou contenu intime</option>
+            <option value="Divulgation de données personnelles">Divulgation de données personnelles</option>
+            <option value="Violence, propos haineux ou contenu illicite">Violence, propos haineux ou contenu illicite</option>
+            <option value="Autre motif">Autre motif</option>
           </select>
         </div>
 
@@ -1960,8 +2067,9 @@
         </div>
 
         <button type="submit" id="btnSubmitReport" class="btn btn-danger btn-block">
-          Transmettre le Signalement d'Urgence
+          Transmettre le signalement
         </button>
+
       </form>
     </div>
   </div>
