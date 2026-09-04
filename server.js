@@ -1311,8 +1311,10 @@ app.get('/api/videos', (req, res) => {
     list = list.filter(v => v.region && v.region.toLowerCase() === region.toLowerCase());
   }
 
-  if (search) {
-    const s = search.toLowerCase();
+  // Full-text search via ?q= param (also supports legacy ?search=)
+  const qParam = req.query.q || req.query.search;
+  if (qParam) {
+    const s = qParam.toLowerCase();
     list = list.filter(v => {
       const titleMatch = v.title && v.title.toLowerCase().includes(s);
       const descMatch = v.description && v.description.toLowerCase().includes(s);
@@ -1323,14 +1325,24 @@ app.get('/api/videos', (req, res) => {
     });
   }
 
-  list.sort((a, b) => {
-    if (a.isVipAuthor && !b.isVipAuthor) return -1;
-    if (!a.isVipAuthor && b.isVipAuthor) return 1;
-    return new Date(b.createdAt) - new Date(a.createdAt);
-  });
+  // Sort: recent (default), views, likes
+  const sort = req.query.sort || 'recent';
+  if (sort === 'views') {
+    list.sort((a, b) => (b.views || 0) - (a.views || 0));
+  } else if (sort === 'likes') {
+    list.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+  } else {
+    // Default: VIP authors first, then by date
+    list.sort((a, b) => {
+      if (a.isVipAuthor && !b.isVipAuthor) return -1;
+      if (!a.isVipAuthor && b.isVipAuthor) return 1;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+  }
 
   res.json({ videos: list });
 });
+
 
 // Explorer Directory : group videos by category for fast search
 app.get('/api/explorer', (req, res) => {
@@ -1794,23 +1806,47 @@ app.get('/api/videos/:id/similar', (req, res) => {
   const db = loadDb();
   const video = db.videos.find(v => v.id === req.params.id);
   if (!video) {
-    return res.json({ similar: [] });
+    return res.json({ videos: [], similar: [] });
   }
 
-  const videoCats = (video.categories || [video.category] || []).map(c => (c || '').toLowerCase());
-  const approved = db.videos.filter(v => v.status === 'approved' && v.id !== video.id);
+  const videoCats = new Set(
+    (video.categories || [video.category]).filter(Boolean).map(c => c.toLowerCase())
+  );
+
+  const approved = (db.videos || []).filter(v => v.status === 'approved' && v.id !== video.id);
 
   const scored = approved.map(v => {
-    const vCats = (v.categories || [v.category] || []).map(c => (c || '').toLowerCase());
-    const commonCount = vCats.filter(c => videoCats.includes(c)).length;
-    return { video: v, score: commonCount };
-  });
+    let score = 0;
+    // Same categories: 3 pts each
+    const vCats = (v.categories || [v.category]).filter(Boolean).map(c => c.toLowerCase());
+    vCats.forEach(c => { if (videoCats.has(c)) score += 3; });
+    // Same region: 1 pt
+    if (v.region && video.region && v.region.toLowerCase() === video.region.toLowerCase()) score += 1;
+    // Same author: 2 pts
+    if (v.authorId && video.authorId && v.authorId === video.authorId) score += 2;
+    // Popularity boost
+    if ((v.views || 0) >= 10) score += 0.5;
+    if ((v.likes || 0) >= 5) score += 0.5;
+    return { ...v, _score: score };
+  })
+    .filter(v => v._score > 0)
+    .sort((a, b) => b._score - a._score || new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+    .slice(0, 6)
+    .map(({ _score, ...v }) => v);
 
-  scored.sort((a, b) => b.score - a.score || new Date(b.video.createdAt) - new Date(a.video.createdAt));
-  const result = scored.slice(0, 6).map(s => s.video);
+  // Fill remaining slots with recent videos if needed
+  if (scored.length < 6) {
+    const scoredIds = new Set([...scored.map(v => v.id), video.id]);
+    const recent = approved
+      .filter(v => !scoredIds.has(v.id))
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+      .slice(0, 6 - scored.length);
+    scored.push(...recent);
+  }
 
-  res.json({ similar: result });
+  res.json({ videos: scored, similar: scored });
 });
+
 
 // Admin update video tags
 app.put('/api/admin/videos/:id/tags', requireAdmin, (req, res) => {
@@ -2446,10 +2482,16 @@ ${allUrls.map(u => `  <url>
   res.send(xml);
 });
 
+// Direct public profile URL - serves SPA with username in path
+app.get('/profil/:username', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // SPA Fallback
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
 
 if (process.env.NODE_ENV !== 'production' || require.main === module) {
   app.listen(PORT, () => {

@@ -58,6 +58,15 @@ function handleUrlHash() {
   const urlParams = new URLSearchParams(window.location.search);
   const catQuery = urlParams.get('cat') || urlParams.get('categorie') || urlParams.get('category');
 
+  // Handle /profil/:username direct URLs
+  const pathParts = pathname.split('/').filter(Boolean);
+  if (pathParts[0] === 'profil' && pathParts[1]) {
+    const username = decodeURIComponent(pathParts[1]);
+    switchTab('accueil');
+    setTimeout(() => openPublicUserProfile(username), 400);
+    return;
+  }
+
   if (pathname === '/admin' || hash === 'admin') {
     if (AUTH.isAdmin()) {
       switchTab('admin');
@@ -84,6 +93,7 @@ function handleUrlHash() {
     switchTab(hash);
   }
 }
+
 
 // Sidebar drawer toggle
 function toggleSidebar(forceState) {
@@ -373,13 +383,52 @@ async function deleteCategory(catId) {
 }
 
 // ==================== VIDEO FEED ====================
+let searchDebounceTimer = null;
+
+function handleSearchInput() {
+  clearTimeout(searchDebounceTimer);
+  searchDebounceTimer = setTimeout(() => {
+    currentFeedPage = 1;
+    loadVideos();
+  }, 400);
+}
+
+function applyAdvancedFilters() {
+  currentFeedPage = 1;
+  loadVideos();
+}
+
+function resetAdvancedFilters() {
+  const s = document.getElementById('searchInput');
+  const r = document.getElementById('filterRegion');
+  const so = document.getElementById('filterSort');
+  if (s) s.value = '';
+  if (r) r.value = '';
+  if (so) so.value = 'recent';
+  currentFeedPage = 1;
+  loadVideos();
+}
+
+function getAdvancedFilterParams(cat) {
+  const params = new URLSearchParams();
+  const q = document.getElementById('searchInput')?.value?.trim();
+  const region = document.getElementById('filterRegion')?.value;
+  const sort = document.getElementById('filterSort')?.value || 'recent';
+  if (cat && cat !== 'all') params.set('category', cat);
+  if (q) params.set('q', q);
+  if (region) params.set('region', region);
+  params.set('sort', sort);
+  return params.toString();
+}
+
 async function loadVideos(cat = 'all', searchQuery = '') {
   try {
-    let url = `/api/videos?category=${cat}`;
-    if (searchQuery) {
-      url += `&search=${encodeURIComponent(searchQuery)}`;
+    let queryString = getAdvancedFilterParams(cat);
+    // Legacy: support explicit searchQuery param
+    if (searchQuery && !document.getElementById('searchInput')?.value) {
+      queryString += `&q=${encodeURIComponent(searchQuery)}`;
     }
-    const res = await fetch(url);
+    const res = await fetch(`/api/videos?${queryString}`);
     const data = await res.json();
     allVideosList = data.videos || [];
 
@@ -388,6 +437,7 @@ async function loadVideos(cat = 'all', searchQuery = '') {
     console.error('Error loading videos', err);
   }
 }
+
 
 function renderVideoGrid(videos, targetGridId = 'videoGrid') {
   const grid = document.getElementById(targetGridId);
@@ -2186,6 +2236,9 @@ async function openPublicUserProfile(userIdOrUsername) {
 
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+
+    // Update URL to /profil/:username for shareability
+    window.history.pushState(null, '', `/profil/${encodeURIComponent(profile.username)}`);
   } catch (err) {
     showToast('Erreur lors du chargement du profil.');
   }
@@ -2198,7 +2251,12 @@ function closeUserProfileModal(e) {
     modal.classList.add('hidden');
     document.body.style.overflow = '';
   }
+  // Restore URL if we came from a /profil/ path
+  if (window.location.pathname.startsWith('/profil/')) {
+    window.history.pushState(null, '', '/');
+  }
 }
+
 
 async function loadAdminUsers() {
   if (!AUTH.isAdmin()) return;

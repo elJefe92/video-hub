@@ -238,8 +238,40 @@
           </div>
 
           <div class="section-heading">
-            <h3 id="feedHeading">Vidéos récentes</h3>
-            <span id="videoCount" class="video-counter">0 vidéo</span>
+            <h3 id="feedHeading">Videos recentes</h3>
+            <span id="videoCount" class="video-counter">0 video</span>
+          </div>
+
+          <!-- Recherche avancee et filtres -->
+          <div id="advancedFiltersBar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:12px 16px;margin-bottom:16px;">
+            <input type="text" id="searchInput" class="form-input" placeholder="Rechercher une video, un auteur..." style="flex:1;min-width:160px;max-width:300px;" oninput="handleSearchInput()">
+            <select id="filterRegion" class="form-input" style="min-width:150px;max-width:210px;" onchange="applyAdvancedFilters()">
+              <option value="">Toutes les regions</option>
+              <option>Ile-de-France</option>
+              <option>Auvergne-Rhone-Alpes</option>
+              <option>Nouvelle-Aquitaine</option>
+              <option>Occitanie</option>
+              <option>Grand Est</option>
+              <option>Hauts-de-France</option>
+              <option>Normandie</option>
+              <option>Pays de la Loire</option>
+              <option>Bretagne</option>
+              <option>Bourgogne-Franche-Comte</option>
+              <option>Centre-Val de Loire</option>
+              <option>Provence-Alpes-Cote d Azur</option>
+              <option>Corse</option>
+              <option>Guadeloupe</option>
+              <option>Martinique</option>
+              <option>Guyane</option>
+              <option>La Reunion</option>
+              <option>Mayotte</option>
+            </select>
+            <select id="filterSort" class="form-input" style="min-width:130px;" onchange="applyAdvancedFilters()">
+              <option value="recent">Plus recentes</option>
+              <option value="views">Plus vues</option>
+              <option value="likes">Plus aimees</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="resetAdvancedFilters()" style="white-space:nowrap;">Reinitialiser</button>
           </div>
 
           <!-- Video Grid -->
