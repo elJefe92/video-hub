@@ -856,6 +856,26 @@ function quickFilterByTag(tagId) {
   showToast(`Filtré sur la catégorie : #${tagId}`);
 }
 
+function formatTimeAgo(dateStr) {
+  if (!dateStr) return 'Publiée récemment';
+  const timestamp = new Date(dateStr).getTime();
+  if (isNaN(timestamp)) return 'Publiée récemment';
+  const diff = Date.now() - timestamp;
+  if (diff < 0) return "À l'instant";
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return "À l'instant";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `Il y a ${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `Il y a ${hours} ${hours === 1 ? 'heure' : 'heures'}`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `Il y a ${days} ${days === 1 ? 'jour' : 'jours'}`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `Il y a ${months} mois`;
+  const years = Math.floor(months / 12);
+  return `Il y a ${years} ${years === 1 ? 'an' : 'ans'}`;
+}
+
 // Video Player Modal with VIP Paywall check & Rich Details (Tags, Similar, Comments)
 function openVideoPlayerModal(videoId) {
   let video = allVideosList.find(v => v.id === videoId);
@@ -873,20 +893,21 @@ function openVideoPlayerModal(videoId) {
   const authorName = document.getElementById('modalAuthorName');
   const authorAvatar = document.getElementById('modalAuthorAvatar');
   const authorBadge = document.getElementById('modalAuthorBadge');
+  const authorLevelBadge = document.getElementById('modalAuthorLevelBadge');
   const likesCount = document.getElementById('modalLikesCount');
   const adminEditBtn = document.getElementById('modalAdminEditTagsBtn');
   const dateEl = document.getElementById('modalVideoDate');
   const viewsEl = document.getElementById('modalVideoViews');
   const regionEl = document.getElementById('modalVideoRegion');
 
-  title.textContent = video.title;
+  title.textContent = video.title || 'Vidéo sans titre';
   desc.textContent = video.description || 'Aucune description fournie.';
-  authorName.textContent = video.authorName;
+  authorName.textContent = video.authorName || 'Membre VideoHub';
   authorName.style.cursor = 'pointer';
   authorName.title = `Voir le profil de ${video.authorName}`;
   authorName.onclick = () => openPublicUserProfile(video.authorId || video.authorName);
 
-  authorAvatar.src = video.authorAvatar || 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(video.authorName);
+  authorAvatar.src = video.authorAvatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(video.authorName || 'VideoHub'));
   authorAvatar.style.cursor = 'pointer';
   authorAvatar.title = `Voir le profil de ${video.authorName}`;
   authorAvatar.onclick = () => openPublicUserProfile(video.authorId || video.authorName);
@@ -896,17 +917,19 @@ function openVideoPlayerModal(videoId) {
   const modalFavBtn = document.getElementById('modalFavBtn');
   if (modalFavBtn) {
     modalFavBtn.setAttribute('data-fav-btn', video.id);
-    modalFavBtn.innerHTML = isFavorite(video.id) 
-      ? '<svg viewBox="0 0 24 24" width="16" height="16" fill="#ef4444" stroke="#ef4444" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Favori'
-      : '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg> Favori';
+    const isFav = isFavorite(video.id);
+    modalFavBtn.classList.toggle('active', isFav);
+    modalFavBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="${isFav ? '#ef4444' : 'none'}" stroke="${isFav ? '#ef4444' : 'currentColor'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <span class="action-text">${isFav ? 'Ajouté' : 'Favori'}</span>
+    `;
   }
 
   if (dateEl) {
-    const d = new Date(video.createdAt || Date.now());
-    dateEl.textContent = `Publiée le ${d.toLocaleDateString('fr-FR')}`;
+    dateEl.textContent = formatTimeAgo(video.createdAt);
   }
   if (viewsEl) {
-    viewsEl.textContent = `${video.views || 1} vues`;
+    viewsEl.textContent = `${(video.views || 1).toLocaleString()} vues`;
   }
   if (regionEl) {
     regionEl.textContent = `${video.region || 'France'}`;
@@ -926,6 +949,16 @@ function openVideoPlayerModal(videoId) {
     authorBadge.textContent = video.isVipExclusive ? 'EXCLUSIF VIP' : 'VIP';
   } else {
     authorBadge.classList.add('hidden');
+  }
+
+  if (authorLevelBadge) {
+    if (video.creatorBadge && video.creatorBadge.name) {
+      authorLevelBadge.classList.remove('hidden');
+      authorLevelBadge.textContent = video.creatorBadge.name;
+      authorLevelBadge.className = `creator-level-badge badge-${(video.creatorBadge.level || 'bronze').toLowerCase()}`;
+    } else {
+      authorLevelBadge.classList.add('hidden');
+    }
   }
 
   // Update Star Rating Display
@@ -970,6 +1003,7 @@ function openVideoPlayerModal(videoId) {
   }
 
   modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
 }
 
 function renderModalTags(categories) {
@@ -1273,7 +1307,7 @@ function openDirectMessageModal(partner) {
 
   const myUsername = AUTH.isLoggedIn() ? AUTH.user.username : 'Visiteur';
   if (AUTH.isLoggedIn() && partner.username.toLowerCase() === myUsername.toLowerCase()) {
-    showToast(' Vous ne pouvez pas vous envoyer un message à vous-même.');
+    showToast('Vous ne pouvez pas vous envoyer un message à vous-même.');
     return;
   }
 
@@ -1465,7 +1499,7 @@ async function loadConversationsList() {
 }
 
 function closeVideoModal(e) {
-  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) {
+  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn') && !e.target.closest('.modal-back-btn') && !e.target.closest('.modal-close-btn-simple')) {
     return;
   }
   const modal = document.getElementById('videoModal');
@@ -1478,7 +1512,31 @@ function closeVideoModal(e) {
   }
   if (paywallOverlay) paywallOverlay.classList.add('hidden');
   if (modal) modal.classList.add('hidden');
+  document.body.style.overflow = '';
   currentPlayingVideo = null;
+}
+
+async function shareCurrentVideo() {
+  if (!currentPlayingVideo) return;
+  const url = `${window.location.origin}/?video=${encodeURIComponent(currentPlayingVideo.id)}`;
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: currentPlayingVideo.title || 'Vidéo sur VideoHub',
+        text: `Regardez "${currentPlayingVideo.title || 'cette vidéo'}" sur VideoHub`,
+        url: url
+      });
+      return;
+    } catch (e) {}
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast('Lien de la vidéo copié dans le presse-papier !');
+      return;
+    } catch (e) {}
+  }
+  prompt('Copiez le lien de la vidéo :', url);
 }
 
 async function likeCurrentVideo() {
@@ -3549,9 +3607,17 @@ function isFavorite(videoId) {
 
 function updateFavoriteButtonsUI(videoId, isFav) {
   document.querySelectorAll(`[data-fav-btn="${videoId}"]`).forEach(btn => {
-    btn.innerHTML = isFav
-      ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="#ef4444" stroke="#ef4444" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
-      : '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+    if (btn.id === 'modalFavBtn') {
+      btn.classList.toggle('active', isFav);
+      btn.innerHTML = `
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="${isFav ? '#ef4444' : 'none'}" stroke="${isFav ? '#ef4444' : 'currentColor'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <span class="action-text">${isFav ? 'Ajouté' : 'Favori'}</span>
+      `;
+    } else {
+      btn.innerHTML = isFav
+        ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="#ef4444" stroke="#ef4444" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+        : '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+    }
     btn.title = isFav ? 'Retirer des favoris' : 'Ajouter aux favoris';
   });
 }

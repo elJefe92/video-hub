@@ -1273,12 +1273,46 @@
     </main>
   </div> <!-- end app-layout -->
 
-  <!-- ==================== VIDEO MODAL PLAYER ==================== -->
+  <!-- ==================== VIDEO MODAL PLAYER (Modern Mobile & Desktop Layout) ==================== -->
   <div id="videoModal" class="modal-overlay hidden" onclick="closeVideoModal(event)">
     <div class="modal-card modal-video" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeVideoModal()"></button>
+      
+      <!-- Top Bar: Quick Return & Close -->
+      <div class="modal-video-topbar">
+        <button type="button" class="modal-back-btn" onclick="closeVideoModal()" title="Retour aux vidéos">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          <span>Retour</span>
+        </button>
+        <button type="button" class="modal-close-btn-simple" onclick="closeVideoModal()" title="Fermer">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Video Header: Title & Meta above video (Balancetanude Style) -->
+      <div class="video-modal-header">
+        <h2 id="modalVideoTitle" class="modal-video-title">Titre de la vidéo</h2>
+        
+        <div class="modal-video-meta-line">
+          <div class="meta-time-wrap">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span id="modalVideoDate">Publiée récemment</span>
+          </div>
+          <div class="meta-author-wrap">
+            <span>Envoyé par</span>
+            <img id="modalAuthorAvatar" src="" alt="Auteur" class="avatar-author-thumb">
+            <strong id="modalAuthorName" class="author-name-link">Auteur</strong>
+            <span id="modalAuthorBadge" class="vip-author-badge hidden">VIP</span>
+            <span id="modalAuthorLevelBadge" class="creator-level-badge hidden"></span>
+            <button type="button" id="modalMessageAuthorBtn" class="btn-author-direct-msg" onclick="openDirectMessageFromPlayingVideo()" title="Envoyer un message privé à l'auteur">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Video Player Container -->
       <div class="player-container">
-        <video id="modalVideoPlayer" controls autoplay playsinline></video>
+        <video id="modalVideoPlayer" controls autoplay playsinline webkit-playsinline></video>
         <!-- VIP Paywall Overlay when video is VIP Exclusive and user is non-VIP -->
         <div id="vipPaywallOverlay" class="vip-paywall-box hidden">
           <div class="vip-lock-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
@@ -1290,39 +1324,38 @@
           <span class="paywall-sub">Accès immédiat à toutes les vidéos exclusives + 0 Pub + Qualité 4K HD</span>
         </div>
       </div>
-      <div class="modal-video-details">
-        <div class="modal-author-row">
-          <div class="modal-author-left">
-            <img id="modalAuthorAvatar" src="" alt="Auteur" class="avatar-sm">
-            <div class="modal-author-info">
-              <span id="modalAuthorName" class="author-name">Auteur</span>
-              <span id="modalAuthorBadge" class="vip-author-badge hidden">VIP</span>
-            </div>
-          </div>
-          <div class="modal-actions-right">
-            <!-- Bouton Message Direct avec l'auteur -->
-            <button id="modalMessageAuthorBtn" class="btn-message-author" onclick="openDirectMessageFromPlayingVideo()" title="Envoyer un message privé à l'auteur">
-              Message
-            </button>
-            <!-- Bouton Signaler Vidéo -->
-            <button id="modalReportBtn" class="btn-report-video" onclick="openReportModalFromCurrentVideo()" title="Signaler un contenu abusif ou illégal">
-              Signaler
-            </button>
-            <!-- Bouton Modifier Tags pour l'Administrateur -->
-            <button id="modalAdminEditTagsBtn" class="btn-admin-edit-tags hidden" onclick="openAdminEditModalFromPlayingVideo()">
-              Modifier les tags
-            </button>
-            <button id="modalLikeBtn" class="btn-like" onclick="likeCurrentVideo()">
-              J'aime (<span id="modalLikesCount">0</span>)
-            </button>
-            <button id="modalFavBtn" class="btn-like" onclick="toggleFavorite(currentPlayingVideo?.id)" style="margin-left:8px; display:flex; align-items:center; gap:6px;">
-              Favori
-            </button>
-          </div>
-        </div>
 
-        <h3 id="modalVideoTitle" class="modal-title">Titre de la vidéo</h3>
-        <p id="modalVideoDesc" class="modal-description">Description...</p>
+      <!-- Action Bar immediately below video -->
+      <div class="modal-video-action-bar">
+        <button type="button" id="modalLikeBtn" class="video-action-pill btn-action-like" onclick="likeCurrentVideo()" title="J'aime cette vidéo">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+          <span class="action-text">J'aime</span>
+          <span id="modalLikesCount" class="action-badge">0</span>
+        </button>
+
+        <button type="button" id="modalFavBtn" class="video-action-pill btn-action-fav" onclick="toggleFavorite(currentPlayingVideo?.id)" title="Ajouter aux favoris">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          <span class="action-text">Favori</span>
+        </button>
+
+        <button type="button" id="modalShareBtn" class="video-action-pill btn-action-share" onclick="shareCurrentVideo()" title="Partager la vidéo">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          <span class="action-text">Partager</span>
+        </button>
+
+        <button type="button" id="modalReportBtn" class="video-action-pill report-pill" onclick="openReportModalFromCurrentVideo()" title="Signaler cette vidéo">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+          <span class="action-text">Signaler</span>
+        </button>
+
+        <!-- Admin Tag / Metadata button -->
+        <button type="button" id="modalAdminEditTagsBtn" class="video-action-pill admin-pill hidden" onclick="openAdminEditModalFromPlayingVideo()" title="Modifier les catégories et tags">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polygon points="14 2 18 6 7 17 3 17 3 13 14 2"/><line x1="15" y1="5" x2="19" y2="9"/></svg>
+          <span class="action-text">Modifier</span>
+        </button>
+      </div>
+
+      <div class="modal-video-details">
 
         <!-- Star Rating Interactive Component (0 à 5 étoiles) -->
         <div class="modal-rating-container">
