@@ -840,10 +840,11 @@ body {
 
 @media (max-width: 767px) {
   .video-grid {
-    grid-template-columns: 1fr !important;
-    gap: 16px;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
   }
 }
+
 
 .video-card {
   background: var(--bg-card);
@@ -3683,27 +3684,222 @@ body.theme-light .user-card-status-info.text-free-active {
   }
 }
 
-/* ==================== MOBILE PHONE VERTICAL PRESENTATION ==================== */
+/* ==================== MOBILE PHONE 2-COLUMN PRESENTATION ==================== */
 @media (max-width: 767px) {
   .video-grid,
   .spotlight-video-grid,
-  .my-videos-grid {
-    grid-template-columns: 1fr !important;
-    gap: 16px;
+  .my-videos-grid,
+  #videoGrid,
+  #explorerMatchedGrid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
   }
 
   .video-card {
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-sm);
   }
 
   .video-thumbnail-wrap {
     padding-top: 56.25%;
   }
 
+  .video-card-body {
+    padding: 8px 6px !important;
+  }
+
+  .video-card-header {
+    gap: 6px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .creator-avatar {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .video-card-title {
+    font-size: 0.78rem !important;
+    line-height: 1.25 !important;
+    margin-bottom: 3px !important;
+    -webkit-line-clamp: 2 !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+  }
+
+  .video-creator-name {
+    font-size: 0.7rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 80px !important;
+  }
+
+  .badge-region-pill {
+    font-size: 0.6rem !important;
+    padding: 1px 4px !important;
+  }
+
+  .video-card-pub-row {
+    font-size: 0.64rem !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+    margin-top: 3px !important;
+  }
+
+  .video-duration-badge {
+    font-size: 0.62rem !important;
+    padding: 1px 4px !important;
+    bottom: 4px !important;
+    right: 4px !important;
+  }
+
+  .video-rating-pill-card {
+    font-size: 0.62rem !important;
+    padding: 1px 4px !important;
+    top: 4px !important;
+    left: 4px !important;
+  }
+
+  .vip-card-badge,
+  .vip-exclusive-badge,
+  .video-pending-badge {
+    font-size: 0.6rem !important;
+    padding: 1px 5px !important;
+    top: 4px !important;
+    right: 4px !important;
+  }
+
+  .play-overlay-btn {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .play-overlay-btn svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  .video-stats-footer {
+    display: none !important;
+  }
+
   .section-heading h3 {
     font-size: 1.05rem;
   }
 }
+
+/* ==================== MOBILE PHONE TOP HEADER & FILTER BAR ==================== */
+@media (max-width: 640px) {
+  .header-container {
+    padding: 0 10px !important;
+    gap: 6px !important;
+  }
+
+  .search-box-wrap {
+    display: none !important;
+  }
+
+  .btn-header-upload-top,
+  .btn-header-contact,
+  .btn-header-explore,
+  .btn-header-messages,
+  .btn-add-cat-top {
+    display: none !important;
+  }
+
+  .header-actions {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+    margin-left: auto !important;
+  }
+
+  .btn-theme-toggle {
+    display: inline-flex !important;
+    width: 36px !important;
+    height: 36px !important;
+    padding: 0 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    border-radius: 50% !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
+  }
+
+  #headerAuthBtn {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    background: var(--primary) !important;
+    color: #ffffff !important;
+    border: none !important;
+    padding: 6px 13px !important;
+    border-radius: 999px !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+    box-shadow: 0 2px 8px var(--primary-glow) !important;
+    cursor: pointer !important;
+  }
+
+  #headerAuthBtn .header-auth-label {
+    color: #ffffff !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+  }
+
+  body.theme-light #headerAuthBtn {
+    background: var(--primary) !important;
+    color: #ffffff !important;
+  }
+
+  #notifBellWrapper {
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Mobile 2-column filters bar */
+  #advancedFiltersBar {
+    padding: 10px 12px !important;
+    gap: 8px !important;
+  }
+
+  #advancedFiltersBar input#searchInput {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 100% !important;
+    font-size: 0.84rem !important;
+  }
+
+  #advancedFiltersBar select#filterRegion {
+    flex: 1 1 calc(50% - 4px) !important;
+    min-width: 0 !important;
+    max-width: calc(50% - 4px) !important;
+    font-size: 0.76rem !important;
+    padding: 8px 6px !important;
+  }
+
+  #advancedFiltersBar select#filterSort {
+    flex: 1 1 calc(50% - 4px) !important;
+    min-width: 0 !important;
+    max-width: calc(50% - 4px) !important;
+    font-size: 0.76rem !important;
+    padding: 8px 6px !important;
+  }
+
+  #advancedFiltersBar button {
+    width: 100% !important;
+    padding: 7px 12px !important;
+    font-size: 0.78rem !important;
+  }
+}
+
 
 /* ==================== PAGINATION (10 VIDÉOS PAR BLOC) ==================== */
 .pagination-wrapper {
@@ -5228,11 +5424,24 @@ html.age-verified #adultWarningOverlay {
 
 @media (max-width: 600px) {
   .site-mega-footer {
-    padding: 28px 16px 90px 16px; /* space for mobile bottom nav */
+    padding: 24px 14px 90px 14px; /* space for mobile bottom nav */
   }
   .footer-top-grid {
-    grid-template-columns: 1fr;
-    gap: 22px;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 20px 12px !important;
+  }
+  .footer-col-brand {
+    grid-column: 1 / -1 !important;
+  }
+  .footer-col-title {
+    font-size: 0.88rem !important;
+    margin-bottom: 8px !important;
+  }
+  .footer-links-list li {
+    margin-bottom: 6px !important;
+  }
+  .footer-links-list a {
+    font-size: 0.8rem !important;
   }
   .footer-bottom-bar {
     flex-direction: column;
@@ -5240,6 +5449,7 @@ html.age-verified #adultWarningOverlay {
     gap: 12px;
   }
 }
+
 
 /* ==================== ADMIN EMAIL TEST & PREVIEW SUITE ==================== */
 .admin-email-tester-card {
