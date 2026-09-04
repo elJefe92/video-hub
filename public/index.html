@@ -166,43 +166,86 @@
           <ul class="sidebar-nav-list">
             <li>
               <button class="sidebar-nav-item active" id="side-nav-accueil" onclick="navigateToTab('accueil')">
+                <span class="sidebar-item-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-5a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9.5z"/>
+                  </svg>
+                </span>
                 <span class="sidebar-item-label">Accueil</span>
               </button>
             </li>
             <li>
               <button class="sidebar-nav-item" id="side-nav-explorer" onclick="navigateToTab('explorer')">
+                <span class="sidebar-item-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7" rx="1"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1"/>
+                  </svg>
+                </span>
                 <span class="sidebar-item-label">Catégories</span>
               </button>
             </li>
             <li>
               <button class="sidebar-nav-item" id="side-nav-upload" onclick="navigateToTab('upload')">
+                <span class="sidebar-item-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="23 7 16 12 23 17 23 7"/>
+                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                  </svg>
+                </span>
                 <span class="sidebar-item-label">Déposer une vidéo</span>
               </button>
             </li>
             <li>
               <button class="sidebar-nav-item vip-sidebar-link" id="side-nav-vip" onclick="navigateToTab('vip')">
+                <span class="sidebar-item-icon" style="color:#fb923c;">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                </span>
                 <span class="sidebar-item-label">VIP (9,99€)</span>
                 <span class="badge-vip-mini">PROMO</span>
               </button>
             </li>
             <li>
               <button class="sidebar-nav-item" id="side-nav-faq" onclick="navigateToTab('faq')">
+                <span class="sidebar-item-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                  </svg>
+                </span>
                 <span class="sidebar-item-label">FAQ & Aide</span>
               </button>
             </li>
             <li>
               <button class="sidebar-nav-item" id="side-nav-profil" onclick="navigateToTab('profil')">
+                <span class="sidebar-item-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                </span>
                 <span class="sidebar-item-label">Mon Profil</span>
               </button>
             </li>
             <li>
               <button class="sidebar-nav-item" id="side-nav-contact" onclick="openContactModal(); toggleSidebar(false);">
+                <span class="sidebar-item-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                </span>
                 <span class="sidebar-item-label">Nous contacter</span>
               </button>
             </li>
             <li>
               <button class="sidebar-nav-item" id="side-nav-theme" onclick="toggleTheme();">
-                <span id="sideThemeIcon" style="display:inline-flex;align-items:center;margin-right:8px;">
+                <span class="sidebar-item-icon" id="sideThemeIcon">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="5"/>
                     <line x1="12" y1="1" x2="12" y2="3"/>
@@ -221,11 +264,17 @@
             <!-- Admin button (Visible ONLY for Admin) -->
             <li id="sideAdminItem" class="hidden">
               <button class="sidebar-nav-item admin-sidebar-link" id="side-nav-admin" onclick="navigateToAdmin()">
+                <span class="sidebar-item-icon">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                </span>
                 <span class="sidebar-item-label">Espace Administration</span>
                 <span class="badge-pending-count" id="sidebarPendingBadge">0</span>
               </button>
             </li>
           </ul>
+
         </div>
 
         <div class="sidebar-divider"></div>
@@ -1116,63 +1165,6 @@
 
     </main>
   </div> <!-- end app-layout -->
-
-  <!-- ==================== MOBILE BOTTOM NAVIGATION BAR ==================== -->
-  <nav class="mobile-nav-bar" id="mobileNavBar">
-    
-    <!-- 1. Accueil -->
-    <button class="nav-item active" id="nav-accueil" onclick="switchTab('accueil')">
-      <div class="nav-icon-wrap">
-        <svg viewBox="0 0 24 24" class="nav-icon" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-5a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9.5z"/>
-        </svg>
-      </div>
-      <span class="nav-label">Accueil</span>
-    </button>
-
-    <!-- 2. Déposer -->
-    <button class="nav-item" id="nav-upload" onclick="switchTab('upload')">
-      <div class="nav-icon-wrap">
-        <svg viewBox="0 0 24 24" class="nav-icon" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="2" y="4" width="13" height="16" rx="2" />
-          <path d="M15 8.5l6-3.5v14l-6-3.5" />
-          <path d="M8.5 8v6M6 11.5l2.5 2.5 2.5-2.5" />
-        </svg>
-      </div>
-      <span class="nav-label">Déposer</span>
-    </button>
-
-    <!-- 3. VIP -->
-    <button class="nav-item" id="nav-vip" onclick="switchTab('vip')">
-      <div class="vip-nav-badge">
-        <span class="vip-text-tag">VIP</span>
-      </div>
-    </button>
-
-    <!-- 4. FAQ -->
-    <button class="nav-item" id="nav-faq" onclick="switchTab('faq')">
-      <div class="nav-icon-wrap">
-        <svg viewBox="0 0 24 24" class="nav-icon" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="9"/>
-          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-          <line x1="12" y1="17" x2="12.01" y2="17"/>
-        </svg>
-      </div>
-      <span class="nav-label">FAQ</span>
-    </button>
-
-    <!-- 5. Mon Profil -->
-    <button class="nav-item" id="nav-profil" onclick="switchTab('profil')">
-      <div class="nav-icon-wrap">
-        <svg viewBox="0 0 24 24" class="nav-icon" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-          <circle cx="12" cy="7" r="4"/>
-        </svg>
-      </div>
-      <span class="nav-label">Profil</span>
-    </button>
-
-  </nav>
 
   <!-- ==================== VIDEO MODAL PLAYER ==================== -->
   <div id="videoModal" class="modal-overlay hidden" onclick="closeVideoModal(event)">

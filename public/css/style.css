@@ -55,10 +55,11 @@ body {
   background-color: var(--bg-main);
   color: var(--text-main);
   line-height: 1.5;
-  padding-bottom: calc(var(--bottom-nav-height) + 20px);
+  padding-bottom: 24px;
   padding-top: var(--header-height);
   -webkit-font-smoothing: antialiased;
 }
+
 
 /* ==================== HEADER (DARK THEME) ==================== */
 .app-header {
@@ -526,11 +527,21 @@ body {
 }
 
 .sidebar-item-icon {
-  font-size: 1.15rem;
-  width: 22px;
-  text-align: center;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
 }
+
+.sidebar-nav-item:hover .sidebar-item-icon,
+.sidebar-nav-item.active .sidebar-item-icon {
+  color: var(--primary);
+}
+
 
 .sidebar-item-label {
   flex: 1;
@@ -3459,33 +3470,14 @@ body.theme-light .user-card-status-info.text-free-active {
 .btn-delete-comment:hover {
   opacity: 1;
   background: rgba(239, 68, 68, 0.1);
-}
-
   border-color: #ef4444;
 }
 
-/* ==================== MOBILE BOTTOM NAV (DARK THEME) ==================== */
+/* ==================== MOBILE BOTTOM NAV (DEPRECATED - REPLACED BY CLEAN SIDEBAR) ==================== */
 .mobile-nav-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: var(--bottom-nav-height);
-  background: rgba(11, 15, 25, 0.96);
-  backdrop-filter: blur(14px);
-  border-top: 1px solid var(--border-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding: 0 4px;
-  z-index: 1000;
+  display: none !important;
 }
 
-@media (min-width: 992px) {
-  .mobile-nav-bar {
-    display: none;
-  }
-}
 
 .nav-item {
   display: flex;
