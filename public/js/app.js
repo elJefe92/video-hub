@@ -556,8 +556,9 @@ function renderVideoCard(v) {
               <span class="video-creator-name" style="cursor:pointer;" onclick="event.stopPropagation(); openPublicUserProfile('${v.authorId || v.authorName}')" title="Voir le profil de ${v.authorName}">
                 ${v.authorName} ${v.isVipAuthor ? '(VIP)' : ''}
               </span>
-              <span class="badge-region-pill" title="Région">${regionName}</span>
+              <span class="badge-region-pill" title="Region">${regionName}</span>
             </div>
+            ${v.creatorBadge ? `<span style="font-size:0.65rem;font-weight:700;color:${{'Bronze':'#cd7f32','Argent':'#a8a9ad','Or':'#ffd700','Platine':'#e5e4e2'}[v.creatorBadge]||'#94a3b8'};letter-spacing:0.3px;">Createur ${v.creatorBadge}</span>` : ''}
           </div>
         </div>
 
@@ -2188,8 +2189,15 @@ async function openPublicUserProfile(userIdOrUsername) {
       } else {
         badgesHtml += '<span class="badge-free-pill">MEMBRE GRATUIT</span>';
       }
+      // Creator badge
+      if (profile.creatorBadge) {
+        const badgeColors = { 'Bronze': '#cd7f32', 'Argent': '#a8a9ad', 'Or': '#ffd700', 'Platine': '#e5e4e2' };
+        const color = badgeColors[profile.creatorBadge] || '#94a3b8';
+        badgesHtml += `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,0,0,0.3);border:1px solid ${color};color:${color};font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:0.5px;">Createur ${profile.creatorBadge}</span>`;
+      }
       badgesContainer.innerHTML = badgesHtml;
     }
+
 
     if (videosCountEl) videosCountEl.textContent = profile.videosCount || 0;
     if (viewsCountEl) viewsCountEl.textContent = (profile.totalViews || 0).toLocaleString();

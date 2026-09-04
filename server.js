@@ -495,6 +495,40 @@ function addLog(action, details) {
   saveDb(db);
 }
 
+// Compute and update creator badge level for a user (Bronze/Argent/Or/Platine)
+function computeCreatorBadge(userId, db) {
+  const user = db.users.find(u => u.id === userId);
+  if (!user) return;
+
+  const userVideos = (db.videos || []).filter(v =>
+    (v.authorId && v.authorId === userId) || (v.authorEmail && v.authorEmail === user.email)
+  );
+
+  const videoCount = userVideos.length;
+  const totalViews = userVideos.reduce((s, v) => s + (v.views || 0), 0);
+  const totalLikes = userVideos.reduce((s, v) => s + (v.likes || 0), 0);
+
+  let badge = null;
+  let badgeLevel = 0;
+
+  if (videoCount >= 25 || totalViews >= 10000 || totalLikes >= 500) {
+    badge = 'Platine';
+    badgeLevel = 4;
+  } else if (videoCount >= 10 || totalViews >= 1000 || totalLikes >= 100) {
+    badge = 'Or';
+    badgeLevel = 3;
+  } else if (videoCount >= 5 || totalViews >= 100 || totalLikes >= 20) {
+    badge = 'Argent';
+    badgeLevel = 2;
+  } else if (videoCount >= 1) {
+    badge = 'Bronze';
+    badgeLevel = 1;
+  }
+
+  user.creatorBadge = badge;
+  user.creatorBadgeLevel = badgeLevel;
+}
+
 // Reserved admin keywords protected for official administration only
 const RESERVED_ADMIN_TERMS = [
   'admin', 'administrateur', 'administrator', 'moderateur', 'modérateur',
@@ -959,12 +993,15 @@ app.get('/api/users/:id/profile', async (req, res) => {
   const totalViews = userVideos.reduce((sum, v) => sum + (v.views || 0), 0);
   const totalLikes = userVideos.reduce((sum, v) => sum + (v.likes || 0), 0);
 
+  // Recompute badge on profile fetch to keep it fresh
+  computeCreatorBadge(user.id, db);
+
   res.json({
     id: user.id,
     username: user.username,
     email: user.email,
     avatar: user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.username)}`,
-    bio: user.bio || 'Membre créateur sur la plateforme VideoHub.',
+    bio: user.bio || 'Membre createur sur la plateforme VideoHub.',
     role: user.role || 'user',
     isVip: Boolean(user.isVip),
     vipExpiry: user.vipExpiry,
@@ -972,6 +1009,8 @@ app.get('/api/users/:id/profile', async (req, res) => {
     videosCount: userVideos.length,
     totalViews,
     totalLikes,
+    creatorBadge: user.creatorBadge || null,
+    creatorBadgeLevel: user.creatorBadgeLevel || 0,
     videos: userVideos.map(v => ({
       id: v.id,
       title: v.title,
@@ -1340,8 +1379,20 @@ app.get('/api/videos', (req, res) => {
     });
   }
 
+  // Enrich videos with author's creator badge
+  const userMap = {};
+  (db.users || []).forEach(u => { if (u.id) userMap[u.id] = u; });
+  list = list.map(v => {
+    const author = v.authorId ? userMap[v.authorId] : null;
+    return {
+      ...v,
+      creatorBadge: author?.creatorBadge || v.creatorBadge || null
+    };
+  });
+
   res.json({ videos: list });
 });
+
 
 
 // Explorer Directory : group videos by category for fast search
@@ -1544,17 +1595,20 @@ app.post('/api/videos/:id/like', (req, res) => {
   if (video.authorId && video.authorId !== req.user?.id) {
     addNotificationToUser(db, video.authorId, {
       type: 'like',
-      message: `Votre vidéo "${video.title.slice(0, 40)}" a reçu un nouveau j'aime.`,
+      message: `Votre video "${video.title.slice(0, 40)}" a recu un nouveau j'aime.`,
       link: `/?video=${video.id}`
     });
   }
+
+  // Recompute creator badge level
+  if (video.authorId) computeCreatorBadge(video.authorId, db);
 
   saveDb(db);
   res.json({
     likes: video.likes,
     isVipExclusive: !!video.isVipExclusive,
     convertedToVip,
-    message: convertedToVip ? "Cette vidéo populaire a atteint 5 mentions J'aime et est désormais passée en Contenu Exclusif VIP !" : null
+    message: convertedToVip ? "Cette video populaire a atteint 5 mentions J'aime et est desormais passee en Contenu Exclusif VIP !" : null
   });
 });
 
@@ -1902,12 +1956,16 @@ app.post('/api/admin/videos/:id/approve', requireAdmin, (req, res) => {
 
   video.status = 'approved';
   video.publishedAt = new Date().toISOString();
+
+  // Update creator badge level
+  if (video.authorId) computeCreatorBadge(video.authorId, db);
+
   saveDb(db);
 
-  addLog('Validation Vidéo', `Vidéo "${video.title}" validée et publiée par Admin`);
+  addLog('Validation Video', `Video "${video.title}" validee et publiee par Admin`);
 
   res.json({
-    message: `La vidéo "${video.title}" a été validée et mise en ligne ! `,
+    message: `La video "${video.title}" a ete validee et mise en ligne !`,
     video
   });
 });
