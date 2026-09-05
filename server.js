@@ -1226,105 +1226,155 @@ app.put('/api/user/profile', authenticate, upload.single('avatarFile'), async (r
 });
 
 // ---------------- CATEGORIES ROUTES ----------------
+// Public: only approved categories
 app.get('/api/categories', (req, res) => {
   const db = loadDb();
-  res.json({ categories: db.categories || [] });
+  const approved = (db.categories || []).filter(c => c.status !== 'pending');
+  res.json({ categories: approved });
 });
 
-// Users and Admin can add categories
-app.post('/api/categories', authenticate, (req, res) => {
+// Admin: all categories including pending user suggestions
+app.get('/api/admin/categories', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
+  const db = loadDb();
+  const all = db.categories || [];
+  const pending = all.filter(c => c.status === 'pending');
+  const approved = all.filter(c => c.status !== 'pending');
+  res.json({ categories: all, pending, approved });
+});
+
+// Users propose, Admin approves (users proposals require admin approval)
+app.post('/api/categories', authenticate, async (req, res) => {
   const { name, icon, description } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Le nom de la catégorie est obligatoire.' });
   }
 
+  await syncDbFromCloud();
   const db = loadDb();
-  const id = name.trim().toLowerCase().replace(/[^a-z0-9]/g, '_');
+  const cleanName = name.trim();
+  const id = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '_');
   
-  if (db.categories.some(c => c.id === id || c.name.toLowerCase() === name.trim().toLowerCase())) {
-    return res.status(400).json({ error: 'Cette catégorie existe déjà.' });
+  if ((db.categories || []).some(c => c.id === id || (c.name || '').toLowerCase() === cleanName.toLowerCase())) {
+    return res.status(400).json({ error: 'Cette catégorie existe déjà ou est déjà en attente de validation.' });
   }
 
+  const isAdmin = req.user.role === 'admin' || (req.user.email && req.user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com');
   const newCat = {
     id,
-    name: name.trim(),
-    icon: icon || '️',
+    name: cleanName,
+    icon: icon || '',
     description: (description || '').trim(),
     createdBy: req.user.username,
+    createdById: req.user.id,
+    status: isAdmin ? 'approved' : 'pending',
     createdAt: new Date().toISOString()
   };
 
   db.categories.push(newCat);
   saveDb(db);
+  await syncDbToCloud(db);
 
-  addLog('Ajout Catégorie', `Catégorie "${newCat.name}" ajoutée par ${req.user.username}`);
+  if (isAdmin) {
+    addLog('Ajout Catégorie', `Catégorie "${newCat.name}" créée directement par Admin (${req.user.username})`);
+    res.status(201).json({
+      success: true,
+      message: `La catégorie "${newCat.name}" a été ajoutée avec succès !`,
+      category: newCat,
+      status: 'approved'
+    });
+  } else {
+    addLog('Proposition Catégorie', `Catégorie "${newCat.name}" proposée par ${req.user.username} (en attente de validation admin)`);
+    res.status(201).json({
+      success: true,
+      message: `Votre proposition de catégorie "${newCat.name}" a été soumise avec succès. Elle sera visible sur la plateforme dès sa validation par un administrateur.`,
+      category: newCat,
+      status: 'pending'
+    });
+  }
+});
 
-  res.status(201).json({
-    message: `La catégorie "${newCat.name}" a été ajoutée avec succès ! `,
-    category: newCat,
-    categories: db.categories
-  });
+// Admin: approve user-proposed category
+app.post('/api/admin/categories/:id/approve', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
+  const db = loadDb();
+  const cat = (db.categories || []).find(c => c.id === req.params.id);
+  if (!cat) return res.status(404).json({ error: 'Catégorie introuvable.' });
+
+  cat.status = 'approved';
+  cat.approvedAt = new Date().toISOString();
+  cat.approvedBy = req.user.username;
+
+  if (cat.createdById) {
+    addNotificationToUser(db, cat.createdById, {
+      type: 'category_approved',
+      message: `Votre suggestion de catégorie "${cat.name}" a été validée par l'administrateur !`,
+      link: `/?cat=${encodeURIComponent(cat.id)}`
+    });
+  }
+
+  saveDb(db);
+  await syncDbToCloud(db);
+  addLog('Validation Catégorie', `Catégorie "${cat.name}" (proposée par ${cat.createdBy || 'un membre'}) validée par Admin`);
+
+  res.json({ success: true, message: `Catégorie "${cat.name}" validée et publiée avec succès.`, category: cat });
+});
+
+// Admin: reject user-proposed category
+app.post('/api/admin/categories/:id/reject', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
+  const db = loadDb();
+  const cat = (db.categories || []).find(c => c.id === req.params.id);
+  if (!cat) return res.status(404).json({ error: 'Catégorie introuvable.' });
+  if (cat.isSystem) return res.status(400).json({ error: 'Impossible de refuser une catégorie système.' });
+
+  db.categories = (db.categories || []).filter(c => c.id !== req.params.id);
+  saveDb(db);
+  await syncDbToCloud(db);
+  addLog('Refus Catégorie', `Proposition de catégorie "${cat.name}" refusée par Admin`);
+
+  res.json({ success: true, message: `Proposition de catégorie "${cat.name}" refusée.` });
 });
 
 // Admin can edit categories and their thumbnails
 app.put('/api/categories/:id', requireAdmin, upload.single('thumbnailFile'), async (req, res) => {
-  const { name, icon, description, thumbnail } = req.body;
+  const { name, description } = req.body;
+  await syncDbFromCloud();
   const db = loadDb();
-  const catId = req.params.id;
+  const cat = (db.categories || []).find(c => c.id === req.params.id);
+  if (!cat) return res.status(404).json({ error: 'Catégorie non trouvée.' });
 
-  const cat = db.categories.find(c => c.id === catId);
-  if (!cat) {
-    return res.status(404).json({ error: 'Catégorie introuvable.' });
-  }
-
-  if (name && name.trim()) {
-    cat.name = name.trim();
-  }
-  if (typeof description === 'string') {
-    cat.description = description.trim();
-  }
-
-  // Handle uploaded thumbnail file, base64 data, or remove request
-  if (req.body.removeThumbnail === 'true' || req.body.removeThumbnail === true) {
-    cat.thumbnail = '';
-  } else if (req.file) {
-    const supabaseThumb = await uploadToSupabaseStorage('thumbnails', req.file.path, req.file.filename, req.file.mimetype);
-    cat.thumbnail = supabaseThumb || `/uploads/${req.file.filename}`;
-  } else if (thumbnail && thumbnail.trim()) {
-    if (thumbnail.startsWith('data:image/')) {
-      const supabaseThumb = await uploadBase64ToSupabaseStorage('thumbnails', thumbnail, `cat-${cat.id}-${Date.now()}`);
-      cat.thumbnail = supabaseThumb || thumbnail.trim();
-    } else {
-      cat.thumbnail = thumbnail.trim();
-    }
-  }
+  if (name && name.trim()) cat.name = name.trim();
+  if (description !== undefined) cat.description = description.trim();
 
   saveDb(db);
+  await syncDbToCloud(db);
+
   addLog('Modification Catégorie', `Catégorie "${cat.name}" modifiée par Admin`);
 
   res.json({
-    message: `Catégorie "${cat.name}" modifiée avec succès !`,
-    category: cat,
-    categories: db.categories
+    message: 'Catégorie mise à jour avec succès.',
+    category: cat
   });
 });
 
 // Admin can delete categories (except system ones)
-app.delete('/api/categories/:id', requireAdmin, (req, res) => {
-  const db = loadDb();
+app.delete('/api/categories/:id', requireAdmin, async (req, res) => {
   const catId = req.params.id;
-
   if (catId === 'all') {
     return res.status(400).json({ error: 'Impossible de supprimer la catégorie système principale.' });
   }
 
-  const index = db.categories.findIndex(c => c.id === catId);
+  await syncDbFromCloud();
+  const db = loadDb();
+  const index = (db.categories || []).findIndex(c => c.id === catId);
   if (index === -1) {
     return res.status(404).json({ error: 'Catégorie non trouvée.' });
   }
 
   const deleted = db.categories.splice(index, 1)[0];
   saveDb(db);
+  await syncDbToCloud(db);
 
   addLog('Suppression Catégorie', `Catégorie "${deleted.name}" supprimée par Admin`);
 
@@ -2496,6 +2546,7 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
   const totalLikes = db.videos.reduce((acc, v) => acc + (v.likes || 0), 0);
   const totalVips = db.users.filter(u => u.isVip).length;
   const pendingReports = (db.reports || []).filter(r => r.status === 'pending').length;
+  const pendingCategories = (db.categories || []).filter(c => c.status === 'pending').length;
   const totalReports = (db.reports || []).length;
   const totalMessages = (db.contactMessages || []).length;
   const totalComments = (db.videos || []).reduce((acc, v) => acc + (v.comments ? v.comments.length : 0), 0);
@@ -2506,6 +2557,7 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
     approvedVideos: db.videos.filter(v => v.status === 'approved').length,
     pendingVideos: db.videos.filter(v => v.status === 'pending').length,
     totalCategories: db.categories.length,
+    pendingCategories,
     totalViews,
     totalLikes,
     totalVips,

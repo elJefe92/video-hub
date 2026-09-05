@@ -934,7 +934,7 @@
               Avis (<span id="adminReviewsCountText">0</span>)
             </button>
             <button class="admin-tab-btn" id="adminTabCategoriesBtn" onclick="switchAdminSection('categories')">
-              Suggestions & Catégories
+              Suggestions (<span id="adminPendingCatsCount">0</span>) & Catégories
             </button>
             <button class="admin-tab-btn" id="adminTabUsersBtn" onclick="switchAdminSection('users')">
               Utilisateurs (<span id="adminUsersCountText">0</span>)
@@ -1069,13 +1069,44 @@
 
           <!-- Section 2 : Gestion des Catégories -->
           <div id="adminSectionCategories" class="admin-section-body hidden">
-
-            <div class="section-subheading">
-              <h3>Gestion des Catégories</h3>
-              <button class="btn btn-sm btn-primary" onclick="openAddCategoryModal()">+ Ajouter une Catégorie</button>
+            <div class="section-subheading" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+              <div>
+                <h3 style="margin:0 0 4px 0; font-size:1.15rem; color:var(--text-main);">Modération des Suggestions & Catégories</h3>
+                <p style="margin:0; font-size:0.82rem; color:var(--text-muted);">Validez les propositions des utilisateurs avant publication et gérez les catégories en ligne.</p>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-sm btn-secondary" onclick="renderAdminCategoriesManager(); loadAdminStats();">Actualiser</button>
+                <button class="btn btn-sm btn-primary" onclick="openAddCategoryModal()">+ Ajouter une Catégorie</button>
+              </div>
             </div>
-            <div id="adminCategoriesTable" class="categories-manager-grid">
-              <!-- Dynamically populated categories -->
+
+            <!-- Bloc 1: Suggestions en attente de validation -->
+            <div style="margin-bottom:24px; background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:18px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h4 style="margin:0; font-size:1rem; font-weight:700; display:flex; align-items:center; gap:8px;">
+                  Suggestions en attente de validation
+                  <span id="adminPendingCatsBadge" style="background:#f97316; color:#fff; font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:999px;">0</span>
+                </h4>
+              </div>
+              <div id="adminPendingCategoriesList" style="display:flex; flex-direction:column; gap:10px;">
+                <!-- Dynamically populated pending category suggestions -->
+              </div>
+            </div>
+
+            <!-- Bloc 2: Catégories Actives et Validées -->
+            <div style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:18px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+                <h4 style="margin:0; font-size:1rem; font-weight:700; display:flex; align-items:center; gap:8px;">
+                  Catégories actives et publiées
+                  <span id="adminApprovedCatsBadge" style="background:var(--bg-subtle); color:var(--text-muted); font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:999px; border:1px solid var(--border-color);">0</span>
+                </h4>
+                <div style="min-width:200px;">
+                  <input type="text" id="adminCatSearchInput" class="form-input-sm" placeholder="Filtrer une catégorie..." oninput="filterAdminApprovedCategories()">
+                </div>
+              </div>
+              <div id="adminCategoriesTable" class="categories-manager-grid">
+                <!-- Dynamically populated categories -->
+              </div>
             </div>
           </div>
 
@@ -1474,8 +1505,8 @@
     <div class="modal-card modal-category" onclick="event.stopPropagation()">
       <button class="modal-close-btn" onclick="closeAddCategoryModal()"></button>
       <div class="modal-header-box">
-        <h3>Ajouter une Catégorie</h3>
-        <p>Proposez une nouvelle thématique pour classer les vidéos.</p>
+        <h3 id="addCatModalTitle">Ajouter une Catégorie</h3>
+        <p id="addCatModalSubtitle">Proposez une nouvelle thématique pour classer les vidéos.</p>
       </div>
 
       <form id="addCategoryForm" class="custom-form" onsubmit="handleAddCategory(event)">
@@ -1484,7 +1515,11 @@
           <input type="text" id="newCatName" class="form-input" placeholder="Ex: Podcasts, Manga, Bricolage..." required>
         </div>
 
-        <button type="submit" class="btn btn-primary btn-block">
+        <div id="addCatValidationNotice" style="display:none; font-size:0.8rem; color:var(--text-muted); background:var(--bg-subtle); padding:10px 12px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:14px;">
+          Note : Votre suggestion sera vérifiée et validée par l'administrateur avant d'être publiée sur le site.
+        </div>
+
+        <button type="submit" id="addCatSubmitBtn" class="btn btn-primary btn-block">
           Créer la catégorie
         </button>
       </form>

@@ -84,6 +84,7 @@ function normalizeData(db) {
     const key = (c.name || '').trim().toLowerCase();
     if (!key || seen.has(key)) return false;
     seen.add(key);
+    if (!c.status) c.status = 'approved';
     return true;
   });
 
