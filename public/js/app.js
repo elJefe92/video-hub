@@ -5,7 +5,7 @@ let activeCategory = 'all';
 let currentPlayingVideo = null;
 let selectedExplorerTags = new Set();
 let currentFeedPage = 1;
-const VIDEOS_PER_PAGE = 12;
+const VIDEOS_PER_PAGE = 10;
 
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
