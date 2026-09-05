@@ -730,7 +730,7 @@
               </div>
             </div>
 
-            <button type="submit" id="btnSubmitRegister" class="btn btn-primary btn-block">Créer mon compte</button>
+            <button type="submit" id="btnSubmitRegister" class="btn btn-primary btn-block">Continuer et recevoir mon code</button>
 
             <div class="auth-switch-box">
               <span class="auth-switch-text">Déjà un compte membre ?</span>
@@ -749,7 +749,7 @@
 
             <div class="form-group">
               <label class="form-label">Code de sécurité à 6 chiffres *</label>
-              <input type="text" id="regOtpCode" class="form-input" placeholder="000000" maxlength="6" pattern="[0-9]{6}" required autocomplete="one-time-code" style="text-align: center; font-size: 1.6rem; letter-spacing: 8px; font-weight: 800;">
+              <input type="text" id="regOtpCode" class="form-input" placeholder="000000" maxlength="6" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required autocomplete="one-time-code" style="text-align: center; font-size: 1.6rem; letter-spacing: 8px; font-weight: 800;">
               
               <!-- Alerte spam bien visible -->
               <div class="spam-reminder-box" style="background: rgba(249, 115, 22, 0.08); border: 1px solid rgba(249, 115, 22, 0.25); border-radius: 8px; padding: 10px 14px; margin-top: 12px; font-size: 0.82rem; color: var(--text-main); line-height: 1.4;">

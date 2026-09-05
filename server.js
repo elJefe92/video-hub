@@ -680,10 +680,16 @@ app.post('/api/auth/verify-and-register', async (req, res) => {
   };
 
   db.users.push(newUser);
+  if (!db.logs) db.logs = [];
+  db.logs.unshift({
+    id: 'log_' + Date.now(),
+    action: 'Inscription Validée',
+    details: `Nouveau compte certifié: ${newUser.username} (${newUser.email})`,
+    date: new Date().toISOString()
+  });
+  if (db.logs.length > 50) db.logs.pop();
   saveDb(db);
   await syncDbToCloud(db);
-
-  addLog('Inscription Validée', `Nouveau compte certifié: ${newUser.username} (${newUser.email})`);
 
   // Envoi de l'e-mail de bienvenue
   try {
@@ -792,10 +798,16 @@ app.post('/api/auth/register', async (req, res) => {
   };
 
   db.users.push(newUser);
+  if (!db.logs) db.logs = [];
+  db.logs.unshift({
+    id: 'log_' + Date.now(),
+    action: 'Inscription Utilisateur',
+    details: `Nouveau compte: ${newUser.username} (${newUser.email})`,
+    date: new Date().toISOString()
+  });
+  if (db.logs.length > 50) db.logs.pop();
   saveDb(db);
   await syncDbToCloud(db);
-
-  addLog('Inscription Utilisateur', `Nouveau compte: ${newUser.username} (${newUser.email})`);
 
   try {
     await sendWelcomeEmail(newUser.email, newUser.username);

@@ -20,6 +20,14 @@ const AUTH = {
         console.error('Auth verification failed', err);
       }
     } else {
+      const savedToken = localStorage.getItem('vh_pending_reg_token');
+      const savedEmail = localStorage.getItem('vh_pending_reg_email');
+      if (savedToken && savedEmail) {
+        currentPendingRegistrationToken = savedToken;
+        currentPendingEmail = savedEmail;
+        const emailDisplay = document.getElementById('verifyOtpEmailDisplay');
+        if (emailDisplay) emailDisplay.textContent = savedEmail;
+      }
       this.updateUi();
     }
   },
@@ -237,7 +245,7 @@ async function quickFillAdminLogin() {
   await handleLogin({ preventDefault: () => {} });
 }
 
-// Inscription directe et immédiate du compte
+// Étape 1 : Envoi du code de vérification par e-mail
 async function handleRegister(e) {
   e.preventDefault();
   const username = document.getElementById('regUsername').value.trim();
@@ -247,11 +255,11 @@ async function handleRegister(e) {
 
   if (btnSubmit) {
     btnSubmit.disabled = true;
-    btnSubmit.textContent = 'Création du compte...';
+    btnSubmit.textContent = 'Envoi du code en cours...';
   }
 
   try {
-    const res = await fetch('/api/auth/register', {
+    const res = await fetch('/api/auth/send-verification-code', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, email, password })
@@ -259,55 +267,77 @@ async function handleRegister(e) {
 
     const data = await res.json();
     if (!res.ok) {
-      showToast(data.error || 'Erreur lors de la création du compte');
+      showToast(data.error || 'Erreur lors de la demande d\'inscription');
       if (btnSubmit) {
         btnSubmit.disabled = false;
-        btnSubmit.textContent = 'Créer mon compte';
+        btnSubmit.textContent = 'Continuer et recevoir mon code';
       }
       return;
     }
 
-    AUTH.setAuth(data.token, data.user);
-    showToast('Compte créé avec succès ! Bienvenue ' + data.user.username);
-    switchTab('accueil');
+    currentPendingRegistrationToken = data.pendingToken;
+    currentPendingEmail = email;
+    try {
+      localStorage.setItem('vh_pending_reg_token', data.pendingToken);
+      localStorage.setItem('vh_pending_reg_email', email);
+    } catch (err) {}
+
+    const emailDisplay = document.getElementById('verifyOtpEmailDisplay');
+    if (emailDisplay) emailDisplay.textContent = email;
+
+    showToast('Code envoyé à ' + email + ' ! Pensez à vérifier vos spams.');
+    switchAuthMode('verify_otp');
+
+    const otpInput = document.getElementById('regOtpCode');
+    if (otpInput) {
+      otpInput.value = '';
+      setTimeout(() => otpInput.focus(), 150);
+    }
   } catch (err) {
     showToast('Erreur de connexion au serveur.');
   } finally {
     if (btnSubmit) {
       btnSubmit.disabled = false;
-      btnSubmit.textContent = 'Créer mon compte';
+      btnSubmit.textContent = 'Continuer et recevoir mon code';
     }
   }
 }
 
-// Étape 2 : Confirmation du code OTP et création définitive du compte
+// Étape 2 : Confirmation du code OTP et création définitive du compte en base de données
 async function handleVerifyOtp(e) {
   e.preventDefault();
   const codeInput = document.getElementById('regOtpCode');
-  const code = codeInput ? codeInput.value.trim() : '';
+  let code = codeInput ? codeInput.value.replace(/[^0-9]/g, '').trim() : '';
   const btnSubmit = document.getElementById('btnSubmitVerifyOtp');
 
-  if (!currentPendingRegistrationToken) {
-    showToast('Session expirée. Veuillez recommencer l\'inscription.');
+  if (!code || code.length !== 6) {
+    showToast('Veuillez saisir le code complet à 6 chiffres.');
+    if (codeInput) codeInput.focus();
+    return;
+  }
+
+  const tokenToVerify = currentPendingRegistrationToken || localStorage.getItem('vh_pending_reg_token');
+  if (!tokenToVerify) {
+    showToast('Session expirée. Veuillez redemander un code.');
     switchAuthMode('register');
     return;
   }
 
   if (btnSubmit) {
     btnSubmit.disabled = true;
-    btnSubmit.textContent = 'Validation en cours...';
+    btnSubmit.textContent = 'Création du compte en cours...';
   }
 
   try {
     const res = await fetch('/api/auth/verify-and-register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pendingToken: currentPendingRegistrationToken, code })
+      body: JSON.stringify({ pendingToken: tokenToVerify, code })
     });
 
     const data = await res.json();
     if (!res.ok) {
-      showToast(data.error || 'Code invalide.');
+      showToast(data.error || 'Code invalide ou expiré.');
       if (btnSubmit) {
         btnSubmit.disabled = false;
         btnSubmit.textContent = 'Confirmer et activer mon compte';
@@ -315,9 +345,15 @@ async function handleVerifyOtp(e) {
       return;
     }
 
+    try {
+      localStorage.removeItem('vh_pending_reg_token');
+      localStorage.removeItem('vh_pending_reg_email');
+    } catch (err) {}
     currentPendingRegistrationToken = null;
+    currentPendingEmail = '';
+
     AUTH.setAuth(data.token, data.user);
-    showToast('Compte vérifié et activé avec succès ! Bienvenue ' + data.user.username);
+    showToast('Compte vérifié et enregistré avec succès ! Bienvenue ' + data.user.username);
     switchTab('accueil');
   } catch (err) {
     showToast('Erreur de communication avec le serveur.');
@@ -331,7 +367,8 @@ async function handleVerifyOtp(e) {
 
 // Renvoyer le code de confirmation
 async function handleResendOtp() {
-  if (!currentPendingRegistrationToken) {
+  const tokenToResend = currentPendingRegistrationToken || localStorage.getItem('vh_pending_reg_token');
+  if (!tokenToResend) {
     showToast('Aucune inscription en attente.');
     switchAuthMode('register');
     return;
@@ -347,7 +384,7 @@ async function handleResendOtp() {
     const res = await fetch('/api/auth/resend-verification-code', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pendingToken: currentPendingRegistrationToken })
+      body: JSON.stringify({ pendingToken: tokenToResend })
     });
 
     const data = await res.json();
@@ -357,9 +394,12 @@ async function handleResendOtp() {
     }
 
     currentPendingRegistrationToken = data.pendingToken;
-    showToast(data.message || 'Nouveau code envoyé par e-mail !');
+    try {
+      localStorage.setItem('vh_pending_reg_token', data.pendingToken);
+    } catch (err) {}
+    showToast(data.message || 'Nouveau code envoyé par e-mail ! Pensez à vérifier vos spams.');
   } catch (err) {
-    showToast('Erreur lors de la demande de nouveau code.');
+    showToast('Erreur de communication.');
   } finally {
     if (btn) {
       btn.disabled = false;
@@ -370,7 +410,12 @@ async function handleResendOtp() {
 
 // Revenir à l'étape 1 pour modifier ses identifiants
 function handleCancelOtp() {
+  try {
+    localStorage.removeItem('vh_pending_reg_token');
+    localStorage.removeItem('vh_pending_reg_email');
+  } catch (err) {}
   currentPendingRegistrationToken = null;
+  currentPendingEmail = '';
   switchAuthMode('register');
 }
 

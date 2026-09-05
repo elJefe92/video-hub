@@ -233,7 +233,6 @@ function saveDb(data) {
       fs.writeFileSync(TMP_DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
     } catch (err) {}
   }
-  syncDbToCloud(data).catch(() => {});
 }
 
 module.exports = {
