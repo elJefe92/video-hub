@@ -1622,7 +1622,7 @@ function switchAdminSection(sec) {
   if (sec === 'messages') loadAdminMessages();
   if (sec === 'reviews') loadAdminReviews();
   if (sec === 'categories') renderAdminCategoriesManager();
-  if (sec === 'users') loadAdminUsers();
+  if (sec === 'users') { loadAdminUsers(); loadAdminStats(); }
   if (sec === 'logs') loadAdminStats();
   if (sec === 'emails') initAdminEmailTester();
 }
@@ -2921,6 +2921,8 @@ async function loadAdminUsers() {
     if (countAllEl) countAllEl.textContent = totalCount;
     if (countVipEl) countVipEl.textContent = vipCount;
     if (countFreeEl) countFreeEl.textContent = freeCount;
+    const statTotalUsersEl = document.getElementById('statTotalUsers');
+    if (statTotalUsersEl) statTotalUsersEl.textContent = totalCount;
 
     filterAndRenderAdminUsers();
   } catch (err) {

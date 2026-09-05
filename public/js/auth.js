@@ -237,7 +237,7 @@ async function quickFillAdminLogin() {
   await handleLogin({ preventDefault: () => {} });
 }
 
-// Étape 1 : Envoi du code de vérification
+// Inscription directe et immédiate du compte
 async function handleRegister(e) {
   e.preventDefault();
   const username = document.getElementById('regUsername').value.trim();
@@ -247,11 +247,11 @@ async function handleRegister(e) {
 
   if (btnSubmit) {
     btnSubmit.disabled = true;
-    btnSubmit.textContent = 'Envoi du code...';
+    btnSubmit.textContent = 'Création du compte...';
   }
 
   try {
-    const res = await fetch('/api/auth/send-verification-code', {
+    const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, email, password })
@@ -259,34 +259,23 @@ async function handleRegister(e) {
 
     const data = await res.json();
     if (!res.ok) {
-      showToast(data.error || 'Erreur lors de la demande d\'inscription');
+      showToast(data.error || 'Erreur lors de la création du compte');
       if (btnSubmit) {
         btnSubmit.disabled = false;
-        btnSubmit.textContent = 'Continuer et recevoir mon code';
+        btnSubmit.textContent = 'Créer mon compte';
       }
       return;
     }
 
-    currentPendingRegistrationToken = data.pendingToken;
-    currentPendingEmail = email;
-
-    const emailDisplay = document.getElementById('verifyOtpEmailDisplay');
-    if (emailDisplay) emailDisplay.textContent = email;
-
-    showToast(data.message || 'Code envoyé ! Vérifiez votre boîte e-mail.');
-    switchAuthMode('verify_otp');
-
-    const otpInput = document.getElementById('regOtpCode');
-    if (otpInput) {
-      otpInput.value = '';
-      otpInput.focus();
-    }
+    AUTH.setAuth(data.token, data.user);
+    showToast('Compte créé avec succès ! Bienvenue ' + data.user.username);
+    switchTab('accueil');
   } catch (err) {
     showToast('Erreur de connexion au serveur.');
   } finally {
     if (btnSubmit) {
       btnSubmit.disabled = false;
-      btnSubmit.textContent = 'Continuer et recevoir mon code';
+      btnSubmit.textContent = 'Créer mon compte';
     }
   }
 }
