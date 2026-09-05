@@ -904,8 +904,12 @@ app.delete('/api/user/account', authenticate, async (req, res) => {
   const user = req.user;
   
   // Admin cannot delete their own account
-  if (user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') {
-    return res.status(403).json({ error: 'Le compte administrateur principal ne peut pas etre supprime.' });
+  const isAdminUser = (user.role === 'admin') || 
+                      (user.email && user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') ||
+                      (user.username && user.username.toLowerCase() === 'administrateur');
+
+  if (isAdminUser) {
+    return res.status(403).json({ error: 'Le compte administrateur est protégé et ne peut pas être supprimé.' });
   }
 
   const db = loadDb();

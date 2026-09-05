@@ -47,8 +47,9 @@ const AUTH = {
   isAdmin() {
     return !!(
       this.user &&
-      this.user.email &&
-      this.user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com'
+      ((this.user.email && this.user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') ||
+       this.user.role === 'admin' ||
+       (this.user.username && this.user.username.toLowerCase() === 'administrateur'))
     );
   },
 
@@ -122,6 +123,18 @@ const AUTH = {
           if (vipCrown) vipCrown.classList.add('hidden');
           if (vipTag) vipTag.classList.add('hidden');
           if (btnUpgrade) btnUpgrade.classList.remove('hidden');
+        }
+
+        // Account deletion button: completely forbidden and hidden for admin
+        const btnDeleteAccount = document.getElementById('btnDeleteAccount');
+        if (btnDeleteAccount) {
+          if (this.isAdmin()) {
+            btnDeleteAccount.classList.add('hidden');
+            btnDeleteAccount.style.display = 'none';
+          } else {
+            btnDeleteAccount.classList.remove('hidden');
+            btnDeleteAccount.style.display = '';
+          }
         }
 
         // Load user videos in profile

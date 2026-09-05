@@ -3057,6 +3057,10 @@ function updateBioCounter(el) {
   }
 }
 function openDeleteAccountModal() {
+  if (AUTH && (AUTH.isAdmin() || (AUTH.user && (AUTH.user.role === 'admin' || AUTH.user.email?.toLowerCase() === 'ia.project.pro2k26@gmail.com')))) {
+    showToast('Le compte administrateur est protégé et ne peut pas être supprimé.');
+    return;
+  }
   const modal = document.getElementById('deleteAccountModal');
   if (modal) {
     modal.classList.remove('hidden');
@@ -3076,6 +3080,11 @@ function closeDeleteAccountModal(e) {
 }
 
 async function handleDeleteAccount() {
+  if (AUTH && (AUTH.isAdmin() || (AUTH.user && (AUTH.user.role === 'admin' || AUTH.user.email?.toLowerCase() === 'ia.project.pro2k26@gmail.com')))) {
+    showToast('Le compte administrateur est protégé et ne peut pas être supprimé.');
+    closeDeleteAccountModal();
+    return;
+  }
   const input = document.getElementById('deleteAccountConfirmInput');
   if (!input || input.value.trim() !== 'DELETE') {
     showToast('Tapez DELETE pour confirmer.');
@@ -3093,7 +3102,7 @@ async function handleDeleteAccount() {
       showToast(data.error || 'Erreur lors de la suppression.');
       return;
     }
-    showToast('Votre compte a ete supprime.');
+    showToast('Votre compte a été supprimé.');
     closeDeleteAccountModal();
     AUTH.logout();
   } catch (err) {
