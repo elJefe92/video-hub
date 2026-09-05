@@ -874,7 +874,11 @@
               </div>
               <p style="font-size:0.8rem; color:#94a3b8; margin:4px 0 0;">• Connecté : <strong>ia.project.pro2k26@gmail.com</strong></p>
             </div>
-            <div class="admin-header-actions" style="display:flex; gap:10px; align-items:center;">
+            <div class="admin-header-actions" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <button id="btnRefreshAdminAll" class="btn btn-sm" onclick="refreshEntireAdminDashboard()" style="background:#0284c7; color:#ffffff; border:none; display:flex; align-items:center; gap:6px; font-weight:700; cursor:pointer;" title="Actualiser l'ensemble de l'espace administrateur">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                <span>Actualiser tout</span>
+              </button>
               <button class="btn btn-sm" onclick="switchTab('accueil')" style="background:#1e293b; color:#f8fafc; border:1px solid #334155;" title="Retour au site public">
                 Retour au site
               </button>
@@ -933,7 +937,7 @@
               Suggestions & Catégories
             </button>
             <button class="admin-tab-btn" id="adminTabUsersBtn" onclick="switchAdminSection('users')">
-              Utilisateurs & Membres
+              Utilisateurs (<span id="adminUsersCountText">0</span>)
             </button>
             <button class="admin-tab-btn" id="adminTabLogsBtn" onclick="switchAdminSection('logs')">
               Historique
@@ -967,7 +971,7 @@
                 <input type="text" id="adminVideoSearchInput" class="form-input-sm" placeholder="Rechercher par titre, auteur..." oninput="debounceAdminVideoSearch()">
               </div>
 
-              <button class="btn btn-sm btn-secondary" onclick="loadAdminVideos()">Actualiser</button>
+              <button class="btn btn-sm btn-secondary" onclick="loadAdminVideos(); loadAdminStats();">Actualiser</button>
             </div>
 
             <div id="adminVideosList" class="pending-videos-list">
@@ -982,7 +986,7 @@
                 <h3 style="margin:0;">Vidéos en Ligne sur la Plateforme</h3>
                 <p style="font-size:0.82rem; color:var(--text-muted); margin:4px 0 0;">Gestion des vidéos approuvées, mise en avant, modification et suppression.</p>
               </div>
-              <button class="btn btn-sm btn-secondary" onclick="loadAdminOnlineVideos()">Actualiser</button>
+              <button class="btn btn-sm btn-secondary" onclick="loadAdminOnlineVideos(); loadAdminStats();">Actualiser</button>
             </div>
             <div class="admin-filter-bar">
               <div class="filter-group search-filter" style="flex:1;">
@@ -1005,7 +1009,7 @@
                 <p style="font-size:0.82rem; color:var(--text-muted); margin:4px 0 0;">Traitement prioritaire des signalements et demandes de retrait de contenu.</p>
               </div>
               <div style="display:flex; gap:8px; align-items:center;">
-                <button class="btn btn-sm btn-secondary" onclick="loadAdminReports()">Actualiser les signalements</button>
+                <button class="btn btn-sm btn-secondary" onclick="loadAdminReports(); loadAdminStats();">Actualiser les signalements</button>
               </div>
             </div>
 
@@ -1037,7 +1041,7 @@
                 </h3>
                 <p style="font-size:0.82rem; color:var(--text-muted); margin:4px 0 0;">Messages envoyés par les visiteurs et membres via le formulaire de contact.</p>
               </div>
-              <button class="btn btn-sm btn-secondary" onclick="loadAdminMessages()">Actualiser</button>
+              <button class="btn btn-sm btn-secondary" onclick="loadAdminMessages(); loadAdminStats();">Actualiser</button>
             </div>
 
             <div id="adminMessagesList" style="display:flex; flex-direction:column; gap:12px;">
@@ -1055,7 +1059,7 @@
                 </h3>
                 <p style="font-size:0.82rem; color:var(--text-muted); margin:4px 0 0;">Tous les avis et commentaires postés sur les vidéos pour modération.</p>
               </div>
-              <button class="btn btn-sm btn-secondary" onclick="loadAdminReviews()">Actualiser</button>
+              <button class="btn btn-sm btn-secondary" onclick="loadAdminReviews(); loadAdminStats();">Actualiser</button>
             </div>
 
             <div id="adminReviewsList" style="display:flex; flex-direction:column; gap:10px;">
@@ -1082,7 +1086,7 @@
                 <h3 style="margin-bottom:3px;">Gestion des Membres & Abonnements</h3>
                 <p style="font-size:0.82rem; color:var(--text-muted); margin:0;">Tous les comptes inscrits : Membres VIP (9,99€) et Membres Gratuits (Free).</p>
               </div>
-              <button class="btn btn-sm btn-secondary" onclick="loadAdminUsers()">Actualiser la liste</button>
+              <button class="btn btn-sm btn-secondary" onclick="loadAdminUsers(); loadAdminStats();">Actualiser la liste</button>
             </div>
 
             <!-- Filtres et Recherche Membres -->
@@ -1110,11 +1114,39 @@
 
           <!-- Section 4 : Journal d'Audit / Logs -->
           <div id="adminSectionLogs" class="admin-section-body hidden">
-            <div class="section-subheading">
-              <h3>Historique des Actions Administratives</h3>
-              <button class="btn btn-sm btn-secondary" onclick="loadAdminStats()">Actualiser</button>
+            <div class="section-subheading" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+              <div>
+                <h3 style="margin:0 0 4px 0; font-size:1.15rem; color:var(--text-main);">Historique des Actions Administratives</h3>
+                <p style="margin:0; font-size:0.82rem; color:var(--text-muted);">Suivi en temps réel des inscriptions, suppressions, modérations, signalements et messages.</p>
+              </div>
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <button class="btn btn-sm btn-secondary" onclick="loadAdminStats()" style="display:flex; align-items:center; gap:6px;">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                  <span>Actualiser</span>
+                </button>
+                <button class="btn btn-sm" onclick="handleClearAdminLogs()" style="border:1px solid #ef4444; color:#ef4444; background:rgba(239,68,68,0.08); font-size:0.8rem; padding:6px 14px; border-radius:8px; cursor:pointer; font-weight:600;" title="Effacer les anciens logs">
+                  Purger l'historique
+                </button>
+              </div>
             </div>
-            <div id="adminLogsContainer" class="admin-logs-list">
+
+            <!-- Toolbar : Filter pills + Search -->
+            <div class="admin-logs-filter-bar" style="background:var(--bg-card); border:1px solid var(--border-color); border-radius:12px; padding:12px 16px; display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:18px;">
+              <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;" id="adminLogsFilterPills">
+                <button class="log-filter-pill active" onclick="setAdminLogFilter('all', this)">Tous</button>
+                <button class="log-filter-pill" onclick="setAdminLogFilter('inscription', this)">Inscriptions</button>
+                <button class="log-filter-pill" onclick="setAdminLogFilter('suppression', this)">Suppressions</button>
+                <button class="log-filter-pill" onclick="setAdminLogFilter('video', this)">Vidéos</button>
+                <button class="log-filter-pill" onclick="setAdminLogFilter('signalement', this)">Signalements</button>
+                <button class="log-filter-pill" onclick="setAdminLogFilter('message', this)">Messages</button>
+                <button class="log-filter-pill" onclick="setAdminLogFilter('vip', this)">VIP</button>
+              </div>
+              <div style="min-width:220px; flex:1; max-width:320px;">
+                <input type="text" id="adminLogsSearchInput" class="form-input-sm" placeholder="Rechercher dans l'historique..." oninput="handleAdminLogsSearch()" style="width:100%; border-radius:8px;">
+              </div>
+            </div>
+
+            <div id="adminLogsContainer" class="admin-logs-list" style="display:flex; flex-direction:column; gap:10px;">
               <!-- Dynamically populated logs -->
             </div>
           </div>

@@ -259,7 +259,7 @@ function generateEmailTemplate(type, data = {}) {
       const verifyCode = data.code || '123456';
       return {
         name: 'Vérification d\'inscription (Code 6 chiffres)',
-        subject: `Votre code de confirmation VideoHub : ${verifyCode}`,
+        subject: 'Confirmation de votre adresse e-mail - VideoHub',
         html: baseHeader + `
           <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bonjour ${username},</h2>
           <p style="color: #cbd5e1; font-size: 15px;">
@@ -2335,10 +2335,33 @@ app.get('/api/admin/messages', requireAdmin, async (req, res) => {
 app.delete('/api/admin/messages/:id', requireAdmin, async (req, res) => {
   await syncDbFromCloud();
   const db = loadDb();
-  db.contactMessages = (db.contactMessages || []).filter(m => m.id !== req.params.id);
+  const targetId = req.params.id;
+  const targetMsg = (db.contactMessages || []).find(m => m.id === targetId);
+  db.contactMessages = (db.contactMessages || []).filter(m => m.id !== targetId);
+  if (targetMsg) {
+    addLog('Suppression Message', `Message de "${targetMsg.name}" (${targetMsg.email}) supprimé par Admin`);
+  }
   saveDb(db);
   await syncDbToCloud(db);
-  res.json({ message: 'Message supprime avec succes.' });
+  res.json({ success: true, message: 'Message supprimé avec succès.' });
+});
+
+// Purger l'historique des logs admin
+app.delete('/api/admin/logs', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
+  const db = loadDb();
+  const count = (db.logs || []).length;
+  db.logs = [
+    {
+      id: 'log_' + Date.now(),
+      action: 'Historique Réinitialisé',
+      details: `Historique purgé par ${req.user.username} (${count} entrée(s) archivée(s)).`,
+      date: new Date().toISOString()
+    }
+  ];
+  saveDb(db);
+  await syncDbToCloud(db);
+  res.json({ success: true, message: 'Historique des logs réinitialisé.' });
 });
 
 app.post('/api/admin/messages/:id/reply', requireAdmin, async (req, res) => {

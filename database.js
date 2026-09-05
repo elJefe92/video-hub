@@ -62,22 +62,37 @@ const defaultData = {
 };
 
 function normalizeData(db) {
-  if (db && db.categories) {
-    const seen = new Set();
-    db.categories = db.categories.filter(c => {
-      const key = (c.name || '').trim().toLowerCase();
-      if (!key || seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+  if (!db || typeof db !== 'object') {
+    db = JSON.parse(JSON.stringify(defaultData));
   }
-  if (db && db.videos) {
-    db.videos.forEach(v => {
-      if (!v.categories || !Array.isArray(v.categories)) {
-        v.categories = v.category ? [v.category] : [];
-      }
-    });
+  if (!Array.isArray(db.users)) db.users = [];
+  if (!Array.isArray(db.categories)) db.categories = [];
+  if (!Array.isArray(db.videos)) db.videos = [];
+  if (!Array.isArray(db.reports)) db.reports = [];
+  if (!Array.isArray(db.contactMessages)) db.contactMessages = [];
+  if (!Array.isArray(db.logs)) db.logs = [];
+  if (!Array.isArray(db.faqs)) db.faqs = [];
+
+  // Ensure admin user is always present
+  const adminExists = db.users.some(u => (u.email || '').toLowerCase() === 'ia.project.pro2k26@gmail.com');
+  if (!adminExists && defaultData.users && defaultData.users[0]) {
+    db.users.unshift(JSON.parse(JSON.stringify(defaultData.users[0])));
   }
+
+  const seen = new Set();
+  db.categories = db.categories.filter(c => {
+    const key = (c.name || '').trim().toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  db.videos.forEach(v => {
+    if (!v.categories || !Array.isArray(v.categories)) {
+      v.categories = v.category ? [v.category] : [];
+    }
+  });
+
   return db;
 }
 
@@ -148,7 +163,7 @@ async function syncDbFromCloud() {
     if (!text || text.trim().length === 0) return null;
     const remoteDb = JSON.parse(text);
     if (remoteDb && Array.isArray(remoteDb.users) && remoteDb.users.length > 0) {
-      memoryDb = normalizeData(mergeDbStates(memoryDb, remoteDb));
+      memoryDb = normalizeData(remoteDb);
       const targetPath = getDbPath();
       try {
         fs.writeFileSync(targetPath, JSON.stringify(memoryDb, null, 2), 'utf-8');
@@ -164,17 +179,12 @@ async function syncDbFromCloud() {
 async function syncDbToCloud(data) {
   if (!supabase || !data) return;
   try {
-    let merged = data;
+    memoryDb = normalizeData(data);
+    const targetPath = getDbPath();
     try {
-      const { data: remoteData, error: dlErr } = await supabase.storage.from('thumbnails').download('videohub_db_state.json');
-      if (remoteData && !dlErr) {
-        const buf = Buffer.from(await remoteData.arrayBuffer());
-        const remoteDb = JSON.parse(buf.toString('utf-8'));
-        merged = mergeDbStates(data, remoteDb);
-      }
+      fs.writeFileSync(targetPath, JSON.stringify(memoryDb, null, 2), 'utf-8');
     } catch (e) {}
 
-    memoryDb = normalizeData(merged);
     const jsonStr = JSON.stringify(memoryDb, null, 2);
     const { error } = await supabase.storage.from('thumbnails').upload('videohub_db_state.json', jsonStr, {
       contentType: 'application/json',

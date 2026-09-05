@@ -1608,6 +1608,7 @@ function toggleVipPerks() {
 // ==================== ADMIN PANEL (Shop Ton Partiel Inspired) ====================
 // ==================== ADMIN PANEL (Shop Ton Partiel Inspired) ====================
 function switchAdminSection(sec) {
+  window.currentAdminSection = sec;
   const tabs = ['videos', 'online', 'reports', 'messages', 'reviews', 'categories', 'users', 'logs', 'emails'];
   tabs.forEach(t => {
     const btn = document.getElementById(`adminTab${t.charAt(0).toUpperCase() + t.slice(1)}Btn`);
@@ -1616,15 +1617,49 @@ function switchAdminSection(sec) {
     if (secEl) secEl.classList.toggle('hidden', t !== sec);
   });
 
-  if (sec === 'videos') loadAdminVideos();
-  if (sec === 'online') loadAdminOnlineVideos();
-  if (sec === 'reports') loadAdminReports();
-  if (sec === 'messages') loadAdminMessages();
-  if (sec === 'reviews') loadAdminReviews();
-  if (sec === 'categories') renderAdminCategoriesManager();
+  if (sec === 'videos') { loadAdminVideos(); loadAdminStats(); }
+  if (sec === 'online') { loadAdminOnlineVideos(); loadAdminStats(); }
+  if (sec === 'reports') { loadAdminReports(); loadAdminStats(); }
+  if (sec === 'messages') { loadAdminMessages(); loadAdminStats(); }
+  if (sec === 'reviews') { loadAdminReviews(); loadAdminStats(); }
+  if (sec === 'categories') { renderAdminCategoriesManager(); loadAdminStats(); }
   if (sec === 'users') { loadAdminUsers(); loadAdminStats(); }
   if (sec === 'logs') loadAdminStats();
   if (sec === 'emails') initAdminEmailTester();
+}
+
+async function refreshEntireAdminDashboard(silent = false) {
+  if (!AUTH.isAdmin()) return;
+  const btn = document.getElementById('btnRefreshAdminAll');
+  if (btn) {
+    btn.style.opacity = '0.6';
+    btn.style.pointerEvents = 'none';
+  }
+
+  try {
+    await loadAdminStats();
+
+    const currentSec = window.currentAdminSection || 'videos';
+    if (currentSec === 'videos') await loadAdminVideos();
+    else if (currentSec === 'online') await loadAdminOnlineVideos();
+    else if (currentSec === 'reports') await loadAdminReports();
+    else if (currentSec === 'messages') await loadAdminMessages();
+    else if (currentSec === 'reviews') await loadAdminReviews();
+    else if (currentSec === 'categories') renderAdminCategoriesManager();
+    else if (currentSec === 'users') await loadAdminUsers();
+
+    if (!silent) {
+      showToast('Espace administrateur actualisé.');
+    }
+  } catch (err) {
+    console.error('Error refreshing admin dashboard', err);
+    if (!silent) showToast('Erreur lors de l\'actualisation.');
+  } finally {
+    if (btn) {
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+    }
+  }
 }
 
 // ---------------- ADMIN REPORTS MANAGEMENT (SHOP TON PARTIEL STYLE) ----------------
@@ -1828,6 +1863,60 @@ async function handleAdminDismissReport(reportId) {
 }
 
 // ---------------- ADMIN MESSAGES MANAGEMENT ----------------
+function renderAdminMessages(messages) {
+  const container = document.getElementById('adminMessagesList');
+  if (!container) return;
+  const list = Array.isArray(messages) ? messages : [];
+  window.adminMessagesList = list;
+
+  const badgeEl = document.getElementById('adminMessagesCountText');
+  const statEl = document.getElementById('statTotalMessages');
+  if (badgeEl) badgeEl.textContent = list.length;
+  if (statEl) statEl.textContent = list.length;
+
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div style="background:var(--bg-card);border:1px dashed var(--border-color);border-radius:12px;padding:60px 20px;text-align:center;">
+        <p style="color:var(--text-muted);font-size:1rem;margin:0;">Aucun message reçu via le formulaire de contact.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = list.map(m => `
+    <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span style="font-size:0.95rem;font-weight:700;color:var(--text-main);">${m.subject || 'Sans objet'}</span>
+            ${m.replied ? '<span style="background:rgba(16,185,129,0.15);color:#10b981;font-size:0.72rem;padding:2px 8px;border-radius:12px;font-weight:700;">Répondu</span>' : ''}
+          </div>
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px;">
+            De : <strong>${m.name}</strong> (<a href="mailto:${m.email}" style="color:var(--primary);">${m.email}</a>) • ${new Date(m.createdAt).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-sm btn-primary" onclick="openAdminReplyMessageModal('${m.id}')">
+            ${m.replied ? 'Répondre à nouveau' : 'Répondre'}
+          </button>
+          <button class="btn btn-sm btn-danger-outline" onclick="handleAdminDeleteMessage('${m.id}')" style="border:1px solid #ef4444;color:#ef4444;background:transparent;">
+            Supprimer
+          </button>
+        </div>
+      </div>
+      <div style="background:var(--bg-subtle);border:1px solid var(--border-color);border-radius:8px;padding:12px 14px;font-size:0.86rem;color:var(--text-main);line-height:1.5;white-space:pre-wrap;">${m.message}</div>
+      ${m.replied && m.lastReplyText ? `
+        <div style="background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.25);border-radius:8px;padding:10px 14px;font-size:0.84rem;color:var(--text-main);">
+          <div style="font-size:0.75rem;color:var(--primary);font-weight:700;margin-bottom:4px;">
+            Dernière réponse envoyée (${m.repliedAt ? new Date(m.repliedAt).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}) :
+          </div>
+          <div style="white-space:pre-wrap;line-height:1.4;">${m.lastReplyText}</div>
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+}
+
 async function loadAdminMessages() {
   if (!AUTH.isAdmin()) return;
   const container = document.getElementById('adminMessagesList');
@@ -1840,55 +1929,7 @@ async function loadAdminMessages() {
     });
     if (!res.ok) throw new Error('Erreur');
     const data = await res.json();
-    const messages = data.messages || [];
-    window.adminMessagesList = messages;
-
-    const badgeEl = document.getElementById('adminMessagesCountText');
-    const statEl = document.getElementById('statTotalMessages');
-    if (badgeEl) badgeEl.textContent = messages.length;
-    if (statEl) statEl.textContent = messages.length;
-
-    if (messages.length === 0) {
-      container.innerHTML = `
-        <div style="background:var(--bg-card);border:1px dashed var(--border-color);border-radius:12px;padding:60px 20px;text-align:center;">
-          <p style="color:var(--text-muted);font-size:1rem;margin:0;">Aucun message recu via le formulaire de contact.</p>
-        </div>
-      `;
-      return;
-    }
-
-    container.innerHTML = messages.map(m => `
-      <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
-          <div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <span style="font-size:0.95rem;font-weight:700;color:var(--text-main);">${m.subject || 'Sans objet'}</span>
-              ${m.replied ? '<span style="background:rgba(16,185,129,0.15);color:#10b981;font-size:0.72rem;padding:2px 8px;border-radius:12px;font-weight:700;">Répondu</span>' : ''}
-            </div>
-            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px;">
-              De : <strong>${m.name}</strong> (<a href="mailto:${m.email}" style="color:var(--primary);">${m.email}</a>) • ${new Date(m.createdAt).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <button class="btn btn-sm btn-primary" onclick="openAdminReplyMessageModal('${m.id}')">
-              ${m.replied ? 'Répondre à nouveau' : 'Répondre'}
-            </button>
-            <button class="btn btn-sm btn-danger-outline" onclick="handleAdminDeleteMessage('${m.id}')" style="border:1px solid #ef4444;color:#ef4444;background:transparent;">
-              Supprimer
-            </button>
-          </div>
-        </div>
-        <div style="background:var(--bg-subtle);border:1px solid var(--border-color);border-radius:8px;padding:12px 14px;font-size:0.86rem;color:var(--text-main);line-height:1.5;white-space:pre-wrap;">${m.message}</div>
-        ${m.replied && m.lastReplyText ? `
-          <div style="background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.25);border-radius:8px;padding:10px 14px;font-size:0.84rem;color:var(--text-main);">
-            <div style="font-size:0.75rem;color:var(--primary);font-weight:700;margin-bottom:4px;">
-              Dernière réponse envoyée (${m.repliedAt ? new Date(m.repliedAt).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : ''}) :
-            </div>
-            <div style="white-space:pre-wrap;line-height:1.4;">${m.lastReplyText}</div>
-          </div>
-        ` : ''}
-      </div>
-    `).join('');
+    renderAdminMessages(data.messages || []);
   } catch (e) {
     container.innerHTML = '<div style="text-align:center;padding:30px;color:#ef4444;">Erreur lors du chargement des messages.</div>';
   }
@@ -1981,17 +2022,24 @@ async function handleSendAdminReply(e) {
 }
 
 async function handleAdminDeleteMessage(msgId) {
-  if (!confirm('Supprimer ce message ?')) return;
+  if (!confirm('Supprimer définitivement ce message ?')) return;
+  const previousList = [...(window.adminMessagesList || [])];
+
+  // Optimistic UI update: message disappears instantly
+  window.adminMessagesList = previousList.filter(m => m.id !== msgId);
+  renderAdminMessages(window.adminMessagesList);
+
   try {
-    const res = await fetch(`/api/admin/messages/${msgId}`, {
+    const res = await fetch(`/api/admin/messages/${encodeURIComponent(msgId)}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${AUTH.token}` }
     });
     if (!res.ok) throw new Error('Erreur');
-    showToast('Message supprime.');
-    loadAdminMessages();
-    loadAdminStats();
+    showToast('Message supprimé.');
+    await loadAdminStats();
   } catch (e) {
+    window.adminMessagesList = previousList;
+    renderAdminMessages(window.adminMessagesList);
     showToast('Erreur lors de la suppression.');
   }
 }
@@ -2254,26 +2302,132 @@ async function loadAdminStats() {
     setVal('adminReportsCountText', stats.pendingReports || 0);
     setVal('adminMessagesCountText', stats.totalMessages || 0);
     setVal('adminReviewsCountText', stats.totalComments || 0);
+    setVal('adminUsersCountText', stats.totalUsers || 0);
     setVal('reportCountPending', stats.pendingReports || 0);
 
-    const logsContainer = document.getElementById('adminLogsContainer');
-    if (logsContainer && stats.logs) {
-      if (stats.logs.length === 0) {
-        logsContainer.innerHTML = `<p style="color:var(--text-muted);font-size:0.85rem;">Aucun événement récent enregistré.</p>`;
-      } else {
-        logsContainer.innerHTML = stats.logs.map(log => `
-          <div class="admin-log-item">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span class="log-action-badge">${log.action}</span>
-              <span>${log.details}</span>
-            </div>
-            <span class="log-date">${new Date(log.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-          </div>
-        `).join('');
-      }
-    }
+    window.allAdminLogs = stats.logs || [];
+    renderFilteredAdminLogs();
   } catch (err) {
     console.error('Error loading admin stats', err);
+  }
+}
+
+// ---------------- ADMIN LOGS / AUDIT TRAIL ----------------
+let currentAdminLogFilter = 'all';
+
+function setAdminLogFilter(filterType, pillBtn) {
+  currentAdminLogFilter = filterType;
+  const container = document.getElementById('adminLogsFilterPills');
+  if (container) {
+    container.querySelectorAll('.log-filter-pill').forEach(btn => btn.classList.remove('active'));
+  }
+  if (pillBtn) pillBtn.classList.add('active');
+  renderFilteredAdminLogs();
+}
+
+function handleAdminLogsSearch() {
+  renderFilteredAdminLogs();
+}
+
+function getLogBadgeClass(action) {
+  const act = (action || '').toLowerCase();
+  if (act.includes('inscription') || act.includes('bienvenue') || act.includes('vérification') || act.includes('compte créé')) {
+    return 'log-badge-register';
+  }
+  if (act.includes('suppression') || act.includes('refus') || act.includes('supprim')) {
+    return 'log-badge-delete';
+  }
+  if (act.includes('signalement') || act.includes('abus') || act.includes('modération')) {
+    return 'log-badge-report';
+  }
+  if (act.includes('vidéo') || act.includes('video') || act.includes('validation') || act.includes('sélection') || act.includes('dépôt')) {
+    return 'log-badge-video';
+  }
+  if (act.includes('message') || act.includes('contact') || act.includes('réponse')) {
+    return 'log-badge-message';
+  }
+  if (act.includes('vip') || act.includes('abonnement') || act.includes('stripe')) {
+    return 'log-badge-vip';
+  }
+  return 'log-badge-default';
+}
+
+function renderFilteredAdminLogs() {
+  const logsContainer = document.getElementById('adminLogsContainer');
+  if (!logsContainer) return;
+  const logs = window.allAdminLogs || [];
+  const searchTerm = (document.getElementById('adminLogsSearchInput')?.value || '').toLowerCase().trim();
+  const filter = currentAdminLogFilter || 'all';
+
+  const filtered = logs.filter(log => {
+    const act = (log.action || '').toLowerCase();
+    const det = (log.details || '').toLowerCase();
+
+    // Category filter
+    if (filter === 'inscription' && !act.includes('inscription') && !act.includes('bienvenue') && !act.includes('vérification')) return false;
+    if (filter === 'suppression' && !act.includes('suppression') && !act.includes('refus') && !act.includes('supprim')) return false;
+    if (filter === 'video' && !act.includes('vidéo') && !act.includes('video') && !act.includes('validation') && !act.includes('dépôt') && !act.includes('sélection')) return false;
+    if (filter === 'signalement' && !act.includes('signalement') && !act.includes('abus') && !act.includes('modération')) return false;
+    if (filter === 'message' && !act.includes('message') && !act.includes('contact') && !act.includes('réponse')) return false;
+    if (filter === 'vip' && !act.includes('vip') && !act.includes('abonnement') && !act.includes('stripe')) return false;
+
+    // Search term filter
+    if (searchTerm) {
+      return act.includes(searchTerm) || det.includes(searchTerm);
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    logsContainer.innerHTML = `
+      <div style="background:var(--bg-card);border:1px dashed var(--border-color);border-radius:10px;padding:36px 20px;text-align:center;">
+        <p style="color:var(--text-muted);font-size:0.9rem;margin:0;">Aucun événement correspondant aux critères.</p>
+      </div>
+    `;
+    return;
+  }
+
+  logsContainer.innerHTML = filtered.map(log => {
+    const badgeClass = getLogBadgeClass(log.action);
+    const dateObj = new Date(log.date);
+    const formattedDate = isNaN(dateObj.getTime())
+      ? ''
+      : dateObj.toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+    return `
+      <div class="admin-log-item">
+        <div class="log-item-header">
+          <span class="log-action-badge ${badgeClass}">${log.action}</span>
+          <span class="log-date">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:3px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            ${formattedDate}
+          </span>
+        </div>
+        <div class="log-item-details">${log.details}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function handleClearAdminLogs() {
+  if (!confirm("Voulez-vous vraiment purger l'historique des actions administratives ?")) return;
+  try {
+    const res = await fetch('/api/admin/logs', {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Erreur');
+    showToast('Historique purgé avec succès.');
+    await loadAdminStats();
+  } catch (err) {
+    showToast("Erreur lors de la purge de l'historique.");
   }
 }
 
