@@ -1814,7 +1814,8 @@ app.delete('/api/videos/:id/comments/:commentId', requireAdmin, (req, res) => {
 
 // ---------------- INTERNAL MESSAGING SYSTEM (MESSAGERIE PRIVÉE) ----------------
 // Get conversations list
-app.get('/api/messages/conversations', optionalAuthenticate, (req, res) => {
+app.get('/api/messages/conversations', optionalAuthenticate, async (req, res) => {
+  await syncDbFromCloud();
   const db = loadDb();
   db.messages = db.messages || [];
 
@@ -1861,7 +1862,8 @@ app.get('/api/messages/conversations', optionalAuthenticate, (req, res) => {
 });
 
 // Get messages with a specific user
-app.get('/api/messages/with/:username', optionalAuthenticate, (req, res) => {
+app.get('/api/messages/with/:username', optionalAuthenticate, async (req, res) => {
+  await syncDbFromCloud();
   const db = loadDb();
   db.messages = db.messages || [];
 

@@ -28,6 +28,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadAdminVideos();
   }
 
+  if (AUTH.isLoggedIn()) {
+    checkUnreadMessagesCount();
+    setInterval(checkUnreadMessagesCount, 10000);
+  }
+
   // Handle URL hash on load (e.g. #explorer, #tag=gaming)
   handleUrlHash();
   window.addEventListener('hashchange', handleUrlHash);
@@ -1366,6 +1371,8 @@ function openDirectMessageFromPlayingVideo() {
   });
 }
 
+let currentLoadedChatMessagesCount = 0;
+
 function openDirectMessageModal(partner) {
   if (!partner || !partner.username) return;
 
@@ -1382,27 +1389,30 @@ function openDirectMessageModal(partner) {
   }
 
   currentChatPartner = partner;
+  currentLoadedChatMessagesCount = 0;
 
   const modal = document.getElementById('directMessageModal');
   const nameEl = document.getElementById('chatPartnerName');
   const avatarEl = document.getElementById('chatPartnerAvatar');
   const textInput = document.getElementById('chatTextInput');
+  const bodyEl = document.getElementById('chatMessagesBody');
 
   if (nameEl) nameEl.textContent = partner.username;
   if (avatarEl) avatarEl.src = partner.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partner.username)}`;
   if (textInput) textInput.value = '';
+  if (bodyEl) bodyEl.innerHTML = '';
 
   if (modal) modal.classList.remove('hidden');
 
-  loadConversationMessages(partner.username);
+  loadConversationMessages(partner.username, false);
 
-  // Poll for new messages every 3 seconds while chat is open
+  // Poll for new messages every 1.5 seconds while chat is open
   clearInterval(chatPollingTimer);
   chatPollingTimer = setInterval(() => {
     if (currentChatPartner) {
       loadConversationMessages(currentChatPartner.username, true);
     }
-  }, 3000);
+  }, 1500);
 }
 
 function closeDirectMessageModal(e) {
@@ -1413,6 +1423,7 @@ function closeDirectMessageModal(e) {
   if (modal) modal.classList.add('hidden');
   currentChatPartner = null;
   clearInterval(chatPollingTimer);
+  checkUnreadMessagesCount();
 }
 
 async function loadConversationMessages(partnerUsername, isBackgroundPoll = false) {
@@ -1427,7 +1438,8 @@ async function loadConversationMessages(partnerUsername, isBackgroundPoll = fals
 
   if (!bodyEl) return;
 
-  if (!isBackgroundPoll) {
+  // Only show placeholder if empty on initial manual load
+  if (!isBackgroundPoll && bodyEl.children.length === 0) {
     bodyEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px 0;">Chargement des messages...</div>';
   }
 
@@ -1476,6 +1488,12 @@ async function loadConversationMessages(partnerUsername, isBackgroundPoll = fals
       }
     }
 
+    // Avoid re-rendering if count has not changed during background polling
+    if (isBackgroundPoll && messages.length === currentLoadedChatMessagesCount) {
+      return;
+    }
+    currentLoadedChatMessagesCount = messages.length;
+
     if (messages.length === 0) {
       bodyEl.innerHTML = `
         <div style="color:var(--text-muted);font-size:0.86rem;text-align:center;padding:30px 10px;">
@@ -1500,11 +1518,9 @@ async function loadConversationMessages(partnerUsername, isBackgroundPoll = fals
     }).join('');
 
     // Scroll to bottom
-    if (!isBackgroundPoll) {
-      bodyEl.scrollTop = bodyEl.scrollHeight;
-    }
+    bodyEl.scrollTop = bodyEl.scrollHeight;
   } catch (err) {
-    if (!isBackgroundPoll) {
+    if (!isBackgroundPoll && bodyEl.children.length === 0) {
       bodyEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px 0;">Erreur de chargement.</div>';
     }
   }
@@ -1522,10 +1538,34 @@ async function handleSendChatMessage(e) {
 
   const textInput = document.getElementById('chatTextInput');
   const btnSubmit = document.getElementById('btnSendChat');
+  const bodyEl = document.getElementById('chatMessagesBody');
   const text = textInput ? textInput.value.trim() : '';
 
   if (!text) return;
+
+  // Clear input immediately so user can continue seamlessly
+  textInput.value = '';
   if (btnSubmit) btnSubmit.disabled = true;
+
+  // OPTIMISTIC RENDERING: Display outgoing bubble immediately in chat
+  let tempBubble = null;
+  if (bodyEl) {
+    const emptyPlaceholder = bodyEl.querySelector('div');
+    if (emptyPlaceholder && emptyPlaceholder.textContent.includes('Début de votre conversation')) {
+      bodyEl.innerHTML = '';
+    }
+
+    const timeStr = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    tempBubble = document.createElement('div');
+    tempBubble.className = 'chat-bubble outgoing';
+    tempBubble.innerHTML = `
+      <span class="chat-msg-text">${escapeHtml(text)}</span>
+      <span class="chat-time">${timeStr}</span>
+    `;
+    bodyEl.appendChild(tempBubble);
+    bodyEl.scrollTop = bodyEl.scrollHeight;
+    currentLoadedChatMessagesCount++;
+  }
 
   try {
     const res = await fetch('/api/messages/send', {
@@ -1542,21 +1582,67 @@ async function handleSendChatMessage(e) {
 
     const data = await res.json();
     if (!res.ok) {
+      if (tempBubble) tempBubble.remove();
+      currentLoadedChatMessagesCount = Math.max(0, currentLoadedChatMessagesCount - 1);
       showToast(data.error || 'Erreur lors de l\'envoi');
       if (data.requiresVip) {
-        await loadConversationMessages(currentChatPartner.username);
+        await loadConversationMessages(currentChatPartner.username, true);
         openVipCheckoutModal();
       }
       return;
     }
 
-    if (textInput) textInput.value = '';
-    await loadConversationMessages(currentChatPartner.username);
+    // Update quota and message state in background without wiping UI
+    await loadConversationMessages(currentChatPartner.username, true);
+    checkUnreadMessagesCount();
   } catch (err) {
+    if (tempBubble) tempBubble.remove();
+    currentLoadedChatMessagesCount = Math.max(0, currentLoadedChatMessagesCount - 1);
     showToast('Erreur de transmission du message.');
   } finally {
     if (btnSubmit) btnSubmit.disabled = false;
+    if (textInput) textInput.focus();
   }
+}
+
+// Unread Messages Badge Counter (Desktop & Mobile Sidebar)
+function updateUnreadBadgesUI(totalUnread) {
+  const headerBadge = document.getElementById('headerUnreadBadge');
+  if (headerBadge) {
+    if (totalUnread > 0) {
+      headerBadge.textContent = totalUnread > 9 ? '9+' : totalUnread;
+      headerBadge.classList.remove('hidden');
+    } else {
+      headerBadge.classList.add('hidden');
+    }
+  }
+
+  const sideBadge = document.getElementById('sidebarUnreadBadge');
+  if (sideBadge) {
+    if (totalUnread > 0) {
+      sideBadge.textContent = totalUnread > 9 ? '9+' : totalUnread;
+      sideBadge.classList.remove('hidden');
+    } else {
+      sideBadge.classList.add('hidden');
+    }
+  }
+}
+
+async function checkUnreadMessagesCount() {
+  if (!AUTH.isLoggedIn()) {
+    updateUnreadBadgesUI(0);
+    return;
+  }
+  try {
+    const res = await fetch(`/api/messages/conversations?username=${encodeURIComponent(AUTH.user.username)}`, {
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const convs = data.conversations || [];
+    const totalUnread = convs.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+    updateUnreadBadgesUI(totalUnread);
+  } catch (e) {}
 }
 
 // Open Inbox / Conversations List
@@ -1572,6 +1658,7 @@ function closeConversationsModal(e) {
   }
   const modal = document.getElementById('conversationsModal');
   if (modal) modal.classList.add('hidden');
+  checkUnreadMessagesCount();
 }
 
 async function loadConversationsList() {
@@ -1582,9 +1669,13 @@ async function loadConversationsList() {
 
   try {
     const myName = AUTH.isLoggedIn() ? AUTH.user.username : 'Visiteur';
-    const res = await fetch(`/api/messages/conversations?username=${encodeURIComponent(myName)}`);
+    const headers = AUTH.token ? { 'Authorization': `Bearer ${AUTH.token}` } : {};
+    const res = await fetch(`/api/messages/conversations?username=${encodeURIComponent(myName)}`, { headers });
     const data = await res.json();
     const conversations = data.conversations || [];
+
+    const totalUnread = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+    updateUnreadBadgesUI(totalUnread);
 
     if (conversations.length === 0) {
       container.innerHTML = `

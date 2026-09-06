@@ -158,9 +158,14 @@ function mergeDbStates(local, remote) {
 
 
 let memoryDb = null;
+let lastCloudDownload = 0;
 
-async function syncDbFromCloud() {
+async function syncDbFromCloud(force = false) {
   if (!supabase) return null;
+  const now = Date.now();
+  if (!force && now - lastCloudDownload < 1000 && memoryDb) {
+    return memoryDb;
+  }
   try {
     const { data, error } = await supabase.storage.from('thumbnails').download('videohub_db_state.json');
     if (error || !data) {
@@ -172,6 +177,7 @@ async function syncDbFromCloud() {
     const remoteDb = JSON.parse(text);
     if (remoteDb && Array.isArray(remoteDb.users) && remoteDb.users.length > 0) {
       memoryDb = normalizeData(remoteDb);
+      lastCloudDownload = Date.now();
       const targetPath = getDbPath();
       try {
         fs.writeFileSync(targetPath, JSON.stringify(memoryDb, null, 2), 'utf-8');
@@ -188,6 +194,7 @@ async function syncDbToCloud(data) {
   if (!supabase || !data) return;
   try {
     memoryDb = normalizeData(data);
+    lastCloudDownload = Date.now();
     const targetPath = getDbPath();
     try {
       fs.writeFileSync(targetPath, JSON.stringify(memoryDb, null, 2), 'utf-8');
