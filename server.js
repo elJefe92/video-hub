@@ -1887,15 +1887,26 @@ app.get('/api/messages/with/:username', optionalAuthenticate, (req, res) => {
   });
   if (updated) saveDb(db);
 
+  const isVip = req.user && (req.user.isVip || req.user.role === 'admin' || (req.user.email && req.user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com'));
+  const sentCount = thread.filter(m => m.senderName.toLowerCase() === myUsername).length;
+  const freeLimit = 2;
+  const remaining = isVip ? 999 : Math.max(0, freeLimit - sentCount);
+  const canSend = isVip || sentCount < freeLimit;
+
   res.json({
     partnerUsername: req.params.username,
-    messages: thread
+    messages: thread,
+    isVip: !!isVip,
+    sentCount,
+    freeLimit,
+    remaining,
+    canSend
   });
 });
 
-// Send a direct message
-app.post('/api/messages/send', optionalAuthenticate, (req, res) => {
-  const { recipientUsername, text, senderName } = req.body;
+// Send a direct message (2 free messages limit per conversation for non-VIP)
+app.post('/api/messages/send', optionalAuthenticate, async (req, res) => {
+  const { recipientUsername, text } = req.body;
   if (!recipientUsername || !recipientUsername.trim()) {
     return res.status(400).json({ error: 'Destinataire manquant.' });
   }
@@ -1903,23 +1914,49 @@ app.post('/api/messages/send', optionalAuthenticate, (req, res) => {
     return res.status(400).json({ error: 'Le message ne peut pas être vide.' });
   }
 
+  if (!req.user) {
+    return res.status(401).json({
+      error: 'Veuillez vous connecter pour envoyer un message privé et profiter de vos 2 messages offerts.',
+      requireLogin: true
+    });
+  }
+
+  await syncDbFromCloud();
   const db = loadDb();
   db.messages = db.messages || [];
 
-  const mySenderName = (req.user ? req.user.username : (senderName || 'Visiteur')).trim();
-  const myAvatar = req.user ? req.user.avatar : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(mySenderName)}`;
+  const mySenderName = req.user.username.trim();
+  const targetUsername = recipientUsername.trim();
+  const isVip = req.user.isVip || req.user.role === 'admin' || (req.user.email && req.user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com');
+
+  // Quota calculation: count messages sent by this user to this partner
+  const sentCount = db.messages.filter(m =>
+    m.senderName && m.senderName.toLowerCase() === mySenderName.toLowerCase() &&
+    m.recipientName && m.recipientName.toLowerCase() === targetUsername.toLowerCase()
+  ).length;
+
+  if (!isVip && sentCount >= 2) {
+    return res.status(403).json({
+      error: 'Limite de 2 messages gratuits atteinte pour cette conversation. Passez Membre VIP pour débloquer la messagerie illimitée !',
+      requiresVip: true,
+      sentCount,
+      freeLimit: 2
+    });
+  }
+
+  const myAvatar = req.user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(mySenderName)}`;
 
   // Find recipient avatar if registered
-  const recipientUser = db.users.find(u => u.username.toLowerCase() === recipientUsername.trim().toLowerCase());
-  const recipientAvatar = recipientUser ? recipientUser.avatar : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(recipientUsername)}`;
+  const recipientUser = db.users.find(u => u.username.toLowerCase() === targetUsername.toLowerCase());
+  const recipientAvatar = recipientUser ? recipientUser.avatar : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(targetUsername)}`;
 
   const newMsg = {
     id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-    senderId: req.user ? req.user.id : null,
+    senderId: req.user.id,
     senderName: mySenderName,
     senderAvatar: myAvatar,
     recipientId: recipientUser ? recipientUser.id : null,
-    recipientName: recipientUsername.trim(),
+    recipientName: targetUsername,
     recipientAvatar: recipientAvatar,
     text: text.trim(),
     read: false,
@@ -1927,13 +1964,31 @@ app.post('/api/messages/send', optionalAuthenticate, (req, res) => {
   };
 
   db.messages.push(newMsg);
-  saveDb(db);
 
-  addLog('Message Envoyé', `Message de "${mySenderName}" à "${newMsg.recipientName}"`);
+  // Notify recipient in-app if registered
+  if (recipientUser) {
+    addNotificationToUser(db, recipientUser.id, {
+      type: 'message',
+      message: `Nouveau message privé de ${mySenderName}`,
+      link: '/#messages'
+    });
+  }
+
+  saveDb(db);
+  await syncDbToCloud(db);
+
+  const quotaInfo = isVip ? 'VIP illimité' : `${sentCount + 1}/2 gratuit`;
+  addLog('Message Envoyé', `Message de "${mySenderName}" à "${targetUsername}" (${quotaInfo})`);
+
+  const remaining = isVip ? 999 : Math.max(0, 2 - (sentCount + 1));
 
   res.status(201).json({
-    message: 'Message envoyé avec succès ! ️',
-    msg: newMsg
+    message: 'Message envoyé avec succès !',
+    msg: newMsg,
+    sentCount: sentCount + 1,
+    freeLimit: 2,
+    remaining,
+    isVip: !!isVip
   });
 });
 

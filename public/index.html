@@ -2327,9 +2327,38 @@
         </div>
       </div>
 
+      <!-- Chat Quota & VIP Indicator Bar -->
+      <div id="chatQuotaBar" class="chat-quota-bar">
+        <span id="chatQuotaText">Chargement...</span>
+        <button type="button" id="chatVipQuickUpgradeBtn" class="chat-vip-upgrade-pill hidden" onclick="openVipCheckoutModal()">Passer VIP</button>
+      </div>
+
       <!-- Messages Thread Area -->
       <div id="chatMessagesBody" class="chat-body">
         <!-- Chat bubbles rendered dynamically -->
+      </div>
+
+      <!-- VIP Paywall Box (when 2-message limit is reached) -->
+      <div id="chatVipPaywall" class="chat-vip-paywall hidden">
+        <div class="chat-vip-paywall-inner">
+          <div class="chat-vip-lock-pill">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            Pass VIP Requis
+          </div>
+          <h4 class="chat-vip-title">Limite de 2 messages gratuits atteinte</h4>
+          <p class="chat-vip-desc">
+            Vous avez utilisé vos <strong>2 messages gratuits</strong> avec <strong><span id="chatPaywallPartnerName">ce membre</span></strong>.
+          </p>
+          <p class="chat-vip-subdesc">
+            Passez Membre VIP (9,99€) pour débloquer les échanges illimités, recevoir toutes ses réponses et accéder aux contenus exclusifs.
+          </p>
+          <button type="button" class="btn btn-primary btn-block chat-vip-action-btn" onclick="openVipCheckoutModal()">
+            Débloquer les messages illimités - 9,99€
+          </button>
+        </div>
       </div>
 
       <!-- Chat Input Bar -->

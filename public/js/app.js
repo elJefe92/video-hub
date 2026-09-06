@@ -1369,8 +1369,14 @@ function openDirectMessageFromPlayingVideo() {
 function openDirectMessageModal(partner) {
   if (!partner || !partner.username) return;
 
-  const myUsername = AUTH.isLoggedIn() ? AUTH.user.username : 'Visiteur';
-  if (AUTH.isLoggedIn() && partner.username.toLowerCase() === myUsername.toLowerCase()) {
+  if (!AUTH.isLoggedIn()) {
+    showToast('Connectez-vous ou créez un compte gratuit pour échanger (2 messages offerts).');
+    switchTab('profil');
+    return;
+  }
+
+  const myUsername = AUTH.user.username;
+  if (partner.username.toLowerCase() === myUsername.toLowerCase()) {
     showToast('Vous ne pouvez pas vous envoyer un message à vous-même.');
     return;
   }
@@ -1411,6 +1417,14 @@ function closeDirectMessageModal(e) {
 
 async function loadConversationMessages(partnerUsername, isBackgroundPoll = false) {
   const bodyEl = document.getElementById('chatMessagesBody');
+  const quotaBar = document.getElementById('chatQuotaBar');
+  const quotaText = document.getElementById('chatQuotaText');
+  const upgradeBtn = document.getElementById('chatVipQuickUpgradeBtn');
+  const paywallEl = document.getElementById('chatVipPaywall');
+  const sendForm = document.getElementById('chatSendForm');
+  const paywallPartner = document.getElementById('chatPaywallPartnerName');
+  const textInput = document.getElementById('chatTextInput');
+
   if (!bodyEl) return;
 
   if (!isBackgroundPoll) {
@@ -1419,14 +1433,53 @@ async function loadConversationMessages(partnerUsername, isBackgroundPoll = fals
 
   try {
     const myName = AUTH.isLoggedIn() ? AUTH.user.username : 'Visiteur';
-    const res = await fetch(`/api/messages/with/${encodeURIComponent(partnerUsername)}?username=${encodeURIComponent(myName)}`);
+    const headers = AUTH.token ? { 'Authorization': `Bearer ${AUTH.token}` } : {};
+    const res = await fetch(`/api/messages/with/${encodeURIComponent(partnerUsername)}?username=${encodeURIComponent(myName)}`, { headers });
     const data = await res.json();
     const messages = data.messages || [];
+
+    // Quota and VIP Paywall state
+    const isVip = !!data.isVip;
+    const canSend = data.canSend !== false;
+    const remaining = data.remaining !== undefined ? data.remaining : 2;
+
+    if (quotaBar && quotaText) {
+      if (isVip) {
+        quotaBar.className = 'chat-quota-bar quota-vip';
+        quotaText.textContent = 'Membre VIP · Messagerie illimitée';
+        if (upgradeBtn) upgradeBtn.classList.add('hidden');
+      } else {
+        if (upgradeBtn) upgradeBtn.classList.remove('hidden');
+        if (remaining === 2) {
+          quotaBar.className = 'chat-quota-bar';
+          quotaText.textContent = '2 messages gratuits disponibles avec ce contact';
+          if (textInput) textInput.placeholder = 'Écrivez un message (2 messages gratuits)...';
+        } else if (remaining === 1) {
+          quotaBar.className = 'chat-quota-bar quota-warning';
+          quotaText.textContent = '1 dernier message gratuit restant avec ce contact';
+          if (textInput) textInput.placeholder = 'Dernier message gratuit avant le Pass VIP...';
+        } else {
+          quotaBar.className = 'chat-quota-bar quota-warning';
+          quotaText.textContent = 'Limite de 2 messages gratuits atteinte';
+        }
+      }
+    }
+
+    if (paywallEl && sendForm) {
+      if (!canSend) {
+        paywallEl.classList.remove('hidden');
+        sendForm.classList.add('hidden');
+        if (paywallPartner) paywallPartner.textContent = partnerUsername;
+      } else {
+        paywallEl.classList.add('hidden');
+        sendForm.classList.remove('hidden');
+      }
+    }
 
     if (messages.length === 0) {
       bodyEl.innerHTML = `
         <div style="color:var(--text-muted);font-size:0.86rem;text-align:center;padding:30px 10px;">
-          Début de votre conversation avec <strong>${partnerUsername}</strong>.<br>
+          Début de votre conversation avec <strong>${escapeHtml(partnerUsername)}</strong>.<br>
           <span style="font-size:0.78rem;opacity:0.8;">Envoyez-lui un message pour démarrer la discussion !</span>
         </div>
       `;
@@ -1435,13 +1488,13 @@ async function loadConversationMessages(partnerUsername, isBackgroundPoll = fals
 
     const myLower = myName.toLowerCase();
     bodyEl.innerHTML = messages.map(m => {
-      const isMe = m.senderName.toLowerCase() === myLower;
-      const timeStr = new Date(m.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      const isMe = (m.senderName || '').toLowerCase() === myLower;
+      const timeStr = m.createdAt ? new Date(m.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
 
       return `
         <div class="chat-bubble ${isMe ? 'outgoing' : 'incoming'}">
-          <span class="chat-msg-text">${m.text}</span>
-          <span class="chat-time">${timeStr} ${isMe ? '' : ''}</span>
+          <span class="chat-msg-text">${escapeHtml(m.text)}</span>
+          <span class="chat-time">${timeStr}</span>
         </div>
       `;
     }).join('');
@@ -1461,6 +1514,12 @@ async function handleSendChatMessage(e) {
   e.preventDefault();
   if (!currentChatPartner) return;
 
+  if (!AUTH.isLoggedIn()) {
+    showToast('Veuillez vous connecter pour envoyer un message.');
+    switchTab('profil');
+    return;
+  }
+
   const textInput = document.getElementById('chatTextInput');
   const btnSubmit = document.getElementById('btnSendChat');
   const text = textInput ? textInput.value.trim() : '';
@@ -1469,23 +1528,25 @@ async function handleSendChatMessage(e) {
   if (btnSubmit) btnSubmit.disabled = true;
 
   try {
-    const myName = AUTH.isLoggedIn() ? AUTH.user.username : 'Visiteur';
     const res = await fetch('/api/messages/send', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(AUTH.token ? { 'Authorization': `Bearer ${AUTH.token}` } : {})
+        'Authorization': `Bearer ${AUTH.token}`
       },
       body: JSON.stringify({
         recipientUsername: currentChatPartner.username,
-        text,
-        senderName: myName
+        text
       })
     });
 
     const data = await res.json();
     if (!res.ok) {
-      showToast('' + (data.error || 'Erreur lors de l\'envoi'));
+      showToast(data.error || 'Erreur lors de l\'envoi');
+      if (data.requiresVip) {
+        await loadConversationMessages(currentChatPartner.username);
+        openVipCheckoutModal();
+      }
       return;
     }
 

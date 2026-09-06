@@ -5485,6 +5485,117 @@ html.age-verified #adultWarningOverlay {
   background: #ea580c;
 }
 
+/* Chat Quota Bar & VIP Status */
+.chat-quota-bar {
+  padding: 6px 16px;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  min-height: 32px;
+}
+
+.chat-quota-bar.quota-warning {
+  background: rgba(249, 115, 22, 0.08);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.chat-quota-bar.quota-vip {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  font-weight: 700;
+}
+
+.chat-vip-upgrade-pill {
+  background: linear-gradient(135deg, #f59e0b, #ea580c);
+  color: #fff;
+  border: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.chat-vip-upgrade-pill:hover {
+  transform: scale(1.04);
+  opacity: 0.95;
+}
+
+/* Chat VIP Paywall Box */
+.chat-vip-paywall {
+  padding: 16px 16px;
+  background: var(--bg-subtle);
+  border-top: 1px solid var(--border-color);
+  animation: fadeIn 0.25s ease;
+}
+
+.chat-vip-paywall-inner {
+  background: var(--bg-card);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.chat-vip-lock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chat-vip-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 4px 0 6px 0;
+}
+
+.chat-vip-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0 0 6px 0;
+  line-height: 1.4;
+}
+
+.chat-vip-subdesc {
+  font-size: 0.75rem;
+  color: var(--text-light);
+  margin: 0 0 12px 0;
+  line-height: 1.35;
+}
+
+.chat-vip-action-btn {
+  background: linear-gradient(135deg, #f59e0b, #ea580c) !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  border: none !important;
+  padding: 10px 16px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3) !important;
+  cursor: pointer;
+}
+
+.chat-vip-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4) !important;
+}
+
 /* Inbox Modal */
 .modal-inbox {
   max-width: 540px;

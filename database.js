@@ -70,6 +70,7 @@ function normalizeData(db) {
   if (!Array.isArray(db.videos)) db.videos = [];
   if (!Array.isArray(db.reports)) db.reports = [];
   if (!Array.isArray(db.contactMessages)) db.contactMessages = [];
+  if (!Array.isArray(db.messages)) db.messages = [];
   if (!Array.isArray(db.logs)) db.logs = [];
   if (!Array.isArray(db.faqs)) db.faqs = [];
 
@@ -138,6 +139,11 @@ function mergeDbStates(local, remote) {
   (remote.contactMessages || []).forEach(m => { if (m.id) contactMap.set(m.id, m); });
   (local.contactMessages || []).forEach(m => { if (m.id) contactMap.set(m.id, m); });
 
+  // Merge direct messages uniquely by ID
+  const directMessagesMap = new Map();
+  (remote.messages || []).forEach(m => { if (m.id) directMessagesMap.set(m.id, m); });
+  (local.messages || []).forEach(m => { if (m.id) directMessagesMap.set(m.id, m); });
+
   return {
     ...remote,
     ...local,
@@ -145,7 +151,8 @@ function mergeDbStates(local, remote) {
     videos: Array.from(videoMap.values()),
     categories: Array.from(catMap.values()),
     reports: Array.from(reportMap.values()),
-    contactMessages: Array.from(contactMap.values())
+    contactMessages: Array.from(contactMap.values()),
+    messages: Array.from(directMessagesMap.values())
   };
 }
 
