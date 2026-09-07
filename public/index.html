@@ -849,7 +849,7 @@
               <button class="btn btn-sm btn-secondary" onclick="loadAndShowFavorites()">Rafraîchir</button>
             </div>
             <div class="video-grid" id="profileFavoritesGrid" style="min-height:60px;">
-              <p style="color:var(--text-muted);font-size:0.85rem;padding:12px 0;">Chargez vos favoris avec le bouton ci-dessus.</p>
+              <p style="color:var(--text-muted);font-size:0.85rem;padding:12px 0;">Chargement de vos favoris...</p>
             </div>
           </div>
 
@@ -857,10 +857,10 @@
           <div style="margin-top:24px;border-top:1px solid var(--border-color);padding-top:24px;">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
               <h4 style="font-size:0.95rem;font-weight:700;margin:0;">Mon espace créateur</h4>
-              <button class="btn btn-sm btn-secondary" onclick="loadCreatorDashboard()">Afficher mes stats</button>
+              <button class="btn btn-sm btn-secondary" onclick="loadCreatorDashboard()">Rafraîchir les stats</button>
             </div>
             <div id="creatorDashboardContent">
-              <p style="color:var(--text-muted);font-size:0.85rem;">Cliquez sur 'Afficher mes stats' pour voir votre tableau de bord.</p>
+              <p style="color:var(--text-muted);font-size:0.85rem;">Chargement des statistiques de votre chaîne...</p>
             </div>
           </div>
 
@@ -2165,8 +2165,19 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="contactSubject">Objet du message <span style="color:var(--primary);">*</span></label>
-          <input type="text" id="contactSubject" class="form-input" placeholder="Ex: Question sur mon compte / Problème technique" required>
+          <label class="form-label" for="contactSubjectSelect">Objet du message <span style="color:var(--primary);">*</span></label>
+          <select id="contactSubjectSelect" class="form-input" required onchange="handleContactSubjectChange(this)">
+            <option value="" disabled selected>Sélectionnez un objet pré-enregistré...</option>
+            <option value="Question sur mon compte / Connexion">Question sur mon compte / Connexion</option>
+            <option value="Problème technique / Bug d'affichage">Problème technique / Bug d'affichage</option>
+            <option value="Question sur l'abonnement VIP (9,99€)">Question sur l'abonnement VIP (9,99€)</option>
+            <option value="Signalement de contenu ou vidéo">Signalement de contenu ou vidéo</option>
+            <option value="Demande de suppression de compte (RGPD)">Demande de suppression de compte (RGPD)</option>
+            <option value="Proposition de partenariat / Créateur">Proposition de partenariat / Créateur</option>
+            <option value="Autre demande">Autre demande (personnalisée)...</option>
+          </select>
+          <input type="text" id="contactSubjectCustom" class="form-input hidden" style="margin-top:8px;" placeholder="Précisez votre objet en détail...">
+          <input type="hidden" id="contactSubject" value="">
         </div>
 
         <div class="form-group">

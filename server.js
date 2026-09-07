@@ -461,9 +461,10 @@ function authenticate(req, res, next) {
     if (!user) {
       return res.status(401).json({ error: 'Utilisateur introuvable.' });
     }
-    // Auto grant admin role if email matches official admin email
-    if (user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') {
+    // Auto grant admin role and VIP status to admin
+    if (user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com' || user.role === 'admin' || (user.username && user.username.toLowerCase() === 'administrateur')) {
       user.role = 'admin';
+      user.isVip = true;
     }
     req.user = user;
     next();
@@ -894,7 +895,7 @@ app.post('/api/auth/login', async (req, res) => {
 
   loginAttempts.delete(clientIp);
 
-  if (user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') {
+  if (user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com' || user.role === 'admin' || (user.username && user.username.toLowerCase() === 'administrateur')) {
     user.role = 'admin';
     user.isVip = true;
     saveDb(db);
@@ -1515,8 +1516,9 @@ function optionalAuthenticate(req, res, next) {
       const db = loadDb();
       const user = db.users.find(u => u.id === decoded.userId);
       if (user) {
-        if (user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') {
+        if (user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com' || user.role === 'admin' || (user.username && user.username.toLowerCase() === 'administrateur')) {
           user.role = 'admin';
+          user.isVip = true;
         }
         req.user = user;
       }

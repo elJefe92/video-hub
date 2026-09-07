@@ -6845,3 +6845,175 @@ html.age-verified #adultWarningOverlay {
     max-width: 86% !important;
   }
 }
+
+/* ==================== EXPLORER ACTIVE SELECTION BAR ==================== */
+.explorer-active-selection-bar {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s ease;
+}
+
+.explorer-selection-top {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.explorer-selection-label {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-main);
+  white-space: nowrap;
+}
+
+.explorer-selection-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.explorer-active-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary);
+  color: #ffffff !important;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  box-shadow: 0 2px 8px var(--primary-glow);
+}
+
+.explorer-active-tag-pill:hover {
+  background: #ea580c;
+  transform: translateY(-1px);
+}
+
+.active-tag-remove {
+  font-size: 0.72rem;
+  font-weight: 800;
+  opacity: 0.85;
+  margin-left: 2px;
+}
+
+.explorer-selection-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.btn-secondary-danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-secondary-danger:hover {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+/* Light mode for explorer selection */
+body.theme-light .explorer-active-selection-bar {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+body.theme-light .btn-secondary-danger {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #dc2626;
+}
+
+/* ==================== MOBILE POLISH & PROFILE VIEW ==================== */
+@media (max-width: 768px) {
+  /* Profile action buttons: clean vertical stack, no collision or cut-off */
+  .profile-actions-bar {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    padding: 16px 12px !important;
+    gap: 10px !important;
+    box-sizing: border-box !important;
+  }
+
+  .profile-actions-bar .btn,
+  .profile-actions-bar button {
+    width: 100% !important;
+    min-height: 46px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+    font-size: 0.88rem !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+  }
+
+  /* Profile stats grid on small screens */
+  .profile-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Explorer active selection responsive */
+  .explorer-active-selection-bar {
+    padding: 12px !important;
+  }
+
+  .explorer-selection-top {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  .explorer-selection-actions {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: space-between !important;
+  }
+
+  .explorer-selection-actions button {
+    flex: 1 !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
+
+  /* Prevent iOS zoom on input and select elements */
+  input.form-input,
+  select.form-input,
+  textarea.form-input {
+    font-size: 16px !important;
+  }
+
+  /* Improve text rendering & contrast */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}

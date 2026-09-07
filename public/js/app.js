@@ -239,6 +239,13 @@ function switchTab(tabName) {
     loadDedicatedMessenger();
   }
 
+  // If opening profil tab, refresh user data and stats
+  if (tabName === 'profil' && AUTH.isLoggedIn()) {
+    if (typeof loadMyVideos === 'function') loadMyVideos();
+    if (typeof loadAndShowFavorites === 'function') loadAndShowFavorites();
+    if (typeof loadCreatorDashboard === 'function') loadCreatorDashboard();
+  }
+
   // If opening admin tab, refresh data
   if (tabName === 'admin' && AUTH.isAdmin()) {
     loadAdminStats();
@@ -800,11 +807,33 @@ function renderExplorerTagsCloud() {
   }).join('');
 }
 
+let isExplorerTagsCloudExpanded = false;
+
+function toggleExplorerTagsCloud() {
+  isExplorerTagsCloudExpanded = !isExplorerTagsCloudExpanded;
+  const tagsCloud = document.getElementById('explorerTagsCloud');
+  const sortControls = document.querySelector('.explorer-sort-controls');
+  const btnToggle = document.getElementById('btnToggleExplorerCloud');
+
+  if (tagsCloud) {
+    if (isExplorerTagsCloudExpanded) {
+      tagsCloud.classList.remove('hidden');
+      if (sortControls) sortControls.style.display = '';
+      if (btnToggle) btnToggle.textContent = 'Masquer la liste ▲';
+    } else {
+      tagsCloud.classList.add('hidden');
+      if (sortControls) sortControls.style.display = 'none';
+      if (btnToggle) btnToggle.textContent = '+ Modifier / Ajouter des catégories ▼';
+    }
+  }
+}
+
 async function loadExplorerData(shouldScroll = false) {
   const tagsContainer = document.getElementById('explorerTagsCloud');
   const contentArea = document.getElementById('explorerContentArea');
   const clearBtn = document.getElementById('btnClearTags');
   const statusEl = document.getElementById('activeTagsStatus');
+  const sortControls = document.querySelector('.explorer-sort-controls');
 
   if (!tagsContainer || !contentArea) return;
 
@@ -816,16 +845,49 @@ async function loadExplorerData(shouldScroll = false) {
     // Render tag chips with active sort mode
     renderExplorerTagsCloud();
 
-    // If tags are selected, show filtered multi-tag results
+    // If tags are selected: collapse category cloud and display matching results immediately
     if (selectedExplorerTags.size > 0) {
-      if (clearBtn) clearBtn.style.display = 'inline-block';
-      const tagNames = Array.from(selectedExplorerTags).map(t => {
+      if (clearBtn) clearBtn.style.display = 'none';
+
+      // Hide category selector cloud when categories are active (unless user manually expands it)
+      if (!isExplorerTagsCloudExpanded) {
+        tagsContainer.classList.add('hidden');
+        if (sortControls) sortControls.style.display = 'none';
+      } else {
+        tagsContainer.classList.remove('hidden');
+        if (sortControls) sortControls.style.display = '';
+      }
+
+      const activePills = Array.from(selectedExplorerTags).map(t => {
         const found = cachedExplorerCategories.find(c => c.id === t);
-        return found ? `${found.name}` : `#${t}`;
-      }).join(' + ');
+        const name = found ? found.name : `#${t}`;
+        return `
+          <button type="button" class="explorer-active-tag-pill" onclick="toggleExplorerTag('${t}')" title="Retirer ${name}">
+            <span>${escapeHtml(name)}</span>
+            <span class="active-tag-remove">✕</span>
+          </button>
+        `;
+      }).join('');
 
       if (statusEl) {
-        statusEl.innerHTML = `<span>Filtre actif combiné : <strong>${tagNames}</strong></span>`;
+        statusEl.innerHTML = `
+          <div class="explorer-active-selection-bar">
+            <div class="explorer-selection-top">
+              <span class="explorer-selection-label">Catégorie${selectedExplorerTags.size > 1 ? 's' : ''} sélectionnée${selectedExplorerTags.size > 1 ? 's' : ''} :</span>
+              <div class="explorer-selection-pills">
+                ${activePills}
+              </div>
+            </div>
+            <div class="explorer-selection-actions">
+              <button type="button" class="btn btn-sm btn-secondary" id="btnToggleExplorerCloud" onclick="toggleExplorerTagsCloud()">
+                ${isExplorerTagsCloudExpanded ? 'Masquer la liste ▲' : '+ Modifier la sélection ▼'}
+              </button>
+              <button type="button" class="btn-secondary-danger" onclick="clearSelectedExplorerTags()">
+                Réinitialiser tout
+              </button>
+            </div>
+          </div>
+        `;
       }
 
       // Fetch matching videos
@@ -837,7 +899,7 @@ async function loadExplorerData(shouldScroll = false) {
       contentArea.innerHTML = `
         <div class="section-heading mt-3" id="explorerResultsHeading">
           <h3>Résultats (${matchedVideos.length} vidéo${matchedVideos.length > 1 ? 's' : ''})</h3>
-          <span class="video-counter">${selectedExplorerTags.size} catégorie(s) sélectionnée(s)</span>
+          <span class="video-counter">${selectedExplorerTags.size} catégorie(s)</span>
         </div>
         <div class="video-grid" id="explorerMatchedGrid">
           <!-- Dynamic Matched Cards -->
@@ -845,21 +907,24 @@ async function loadExplorerData(shouldScroll = false) {
       `;
       renderVideoGrid(matchedVideos, 'explorerMatchedGrid');
 
-      // Défilement fluide vers les vidéos de la catégorie choisie
+      // Défilement direct vers les résultats
       if (shouldScroll) {
         setTimeout(() => {
           const scrollTarget = document.getElementById('activeTagsStatus') || document.getElementById('explorerResultsHeading') || contentArea;
           if (scrollTarget) {
             scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
-        }, 60);
+        }, 50);
       }
 
     } else {
       // No tag selected: Display directory of Category Showcases
+      isExplorerTagsCloudExpanded = false;
+      tagsContainer.classList.remove('hidden');
+      if (sortControls) sortControls.style.display = '';
       if (clearBtn) clearBtn.style.display = 'none';
       if (statusEl) {
-        statusEl.innerHTML = `<small style="color:var(--text-muted);">Cliquez sur une ou plusieurs catégories ci-dessus pour accéder directement aux vidéos.</small>`;
+        statusEl.innerHTML = `<small style="color:var(--text-muted);font-size:0.85rem;">Touchez une catégorie pour afficher instantanément ses vidéos.</small>`;
       }
 
       const sortedList = sortCategoriesList(cachedExplorerCategories);
@@ -899,6 +964,8 @@ function toggleExplorerTag(tagId) {
     selectedExplorerTags.delete(tagId);
   } else {
     selectedExplorerTags.add(tagId);
+    // User picked a category: collapse the cloud so results appear immediately!
+    isExplorerTagsCloudExpanded = false;
   }
 
   // Mise à jour de l'URL avec le lien hypertexte direct vers la catégorie
@@ -914,6 +981,7 @@ function toggleExplorerTag(tagId) {
 
 function clearSelectedExplorerTags() {
   selectedExplorerTags.clear();
+  isExplorerTagsCloudExpanded = false;
   window.history.replaceState(null, '', window.location.pathname);
   loadExplorerData(false);
   showToast('Filtres réinitialisés.');
@@ -922,6 +990,7 @@ function clearSelectedExplorerTags() {
 function quickFilterByTag(tagId) {
   selectedExplorerTags.clear();
   selectedExplorerTags.add(tagId);
+  isExplorerTagsCloudExpanded = false;
   window.history.replaceState(null, '', `?cat=${encodeURIComponent(tagId)}`);
   switchTab('explorer');
   loadExplorerData(true);
@@ -4270,16 +4339,45 @@ function closeContactModal(e) {
   if (modal) modal.classList.add('hidden');
 }
 
+function handleContactSubjectChange(selectEl) {
+  const customInput = document.getElementById('contactSubjectCustom');
+  const hiddenSubject = document.getElementById('contactSubject');
+  if (!selectEl) return;
+  if (selectEl.value === 'Autre demande') {
+    if (customInput) {
+      customInput.classList.remove('hidden');
+      customInput.focus();
+    }
+    if (hiddenSubject) hiddenSubject.value = customInput?.value || '';
+  } else {
+    if (customInput) {
+      customInput.classList.add('hidden');
+    }
+    if (hiddenSubject) hiddenSubject.value = selectEl.value;
+  }
+}
+
 async function handleSendContact(e) {
   if (e) e.preventDefault();
   const name = (document.getElementById('contactName')?.value || '').trim();
   const email = (document.getElementById('contactEmail')?.value || '').trim();
-  const subject = (document.getElementById('contactSubject')?.value || '').trim();
+  const selectSubject = document.getElementById('contactSubjectSelect');
+  const customInput = document.getElementById('contactSubjectCustom');
+  let subject = '';
+  if (selectSubject) {
+    if (selectSubject.value === 'Autre demande') {
+      subject = (customInput?.value || '').trim() || 'Autre demande';
+    } else {
+      subject = (selectSubject.value || '').trim();
+    }
+  } else {
+    subject = (document.getElementById('contactSubject')?.value || '').trim();
+  }
   const message = (document.getElementById('contactMessage')?.value || '').trim();
   const btnSubmit = document.getElementById('btnSubmitContact');
 
   if (!name || !email || !subject || !message) {
-    showToast('Veuillez remplir tous les champs obligatoires (*).');
+    showToast('Veuillez renseigner tous les champs obligatoires (*).');
     return;
   }
 

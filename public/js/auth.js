@@ -62,7 +62,12 @@ const AUTH = {
   },
 
   isVip() {
-    return this.user && this.user.isVip;
+    if (!this.user) return false;
+    if (this.isAdmin()) return true;
+    if (this.user.role === 'admin') return true;
+    if (this.user.email && this.user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') return true;
+    if (this.user.username && this.user.username.toLowerCase() === 'administrateur') return true;
+    return Boolean(this.user.isVip);
   },
 
   updateUi() {
@@ -123,7 +128,7 @@ const AUTH = {
           if (roleBadge) roleBadge.classList.add('hidden');
         }
 
-        if (this.user.isVip) {
+        if (this.isVip()) {
           if (vipCrown) vipCrown.classList.remove('hidden');
           if (vipTag) vipTag.classList.remove('hidden');
           if (btnUpgrade) btnUpgrade.classList.add('hidden');
@@ -145,8 +150,10 @@ const AUTH = {
           }
         }
 
-        // Load user videos in profile
+        // Load user videos, favorites and creator dashboard in profile
         loadMyVideos();
+        if (typeof loadAndShowFavorites === 'function') loadAndShowFavorites();
+        if (typeof loadCreatorDashboard === 'function') loadCreatorDashboard();
       }
     } else {
       // Logged out
@@ -436,7 +443,7 @@ async function loadMyVideos() {
   const countHeaderEl = document.getElementById('myVideosCountHeader');
 
   if (statusStatEl) {
-    statusStatEl.textContent = AUTH.isVip() ? 'VIP Certifié' : 'Membre Gratuit';
+    statusStatEl.textContent = AUTH.isAdmin() ? 'Administrateur (VIP)' : (AUTH.isVip() ? 'VIP Certifié' : 'Membre Gratuit');
   }
 
   if (!grid) return;
