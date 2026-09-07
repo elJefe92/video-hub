@@ -158,7 +158,8 @@ const AUTH = {
 
       const adBanner = document.getElementById('adBannerFeed');
       if (adBanner) {
-        if (this.isVip()) {
+        const hasContent = !!adBanner.querySelector('img, a, iframe');
+        if (this.isVip() || !hasContent) {
           adBanner.classList.add('hidden');
         } else {
           adBanner.classList.remove('hidden');

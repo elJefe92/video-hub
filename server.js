@@ -2908,6 +2908,11 @@ app.get('/profil/:username', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Direct dedicated messaging URL - serves SPA
+app.get(['/messages', '/messages/:username'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // SPA Fallback
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

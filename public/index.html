@@ -116,11 +116,19 @@
           </svg>
         </button>
         <button class="btn-header-explore" onclick="navigateToTab('explorer')">Catégories</button>
-        <button class="btn-header-messages" onclick="openConversationsModal()" title="Messagerie privée & Tchat">
+        <a href="/#messages" class="btn-header-messages" onclick="event.preventDefault(); navigateToTab('messages');" title="Messagerie privée & Tchat">
           Messages <span id="headerUnreadBadge" class="header-unread-badge hidden">0</span>
-        </button>
+        </a>
         <button class="btn-add-cat-top" onclick="openAddCategoryModal()" title="Ajouter une catégorie">+ Catégorie</button>
         
+        <!-- Mobile Header Messages Button -->
+        <a href="/#messages" id="btnHeaderMessagesMobile" class="btn-header-messages-mobile" onclick="event.preventDefault(); navigateToTab('messages');" title="Messagerie" aria-label="Messagerie">
+          <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span id="headerMobileUnreadBadge" class="header-mobile-unread-badge hidden">0</span>
+        </a>
+
         <!-- Bouton Déposer une vidéo (Caméra) à la place de la cloche -->
         <button id="btnHeaderUploadCamera" class="btn-header-camera-upload" onclick="switchTab('upload')" title="Déposer une vidéo" aria-label="Déposer une vidéo">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
@@ -202,7 +210,7 @@
               </button>
             </li>
             <li>
-              <button class="sidebar-nav-item" id="side-nav-messages" onclick="openConversationsModal(); toggleSidebar(false);">
+              <button class="sidebar-nav-item" id="side-nav-messages" onclick="navigateToTab('messages');">
                 <span class="sidebar-item-icon">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
@@ -311,8 +319,8 @@
       <section id="tab-accueil" class="tab-content active">
         <div class="feed-section">
           
-          <!-- Emplacement Publicitaire (Espace réservé propre) -->
-          <div id="adBannerFeed" class="ad-banner-prime-slot">
+          <!-- Emplacement Publicitaire (Espace réservé propre - masqué si vide) -->
+          <div id="adBannerFeed" class="ad-banner-prime-slot hidden">
             <div class="ad-box-content">
               <!-- Emplacement réservé aux bannières publicitaires -->
             </div>
@@ -868,6 +876,175 @@
           </div>
         </div>
 
+      </section>
+
+      <!-- ==================== TAB : MESSAGERIE PRIVÉE DÉDIÉE (PLEIN ÉCRAN) ==================== -->
+      <section id="tab-messages" class="tab-content">
+        <div class="dedicated-messages-container" id="dedicatedMessagesContainer">
+          
+          <!-- State when user is not logged in -->
+          <div id="messagesLoggedOutPrompt" class="messages-logged-out-prompt hidden">
+            <div class="messages-prompt-card">
+              <div class="messages-prompt-icon">
+                <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+              </div>
+              <h3>Messagerie Privée VideoHub</h3>
+              <p>Connectez-vous pour accéder à vos discussions privées avec les créateurs et membres de la communauté.</p>
+              <div class="messages-prompt-perks">
+                <div class="perk-item">
+                  <span class="perk-badge">Gratuit</span>
+                  <span>2 messages offerts avec chaque contact</span>
+                </div>
+                <div class="perk-item">
+                  <span class="perk-badge perk-vip">VIP</span>
+                  <span>Messagerie 100% illimitée sans aucune restriction</span>
+                </div>
+              </div>
+              <div class="messages-prompt-actions">
+                <button type="button" class="btn btn-primary" onclick="switchTab('profil')">Se connecter / S'inscrire</button>
+                <button type="button" class="btn btn-secondary" onclick="openVipCheckoutModal()">Découvrir le Pass VIP (9,99€)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Two-Pane Messenger (when logged in) -->
+          <div id="messagesLoggedInView" class="messages-split-view">
+            
+            <!-- Left Pane: Conversations List -->
+            <div class="messages-pane-sidebar" id="messagesPaneSidebar">
+              <div class="messages-sidebar-top">
+                <div class="messages-sidebar-heading">
+                  <div class="messages-heading-title">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                    </svg>
+                    <h3>Discussions</h3>
+                  </div>
+                  <button type="button" class="btn-refresh-messages" onclick="refreshDedicatedMessenger()" title="Actualiser les messages">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="23 4 23 10 17 10"></polyline>
+                      <polyline points="1 20 1 14 7 14"></polyline>
+                      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                  </button>
+                </div>
+
+                <!-- VIP Indicator Pill / Banner -->
+                <div id="messagesVipStatusBanner" class="messages-vip-status-banner">
+                  <!-- Dynamically populated: VIP unlimited vs 2-free limit -->
+                </div>
+
+                <!-- Search Input for Contacts -->
+                <div class="messages-search-box">
+                  <input type="text" id="messagesFilterInput" class="messages-filter-input" placeholder="Filtrer une discussion..." oninput="handleFilterConversations()">
+                </div>
+              </div>
+
+              <!-- Scrollable List of Conversations -->
+              <div id="dedicatedConversationsList" class="dedicated-conversations-list">
+                <!-- Dynamically injected conversation cards -->
+              </div>
+            </div>
+
+            <!-- Right Pane: Active Chat Conversation -->
+            <div class="messages-pane-chat" id="messagesPaneChat">
+              
+              <!-- Empty State (when no conversation is selected) -->
+              <div id="messagesEmptyState" class="messages-empty-state">
+                <div class="messages-empty-icon">
+                  <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                </div>
+                <h4>Sélectionnez une discussion</h4>
+                <p>Choisissez un contact dans la liste à gauche ou contactez un créateur pour démarrer un échange direct.</p>
+                <div id="messagesEmptyVipTip" class="messages-empty-vip-tip">
+                  <!-- Informational tip -->
+                </div>
+              </div>
+
+              <!-- Active Chat Thread View -->
+              <div id="messagesActiveConversation" class="messages-active-conversation hidden">
+                
+                <!-- Chat Header -->
+                <div class="dedicated-chat-header">
+                  <div class="dedicated-chat-header-left">
+                    <button type="button" class="btn-messages-back-mobile" onclick="showConversationsListMobile()" title="Retour aux discussions">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                      </svg>
+                      <span>Retour</span>
+                    </button>
+                    <img id="dedicatedChatPartnerAvatar" src="" alt="Avatar" class="dedicated-chat-avatar">
+                    <div class="dedicated-chat-partner-meta">
+                      <div class="dedicated-chat-name-row">
+                        <h4 id="dedicatedChatPartnerName">Destinataire</h4>
+                        <span id="dedicatedChatPartnerVipBadge" class="badge-vip-mini hidden">VIP</span>
+                      </div>
+                      <span class="chat-status-online">En ligne</span>
+                    </div>
+                  </div>
+
+                  <div class="dedicated-chat-header-right">
+                    <button type="button" class="btn-view-partner-profile" onclick="viewCurrentChatPartnerProfile()" title="Voir le profil">
+                      Profil
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Chat Quota & VIP indicator Bar -->
+                <div id="dedicatedChatQuotaBar" class="chat-quota-bar">
+                  <span id="dedicatedChatQuotaText">Chargement...</span>
+                  <button type="button" id="dedicatedChatVipUpgradeBtn" class="chat-vip-upgrade-pill hidden" onclick="openVipCheckoutModal()">Passer VIP</button>
+                </div>
+
+                <!-- Chat Messages Body -->
+                <div id="dedicatedChatMessagesBody" class="dedicated-chat-body">
+                  <!-- Message bubbles injected dynamically -->
+                </div>
+
+                <!-- VIP Paywall Notice (when free user reaches 2 messages) -->
+                <div id="dedicatedChatVipPaywall" class="chat-vip-paywall hidden">
+                  <div class="chat-vip-paywall-inner">
+                    <div class="chat-vip-lock-pill">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                      </svg>
+                      Pass VIP Requis
+                    </div>
+                    <h4 class="chat-vip-title">Limite de 2 messages gratuits atteinte</h4>
+                    <p class="chat-vip-desc">
+                      Vous avez utilisé vos <strong>2 messages offerts</strong> avec <strong><span id="dedicatedPaywallPartnerName">ce membre</span></strong>.
+                    </p>
+                    <p class="chat-vip-subdesc">
+                      Passez Membre VIP (9,99€ paiement unique) pour échanger en <strong>illimité</strong>, recevoir toutes les réponses et accéder aux fonctionnalités premium.
+                    </p>
+                    <button type="button" class="btn btn-primary btn-block chat-vip-action-btn" onclick="openVipCheckoutModal()">
+                      Débloquer les messages illimités - 9,99€
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Chat Input Bar -->
+                <form id="dedicatedChatSendForm" class="chat-input-bar" onsubmit="handleSendDedicatedChatMessage(event)">
+                  <input type="text" id="dedicatedChatTextInput" class="chat-input" placeholder="Écrivez un message privé..." required autocomplete="off">
+                  <button type="submit" id="dedicatedBtnSendChat" class="btn-send-chat" title="Envoyer le message">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                  </button>
+                </form>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
       </section>
 
       <!-- ==================== TAB 6 : ESPACE ADMINISTRATEUR DÉDIÉ (SHOP TON PARTIEL STYLE) ==================== -->

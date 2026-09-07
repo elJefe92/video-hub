@@ -98,6 +98,16 @@ function handleUrlHash() {
     return;
   }
 
+  // Handle /messages or /messages/:username direct URLs
+  if (pathParts[0] === 'messages') {
+    const partner = pathParts[1] ? decodeURIComponent(pathParts[1]) : null;
+    switchTab('messages');
+    if (partner) {
+      setTimeout(() => openDedicatedChatWith({ username: partner }), 350);
+    }
+    return;
+  }
+
   if (pathname === '/admin' || hash === 'admin') {
     if (AUTH.isAdmin()) {
       switchTab('admin');
@@ -120,7 +130,14 @@ function handleUrlHash() {
     quickFilterByTag(tag);
   } else if (hash === 'explorer') {
     switchTab('explorer');
-  } else if (['accueil', 'upload', 'vip', 'faq', 'profil'].includes(hash)) {
+  } else if (hash === 'messages' || hash.startsWith('messages?') || hash.startsWith('messages/')) {
+    switchTab('messages');
+    const hashParams = new URLSearchParams(hash.includes('?') ? hash.split('?')[1] : '');
+    const partner = hashParams.get('with') || hashParams.get('user') || (hash.startsWith('messages/') ? decodeURIComponent(hash.split('/')[1]) : null);
+    if (partner) {
+      setTimeout(() => openDedicatedChatWith({ username: partner }), 350);
+    }
+  } else if (['accueil', 'upload', 'vip', 'faq', 'profil', 'messages'].includes(hash)) {
     switchTab(hash);
   }
 }
@@ -185,7 +202,7 @@ function switchTab(tabName) {
     window.history.pushState(null, '', '/');
   }
 
-  const tabs = ['accueil', 'explorer', 'upload', 'vip', 'faq', 'profil', 'admin'];
+  const tabs = ['accueil', 'explorer', 'upload', 'vip', 'faq', 'profil', 'admin', 'messages'];
   tabs.forEach(t => {
     const el = document.getElementById(`tab-${t}`);
     if (el) el.classList.remove('active');
@@ -204,7 +221,7 @@ function switchTab(tabName) {
   });
 
   // Update sidebar active classes
-  const allSideItems = ['accueil', 'explorer', 'upload', 'vip', 'faq', 'profil', 'admin'];
+  const allSideItems = ['accueil', 'explorer', 'upload', 'vip', 'faq', 'profil', 'admin', 'messages'];
   allSideItems.forEach(item => {
     const sideBtn = document.getElementById(`side-nav-${item}`);
     if (sideBtn) {
@@ -215,6 +232,11 @@ function switchTab(tabName) {
   // If opening explorer tab, refresh explorer data
   if (tabName === 'explorer') {
     loadExplorerData();
+  }
+
+  // If opening messages tab, initialize dedicated messenger
+  if (tabName === 'messages') {
+    loadDedicatedMessenger();
   }
 
   // If opening admin tab, refresh data
@@ -1359,26 +1381,162 @@ async function handleDeleteComment(commentId) {
   }
 }
 
-// ==================== MESSAGERIE DIRECTE & TCHAT INTERNE ====================
+// ==================== MESSAGERIE DIRECTE & TCHAT DÉDIÉ (PLEIN ÉCRAN) ====================
+let dedicatedChatPartner = null;
+let dedicatedChatPollingTimer = null;
+let dedicatedConversationsCache = [];
+let dedicatedLoadedChatMessagesCount = 0;
+
+// Legacy alias for compatibility
 let currentChatPartner = null;
 let chatPollingTimer = null;
 
 function openDirectMessageFromPlayingVideo() {
   if (!currentPlayingVideo) return;
-  openDirectMessageModal({
-    username: currentPlayingVideo.authorName,
-    avatar: currentPlayingVideo.authorAvatar
+  const partnerName = currentPlayingVideo.authorName;
+  const partnerAvatar = currentPlayingVideo.authorAvatar;
+  closeVideoModal();
+  openDedicatedChatWith({
+    username: partnerName,
+    avatar: partnerAvatar
   });
 }
 
-let currentLoadedChatMessagesCount = 0;
+// Controller for dedicated messages tab
+async function loadDedicatedMessenger() {
+  const loggedOutPrompt = document.getElementById('messagesLoggedOutPrompt');
+  const loggedInView = document.getElementById('messagesLoggedInView');
+  const vipBanner = document.getElementById('messagesVipStatusBanner');
+  const tipEl = document.getElementById('messagesEmptyVipTip');
 
-function openDirectMessageModal(partner) {
+  if (!AUTH.isLoggedIn()) {
+    if (loggedOutPrompt) loggedOutPrompt.classList.remove('hidden');
+    if (loggedInView) loggedInView.classList.add('hidden');
+    return;
+  }
+
+  if (loggedOutPrompt) loggedOutPrompt.classList.add('hidden');
+  if (loggedInView) loggedInView.classList.remove('hidden');
+
+  // Update VIP banner
+  if (vipBanner) {
+    if (AUTH.isVip()) {
+      vipBanner.className = 'messages-vip-status-banner banner-vip';
+      vipBanner.innerHTML = `
+        <div style="display:flex;align-items:center;gap:6px;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="#f59e0b" stroke="#f59e0b" stroke-width="1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <span>Membre VIP · Messagerie 100% illimitée</span>
+        </div>
+      `;
+    } else {
+      vipBanner.className = 'messages-vip-status-banner banner-free';
+      vipBanner.innerHTML = `
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span><strong>Compte Gratuit :</strong> 2 messages offerts par contact</span>
+        </div>
+        <button type="button" class="chat-vip-upgrade-pill" onclick="openVipCheckoutModal()">Passer VIP (9,99€)</button>
+      `;
+    }
+  }
+
+  // Update empty state tip
+  if (tipEl) {
+    if (AUTH.isVip()) {
+      tipEl.innerHTML = `<span>Membre VIP : Vous bénéficiez d'envois illimités</span>`;
+    } else {
+      tipEl.innerHTML = `<span>2 messages gratuits inclus avec chaque membre · Débloquez l'illimité avec le Pass VIP</span>`;
+    }
+  }
+
+  await loadDedicatedConversationsList();
+}
+
+async function loadDedicatedConversationsList() {
+  const container = document.getElementById('dedicatedConversationsList');
+  if (!container) return;
+
+  if (!AUTH.isLoggedIn()) {
+    container.innerHTML = '';
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/messages/conversations?username=${encodeURIComponent(AUTH.user.username)}`, {
+      headers: AUTH.token ? { 'Authorization': `Bearer ${AUTH.token}` } : {}
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    const conversations = data.conversations || [];
+    dedicatedConversationsCache = conversations;
+
+    const totalUnread = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+    updateUnreadBadgesUI(totalUnread);
+
+    renderDedicatedConversationsList(conversations);
+  } catch (err) {
+    container.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:24px 10px;">Impossible de charger les discussions.</div>';
+  }
+}
+
+function renderDedicatedConversationsList(conversations) {
+  const container = document.getElementById('dedicatedConversationsList');
+  if (!container) return;
+
+  if (!conversations || conversations.length === 0) {
+    container.innerHTML = `
+      <div style="color:var(--text-muted);font-size:0.86rem;text-align:center;padding:36px 16px;line-height:1.5;">
+        Aucune discussion pour l'instant.<br>
+        <span style="font-size:0.78rem;opacity:0.8;">Contactez un auteur sur une vidéo pour démarrer !</span>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = conversations.map(c => {
+    const isActive = dedicatedChatPartner && dedicatedChatPartner.username.toLowerCase() === c.partnerName.toLowerCase();
+    const timeStr = c.lastMessageTime ? new Date(c.lastMessageTime).toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit'
+    }) : '';
+
+    return `
+      <div class="dedicated-conv-item ${isActive ? 'active' : ''}" data-username="${escapeHtml(c.partnerName)}" onclick="openDedicatedChatWith({ username: '${escapeHtml(c.partnerName)}', avatar: '${escapeHtml(c.partnerAvatar || '')}' })">
+        <img src="${c.partnerAvatar || 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(c.partnerName)}" alt="${escapeHtml(c.partnerName)}" class="dedicated-conv-avatar">
+        <div class="dedicated-conv-info">
+          <div class="dedicated-conv-header">
+            <span class="dedicated-conv-name">${escapeHtml(c.partnerName)}</span>
+            <span class="dedicated-conv-time">${timeStr}</span>
+          </div>
+          <span class="dedicated-conv-preview">${escapeHtml(c.lastMessage || '')}</span>
+        </div>
+        ${c.unreadCount > 0 ? `<span class="dedicated-conv-unread">${c.unreadCount}</span>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+function handleFilterConversations() {
+  const input = document.getElementById('messagesFilterInput');
+  const term = input ? input.value.trim().toLowerCase() : '';
+  if (!term) {
+    renderDedicatedConversationsList(dedicatedConversationsCache);
+    return;
+  }
+  const filtered = dedicatedConversationsCache.filter(c =>
+    (c.partnerName && c.partnerName.toLowerCase().includes(term)) ||
+    (c.lastMessage && c.lastMessage.toLowerCase().includes(term))
+  );
+  renderDedicatedConversationsList(filtered);
+}
+
+async function openDedicatedChatWith(partner) {
   if (!partner || !partner.username) return;
 
   if (!AUTH.isLoggedIn()) {
-    showToast('Connectez-vous ou créez un compte gratuit pour échanger (2 messages offerts).');
-    switchTab('profil');
+    showToast('Connectez-vous pour échanger (2 messages offerts).');
+    switchTab('messages');
     return;
   }
 
@@ -1388,59 +1546,90 @@ function openDirectMessageModal(partner) {
     return;
   }
 
-  currentChatPartner = partner;
-  currentLoadedChatMessagesCount = 0;
+  // Switch to messages tab if not active
+  const tabMessages = document.getElementById('tab-messages');
+  if (!tabMessages || !tabMessages.classList.contains('active')) {
+    switchTab('messages');
+  }
 
-  const modal = document.getElementById('directMessageModal');
-  const nameEl = document.getElementById('chatPartnerName');
-  const avatarEl = document.getElementById('chatPartnerAvatar');
-  const textInput = document.getElementById('chatTextInput');
-  const bodyEl = document.getElementById('chatMessagesBody');
+  dedicatedChatPartner = partner;
+  currentChatPartner = partner;
+  dedicatedLoadedChatMessagesCount = 0;
+
+  // Mobile layout: open chat view 100%
+  const container = document.getElementById('dedicatedMessagesContainer');
+  if (container) container.classList.add('mobile-chat-open');
+
+  // Push state to URL hash
+  window.history.pushState(null, '', `/#messages?with=${encodeURIComponent(partner.username)}`);
+
+  // Activate UI in right pane
+  const emptyState = document.getElementById('messagesEmptyState');
+  const activeChat = document.getElementById('messagesActiveConversation');
+  const nameEl = document.getElementById('dedicatedChatPartnerName');
+  const avatarEl = document.getElementById('dedicatedChatPartnerAvatar');
+  const vipBadge = document.getElementById('dedicatedChatPartnerVipBadge');
+  const textInput = document.getElementById('dedicatedChatTextInput');
+  const bodyEl = document.getElementById('dedicatedChatMessagesBody');
+
+  if (emptyState) emptyState.classList.add('hidden');
+  if (activeChat) activeChat.classList.remove('hidden');
 
   if (nameEl) nameEl.textContent = partner.username;
   if (avatarEl) avatarEl.src = partner.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partner.username)}`;
+  if (vipBadge) vipBadge.classList.add('hidden');
   if (textInput) textInput.value = '';
   if (bodyEl) bodyEl.innerHTML = '';
 
-  if (modal) modal.classList.remove('hidden');
+  // Highlight active conversation in list
+  document.querySelectorAll('.dedicated-conv-item').forEach(el => {
+    const u = el.getAttribute('data-username');
+    el.classList.toggle('active', !!u && u.toLowerCase() === partner.username.toLowerCase());
+  });
 
-  loadConversationMessages(partner.username, false);
+  await loadDedicatedConversationMessages(partner.username, false);
 
-  // Poll for new messages every 1.5 seconds while chat is open
-  clearInterval(chatPollingTimer);
-  chatPollingTimer = setInterval(() => {
-    if (currentChatPartner) {
-      loadConversationMessages(currentChatPartner.username, true);
+  // Poll for new messages every 1.5s
+  clearInterval(dedicatedChatPollingTimer);
+  dedicatedChatPollingTimer = setInterval(() => {
+    if (dedicatedChatPartner) {
+      loadDedicatedConversationMessages(dedicatedChatPartner.username, true);
     }
   }, 1500);
 }
 
-function closeDirectMessageModal(e) {
-  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) {
-    return;
-  }
-  const modal = document.getElementById('directMessageModal');
-  if (modal) modal.classList.add('hidden');
+function showConversationsListMobile() {
+  const container = document.getElementById('dedicatedMessagesContainer');
+  if (container) container.classList.remove('mobile-chat-open');
+  clearInterval(dedicatedChatPollingTimer);
+  dedicatedChatPollingTimer = null;
+  dedicatedChatPartner = null;
   currentChatPartner = null;
-  clearInterval(chatPollingTimer);
+  document.querySelectorAll('.dedicated-conv-item').forEach(el => el.classList.remove('active'));
+  window.history.pushState(null, '', '/#messages');
   checkUnreadMessagesCount();
+  loadDedicatedConversationsList();
 }
 
-async function loadConversationMessages(partnerUsername, isBackgroundPoll = false) {
-  const bodyEl = document.getElementById('chatMessagesBody');
-  const quotaBar = document.getElementById('chatQuotaBar');
-  const quotaText = document.getElementById('chatQuotaText');
-  const upgradeBtn = document.getElementById('chatVipQuickUpgradeBtn');
-  const paywallEl = document.getElementById('chatVipPaywall');
-  const sendForm = document.getElementById('chatSendForm');
-  const paywallPartner = document.getElementById('chatPaywallPartnerName');
-  const textInput = document.getElementById('chatTextInput');
+function viewCurrentChatPartnerProfile() {
+  if (!dedicatedChatPartner || !dedicatedChatPartner.username) return;
+  openPublicUserProfile(dedicatedChatPartner.username);
+}
+
+async function loadDedicatedConversationMessages(partnerUsername, isBackgroundPoll = false) {
+  const bodyEl = document.getElementById('dedicatedChatMessagesBody');
+  const quotaBar = document.getElementById('dedicatedChatQuotaBar');
+  const quotaText = document.getElementById('dedicatedChatQuotaText');
+  const upgradeBtn = document.getElementById('dedicatedChatVipUpgradeBtn');
+  const paywallEl = document.getElementById('dedicatedChatVipPaywall');
+  const sendForm = document.getElementById('dedicatedChatSendForm');
+  const paywallPartner = document.getElementById('dedicatedPaywallPartnerName');
+  const textInput = document.getElementById('dedicatedChatTextInput');
 
   if (!bodyEl) return;
 
-  // Only show placeholder if empty on initial manual load
   if (!isBackgroundPoll && bodyEl.children.length === 0) {
-    bodyEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px 0;">Chargement des messages...</div>';
+    bodyEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:30px 0;">Chargement des messages...</div>';
   }
 
   try {
@@ -1450,7 +1639,6 @@ async function loadConversationMessages(partnerUsername, isBackgroundPoll = fals
     const data = await res.json();
     const messages = data.messages || [];
 
-    // Quota and VIP Paywall state
     const isVip = !!data.isVip;
     const canSend = data.canSend !== false;
     const remaining = data.remaining !== undefined ? data.remaining : 2;
@@ -1458,18 +1646,18 @@ async function loadConversationMessages(partnerUsername, isBackgroundPoll = fals
     if (quotaBar && quotaText) {
       if (isVip) {
         quotaBar.className = 'chat-quota-bar quota-vip';
-        quotaText.textContent = 'Membre VIP · Messagerie illimitée';
+        quotaText.textContent = 'Membre VIP · Messagerie 100% illimitée';
         if (upgradeBtn) upgradeBtn.classList.add('hidden');
       } else {
         if (upgradeBtn) upgradeBtn.classList.remove('hidden');
         if (remaining === 2) {
           quotaBar.className = 'chat-quota-bar';
           quotaText.textContent = '2 messages gratuits disponibles avec ce contact';
-          if (textInput) textInput.placeholder = 'Écrivez un message (2 messages gratuits)...';
+          if (textInput) textInput.placeholder = 'Écrivez un message (2 messages offerts)...';
         } else if (remaining === 1) {
           quotaBar.className = 'chat-quota-bar quota-warning';
           quotaText.textContent = '1 dernier message gratuit restant avec ce contact';
-          if (textInput) textInput.placeholder = 'Dernier message gratuit avant le Pass VIP...';
+          if (textInput) textInput.placeholder = 'Dernier message avant le Pass VIP...';
         } else {
           quotaBar.className = 'chat-quota-bar quota-warning';
           quotaText.textContent = 'Limite de 2 messages gratuits atteinte';
@@ -1488,17 +1676,16 @@ async function loadConversationMessages(partnerUsername, isBackgroundPoll = fals
       }
     }
 
-    // Avoid re-rendering if count has not changed during background polling
-    if (isBackgroundPoll && messages.length === currentLoadedChatMessagesCount) {
+    if (isBackgroundPoll && messages.length === dedicatedLoadedChatMessagesCount) {
       return;
     }
-    currentLoadedChatMessagesCount = messages.length;
+    dedicatedLoadedChatMessagesCount = messages.length;
 
     if (messages.length === 0) {
       bodyEl.innerHTML = `
-        <div style="color:var(--text-muted);font-size:0.86rem;text-align:center;padding:30px 10px;">
-          Début de votre conversation avec <strong>${escapeHtml(partnerUsername)}</strong>.<br>
-          <span style="font-size:0.78rem;opacity:0.8;">Envoyez-lui un message pour démarrer la discussion !</span>
+        <div style="color:var(--text-muted);font-size:0.86rem;text-align:center;padding:40px 10px;line-height:1.5;">
+          Début de votre discussion avec <strong>${escapeHtml(partnerUsername)}</strong>.<br>
+          <span style="font-size:0.78rem;opacity:0.8;">Envoyez votre message pour lancer l'échange !</span>
         </div>
       `;
       return;
@@ -1517,18 +1704,17 @@ async function loadConversationMessages(partnerUsername, isBackgroundPoll = fals
       `;
     }).join('');
 
-    // Scroll to bottom
     bodyEl.scrollTop = bodyEl.scrollHeight;
   } catch (err) {
     if (!isBackgroundPoll && bodyEl.children.length === 0) {
-      bodyEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px 0;">Erreur de chargement.</div>';
+      bodyEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:24px 0;">Erreur de chargement.</div>';
     }
   }
 }
 
-async function handleSendChatMessage(e) {
+async function handleSendDedicatedChatMessage(e) {
   e.preventDefault();
-  if (!currentChatPartner) return;
+  if (!dedicatedChatPartner) return;
 
   if (!AUTH.isLoggedIn()) {
     showToast('Veuillez vous connecter pour envoyer un message.');
@@ -1536,22 +1722,20 @@ async function handleSendChatMessage(e) {
     return;
   }
 
-  const textInput = document.getElementById('chatTextInput');
-  const btnSubmit = document.getElementById('btnSendChat');
-  const bodyEl = document.getElementById('chatMessagesBody');
+  const textInput = document.getElementById('dedicatedChatTextInput');
+  const btnSubmit = document.getElementById('dedicatedBtnSendChat');
+  const bodyEl = document.getElementById('dedicatedChatMessagesBody');
   const text = textInput ? textInput.value.trim() : '';
 
   if (!text) return;
 
-  // Clear input immediately so user can continue seamlessly
   textInput.value = '';
   if (btnSubmit) btnSubmit.disabled = true;
 
-  // OPTIMISTIC RENDERING: Display outgoing bubble immediately in chat
   let tempBubble = null;
   if (bodyEl) {
     const emptyPlaceholder = bodyEl.querySelector('div');
-    if (emptyPlaceholder && emptyPlaceholder.textContent.includes('Début de votre conversation')) {
+    if (emptyPlaceholder && emptyPlaceholder.textContent.includes('Début de votre discussion')) {
       bodyEl.innerHTML = '';
     }
 
@@ -1564,7 +1748,7 @@ async function handleSendChatMessage(e) {
     `;
     bodyEl.appendChild(tempBubble);
     bodyEl.scrollTop = bodyEl.scrollHeight;
-    currentLoadedChatMessagesCount++;
+    dedicatedLoadedChatMessagesCount++;
   }
 
   try {
@@ -1575,7 +1759,7 @@ async function handleSendChatMessage(e) {
         'Authorization': `Bearer ${AUTH.token}`
       },
       body: JSON.stringify({
-        recipientUsername: currentChatPartner.username,
+        recipientUsername: dedicatedChatPartner.username,
         text
       })
     });
@@ -1583,21 +1767,21 @@ async function handleSendChatMessage(e) {
     const data = await res.json();
     if (!res.ok) {
       if (tempBubble) tempBubble.remove();
-      currentLoadedChatMessagesCount = Math.max(0, currentLoadedChatMessagesCount - 1);
+      dedicatedLoadedChatMessagesCount = Math.max(0, dedicatedLoadedChatMessagesCount - 1);
       showToast(data.error || 'Erreur lors de l\'envoi');
       if (data.requiresVip) {
-        await loadConversationMessages(currentChatPartner.username, true);
+        await loadDedicatedConversationMessages(dedicatedChatPartner.username, true);
         openVipCheckoutModal();
       }
       return;
     }
 
-    // Update quota and message state in background without wiping UI
-    await loadConversationMessages(currentChatPartner.username, true);
+    await loadDedicatedConversationMessages(dedicatedChatPartner.username, true);
     checkUnreadMessagesCount();
+    loadDedicatedConversationsList();
   } catch (err) {
     if (tempBubble) tempBubble.remove();
-    currentLoadedChatMessagesCount = Math.max(0, currentLoadedChatMessagesCount - 1);
+    dedicatedLoadedChatMessagesCount = Math.max(0, dedicatedLoadedChatMessagesCount - 1);
     showToast('Erreur de transmission du message.');
   } finally {
     if (btnSubmit) btnSubmit.disabled = false;
@@ -1605,7 +1789,15 @@ async function handleSendChatMessage(e) {
   }
 }
 
-// Unread Messages Badge Counter (Desktop & Mobile Sidebar)
+async function refreshDedicatedMessenger() {
+  await loadDedicatedConversationsList();
+  if (dedicatedChatPartner) {
+    await loadDedicatedConversationMessages(dedicatedChatPartner.username, false);
+  }
+  showToast('Discussions actualisées.');
+}
+
+// Unread Messages Badge Counter (Desktop & Mobile)
 function updateUnreadBadgesUI(totalUnread) {
   const headerBadge = document.getElementById('headerUnreadBadge');
   if (headerBadge) {
@@ -1614,6 +1806,16 @@ function updateUnreadBadgesUI(totalUnread) {
       headerBadge.classList.remove('hidden');
     } else {
       headerBadge.classList.add('hidden');
+    }
+  }
+
+  const mobileBadge = document.getElementById('headerMobileUnreadBadge');
+  if (mobileBadge) {
+    if (totalUnread > 0) {
+      mobileBadge.textContent = totalUnread > 9 ? '9+' : totalUnread;
+      mobileBadge.classList.remove('hidden');
+    } else {
+      mobileBadge.classList.add('hidden');
     }
   }
 
@@ -1645,73 +1847,21 @@ async function checkUnreadMessagesCount() {
   } catch (e) {}
 }
 
-// Open Inbox / Conversations List
-async function openConversationsModal() {
-  const modal = document.getElementById('conversationsModal');
-  if (modal) modal.classList.remove('hidden');
-  await loadConversationsList();
+// Legacy wrappers pointing to the dedicated full-page messenger
+function openConversationsModal() {
+  navigateToTab('messages');
 }
 
-function closeConversationsModal(e) {
-  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) {
-    return;
-  }
-  const modal = document.getElementById('conversationsModal');
-  if (modal) modal.classList.add('hidden');
-  checkUnreadMessagesCount();
+function closeConversationsModal() {
+  showConversationsListMobile();
 }
 
-async function loadConversationsList() {
-  const container = document.getElementById('conversationsListContainer');
-  if (!container) return;
+function openDirectMessageModal(partner) {
+  openDedicatedChatWith(partner);
+}
 
-  container.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px 0;">Chargement des conversations...</div>';
-
-  try {
-    const myName = AUTH.isLoggedIn() ? AUTH.user.username : 'Visiteur';
-    const headers = AUTH.token ? { 'Authorization': `Bearer ${AUTH.token}` } : {};
-    const res = await fetch(`/api/messages/conversations?username=${encodeURIComponent(myName)}`, { headers });
-    const data = await res.json();
-    const conversations = data.conversations || [];
-
-    const totalUnread = conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
-    updateUnreadBadgesUI(totalUnread);
-
-    if (conversations.length === 0) {
-      container.innerHTML = `
-        <div style="color:var(--text-muted);font-size:0.88rem;text-align:center;padding:36px 16px;">
-          Aucune conversation pour le moment.<br>
-          <span style="font-size:0.8rem;margin-top:6px;display:inline-block;">Cliquez sur l'auteur d'une vidéo ou d'un commentaire pour démarrer une discussion !</span>
-        </div>
-      `;
-      return;
-    }
-
-    container.innerHTML = conversations.map(conv => {
-      const timeStr = new Date(conv.lastMessageTime).toLocaleDateString('fr-FR', {
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-
-      return `
-        <div class="conversation-item" onclick="closeConversationsModal(); openDirectMessageModal({ username: '${conv.partnerName}', avatar: '${conv.partnerAvatar}' })">
-          <img src="${conv.partnerAvatar}" alt="${conv.partnerName}" class="conv-avatar">
-          <div class="conv-info">
-            <div class="conv-header">
-              <span class="conv-name">${conv.partnerName}</span>
-              <span class="conv-time">${timeStr}</span>
-            </div>
-            <span class="conv-last-msg">${conv.lastMessage}</span>
-          </div>
-          ${conv.unreadCount > 0 ? `<span class="conv-unread-pill">${conv.unreadCount}</span>` : ''}
-        </div>
-      `;
-    }).join('');
-  } catch (err) {
-    container.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;text-align:center;padding:20px 0;">Impossible de charger les conversations.</div>';
-  }
+function closeDirectMessageModal() {
+  showConversationsListMobile();
 }
 
 function closeVideoModal(e) {
