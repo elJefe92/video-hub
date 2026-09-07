@@ -1891,15 +1891,31 @@ app.get('/api/messages/with/:username', optionalAuthenticate, async (req, res) =
   });
   if (updated) saveDb(db);
 
-  const isVip = req.user && (req.user.isVip || req.user.role === 'admin' || (req.user.email && req.user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com'));
-  const sentCount = thread.filter(m => m.senderName.toLowerCase() === myUsername).length;
+  const isVip = Boolean(req.user && (req.user.isVip || req.user.role === 'admin' || (req.user.email && req.user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') || (req.user.username && req.user.username.toLowerCase() === 'administrateur')));
+  const sentCount = thread.filter(m => m.senderName && m.senderName.toLowerCase() === myUsername).length;
   const freeLimit = 2;
   const remaining = isVip ? 999 : Math.max(0, freeLimit - sentCount);
   const canSend = isVip || sentCount < freeLimit;
 
+  // Mask incoming messages if non-VIP has exhausted their free 2-message quota
+  const processedThread = thread.map(m => {
+    const isMe = m.senderName && m.senderName.toLowerCase() === myUsername;
+    if (!isVip && !canSend && !isMe) {
+      return {
+        ...m,
+        text: m.text ? m.text.replace(/[^\s]/g, '•') : '••••••••••••••••',
+        isLocked: true
+      };
+    }
+    return {
+      ...m,
+      isLocked: false
+    };
+  });
+
   res.json({
     partnerUsername: req.params.username,
-    messages: thread,
+    messages: processedThread,
     isVip: !!isVip,
     sentCount,
     freeLimit,

@@ -5496,6 +5496,8 @@ html.age-verified #adultWarningOverlay {
   font-size: 0.78rem;
   color: var(--text-muted);
   min-height: 32px;
+  position: relative;
+  z-index: 50;
 }
 
 .chat-quota-bar.quota-warning {
@@ -5527,21 +5529,55 @@ html.age-verified #adultWarningOverlay {
   opacity: 0.95;
 }
 
-/* Chat VIP Paywall Box */
+/* Chat VIP Paywall Box - Centered Overlay in Messenger */
 .chat-vip-paywall {
-  padding: 16px 16px;
-  background: var(--bg-subtle);
-  border-top: 1px solid var(--border-color);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 15, 29, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 40;
+  padding: 20px 16px;
   animation: fadeIn 0.25s ease;
+}
+
+.chat-vip-paywall.hidden {
+  display: none !important;
+}
+
+body.theme-light .chat-vip-paywall {
+  background: rgba(248, 250, 252, 0.8);
 }
 
 .chat-vip-paywall-inner {
   background: var(--bg-card);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
+  border: 2px solid rgba(245, 158, 11, 0.55);
+  border-radius: var(--radius-lg, 16px);
+  padding: 22px 20px;
   text-align: center;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 24px rgba(245, 158, 11, 0.2);
+  max-width: 380px;
+  width: 100%;
+  animation: vipPaywallPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  z-index: 45;
+}
+
+@keyframes vipPaywallPop {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .chat-vip-lock-pill {
@@ -5576,7 +5612,7 @@ html.age-verified #adultWarningOverlay {
 .chat-vip-subdesc {
   font-size: 0.75rem;
   color: var(--text-light);
-  margin: 0 0 12px 0;
+  margin: 0 0 14px 0;
   line-height: 1.35;
 }
 
@@ -5585,15 +5621,59 @@ html.age-verified #adultWarningOverlay {
   color: #fff !important;
   font-weight: 800 !important;
   border: none !important;
-  padding: 10px 16px !important;
+  padding: 11px 16px !important;
   border-radius: 8px !important;
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3) !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35) !important;
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
 }
 
 .chat-vip-action-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 18px rgba(245, 158, 11, 0.5) !important;
+}
+
+/* Blurred incoming messages when non-VIP reaches 2-message quota */
+.chat-bubble.incoming.chat-bubble-blurred {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--bg-subtle) !important;
+  border: 1px dashed rgba(245, 158, 11, 0.5) !important;
+  padding: 10px 14px !important;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.chat-bubble.incoming.chat-bubble-blurred:hover {
+  transform: scale(1.02);
+  border-color: #f59e0b !important;
+}
+
+.chat-bubble.incoming.chat-bubble-blurred .chat-msg-text {
+  filter: blur(7px) !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  pointer-events: none !important;
+  opacity: 0.6 !important;
+  display: inline-block;
+  line-height: 1.4;
+  letter-spacing: 2px;
+}
+
+.blurred-msg-lock-banner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #f59e0b;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.blurred-msg-lock-banner svg {
+  flex-shrink: 0;
 }
 
 /* Inbox Modal */
@@ -6685,6 +6765,8 @@ html.age-verified #adultWarningOverlay {
   justify-content: space-between;
   gap: 12px;
   flex-shrink: 0;
+  position: relative;
+  z-index: 50;
 }
 
 .dedicated-chat-header-left {
@@ -7015,5 +7097,15 @@ body.theme-light .btn-secondary-danger {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+  }
+
+  /* Centered VIP paywall on mobile */
+  .chat-vip-paywall {
+    padding: 12px !important;
+  }
+
+  .chat-vip-paywall-inner {
+    padding: 18px 14px !important;
+    max-width: 340px !important;
   }
 }

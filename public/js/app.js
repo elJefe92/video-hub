@@ -1455,6 +1455,7 @@ let dedicatedChatPartner = null;
 let dedicatedChatPollingTimer = null;
 let dedicatedConversationsCache = [];
 let dedicatedLoadedChatMessagesCount = 0;
+let dedicatedLastCanSendState = null;
 
 // Legacy alias for compatibility
 let currentChatPartner = null;
@@ -1745,10 +1746,11 @@ async function loadDedicatedConversationMessages(partnerUsername, isBackgroundPo
       }
     }
 
-    if (isBackgroundPoll && messages.length === dedicatedLoadedChatMessagesCount) {
+    if (isBackgroundPoll && messages.length === dedicatedLoadedChatMessagesCount && dedicatedLastCanSendState === canSend) {
       return;
     }
     dedicatedLoadedChatMessagesCount = messages.length;
+    dedicatedLastCanSendState = canSend;
 
     if (messages.length === 0) {
       bodyEl.innerHTML = `
@@ -1761,9 +1763,28 @@ async function loadDedicatedConversationMessages(partnerUsername, isBackgroundPo
     }
 
     const myLower = myName.toLowerCase();
+    const shouldBlurIncoming = !isVip && !canSend;
+
     bodyEl.innerHTML = messages.map(m => {
       const isMe = (m.senderName || '').toLowerCase() === myLower;
       const timeStr = m.createdAt ? new Date(m.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
+      const isBlurred = (shouldBlurIncoming && !isMe) || Boolean(m.isLocked);
+
+      if (isBlurred) {
+        return `
+          <div class="chat-bubble incoming chat-bubble-blurred" onclick="openVipCheckoutModal()" title="Message masqué · Cliquez pour débloquer le Pass VIP">
+            <div class="blurred-msg-lock-banner">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <span>Réponse masquée · Pass VIP requis</span>
+            </div>
+            <span class="chat-msg-text">${escapeHtml(m.text || '••••••••••••••••••••')}</span>
+            <span class="chat-time">${timeStr}</span>
+          </div>
+        `;
+      }
 
       return `
         <div class="chat-bubble ${isMe ? 'outgoing' : 'incoming'}">
