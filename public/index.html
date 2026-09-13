@@ -331,13 +331,21 @@
             <span id="videoCount" class="video-counter">0 video</span>
           </div>
 
-          <!-- Recherche avancee et filtres -->
-          <div id="advancedFiltersBar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:12px 16px;margin-bottom:16px;">
-            <input type="text" id="searchInput" class="form-input" placeholder="Rechercher une video, un auteur..." style="flex:1;min-width:160px;max-width:300px;" oninput="handleSearchInput()">
-            <select id="filterRegion" class="form-input" style="min-width:150px;max-width:210px;" onchange="applyAdvancedFilters()">
-              <option value="">Toutes les regions</option>
-              <option>Ile-de-France</option>
-              <option>Auvergne-Rhone-Alpes</option>
+          <!-- Recherche avancée et filtres -->
+          <div id="advancedFiltersBar" class="advanced-filters-bar">
+            <div class="filter-search-wrap">
+              <span class="filter-search-icon">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+              </span>
+              <input type="text" id="searchInput" class="filter-search-input" placeholder="Rechercher une vidéo, un créateur..." oninput="handleSearchInput()">
+            </div>
+            <select id="filterRegion" class="filter-select" onchange="applyAdvancedFilters()" aria-label="Filtrer par région">
+              <option value="">Toutes les régions</option>
+              <option>Île-de-France</option>
+              <option>Auvergne-Rhône-Alpes</option>
               <option>Nouvelle-Aquitaine</option>
               <option>Occitanie</option>
               <option>Grand Est</option>
@@ -345,22 +353,22 @@
               <option>Normandie</option>
               <option>Pays de la Loire</option>
               <option>Bretagne</option>
-              <option>Bourgogne-Franche-Comte</option>
+              <option>Bourgogne-Franche-Comté</option>
               <option>Centre-Val de Loire</option>
-              <option>Provence-Alpes-Cote d Azur</option>
+              <option>Provence-Alpes-Côte d'Azur</option>
               <option>Corse</option>
               <option>Guadeloupe</option>
               <option>Martinique</option>
               <option>Guyane</option>
-              <option>La Reunion</option>
+              <option>La Réunion</option>
               <option>Mayotte</option>
             </select>
-            <select id="filterSort" class="form-input" style="min-width:130px;" onchange="applyAdvancedFilters()">
-              <option value="recent">Plus recentes</option>
+            <select id="filterSort" class="filter-select" onchange="applyAdvancedFilters()" aria-label="Trier par">
+              <option value="recent">Plus récentes</option>
               <option value="views">Plus vues</option>
-              <option value="likes">Plus aimees</option>
+              <option value="likes">Plus aimées</option>
             </select>
-            <button class="btn btn-secondary btn-sm" onclick="resetAdvancedFilters()" style="white-space:nowrap;">Reinitialiser</button>
+            <button class="btn-reset-filters" onclick="resetAdvancedFilters()">Réinitialiser</button>
           </div>
 
           <!-- Video Grid -->
@@ -2655,6 +2663,52 @@
       </form>
     </div>
   </div>
+
+  <!-- MOBILE BOTTOM NAVIGATION (ERGONOMIC 5-TAB BAR) -->
+  <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Navigation mobile">
+    <button type="button" class="bottom-nav-item active" id="bottomNavAccueil" onclick="switchTab('accueil')" aria-label="Accueil">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-5a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9.5z"/>
+      </svg>
+      <span>Accueil</span>
+    </button>
+    
+    <button type="button" class="bottom-nav-item" id="bottomNavExplorer" onclick="switchTab('explorer')" aria-label="Catégories">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7" rx="1"/>
+        <rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="14" y="14" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/>
+      </svg>
+      <span>Catégories</span>
+    </button>
+
+    <button type="button" class="bottom-nav-item" id="bottomNavUpload" onclick="switchTab('upload')" aria-label="Déposer une vidéo">
+      <div class="bottom-nav-upload-pill">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </div>
+      <span>Déposer</span>
+    </button>
+
+    <button type="button" class="bottom-nav-item" id="bottomNavMessages" onclick="switchTab('messages')" aria-label="Messagerie">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      <span id="bottomNavUnreadBadge" class="bottom-nav-badge hidden">0</span>
+      <span>Messages</span>
+    </button>
+
+    <button type="button" class="bottom-nav-item" id="bottomNavProfil" onclick="switchTab('profil')" aria-label="Mon Profil">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+      <span>Profil</span>
+    </button>
+  </nav>
 
 </body>
 </html>

@@ -212,6 +212,18 @@ function switchTab(tabName) {
   if (targetTab) targetTab.classList.add('active');
 
   // Update mobile bottom nav active classes
+  const bottomNavMap = {
+    accueil: 'bottomNavAccueil',
+    explorer: 'bottomNavExplorer',
+    upload: 'bottomNavUpload',
+    messages: 'bottomNavMessages',
+    profil: 'bottomNavProfil'
+  };
+  Object.keys(bottomNavMap).forEach(key => {
+    const btn = document.getElementById(bottomNavMap[key]);
+    if (btn) btn.classList.toggle('active', key === tabName);
+  });
+
   const navItems = ['accueil', 'upload', 'vip', 'faq', 'profil'];
   navItems.forEach(item => {
     const navBtn = document.getElementById(`nav-${item}`);
@@ -516,8 +528,34 @@ function getAdvancedFilterParams(cat) {
   return params.toString();
 }
 
+function renderSkeletonCards(containerId = 'videoGrid', count = 8) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const cards = [];
+  for (let i = 0; i < count; i++) {
+    cards.push(`
+      <div class="skeleton-card" aria-hidden="true">
+        <div class="skeleton-thumbnail"></div>
+        <div class="skeleton-body">
+          <div class="skeleton-avatar"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton-line w-90"></div>
+            <div class="skeleton-line w-75"></div>
+            <div class="skeleton-line w-50" style="margin-top:4px;"></div>
+          </div>
+        </div>
+      </div>
+    `);
+  }
+  container.innerHTML = cards.join('');
+}
+
 async function loadVideos(cat = 'all', searchQuery = '') {
   try {
+    const grid = document.getElementById('videoGrid');
+    if (grid && (!allVideosList || allVideosList.length === 0)) {
+      renderSkeletonCards('videoGrid', 8);
+    }
     let queryString = getAdvancedFilterParams(cat);
     // Legacy: support explicit searchQuery param
     if (searchQuery && !document.getElementById('searchInput')?.value) {
@@ -628,55 +666,56 @@ function renderVideoCard(v) {
   const pubDate = v.publishedAt || v.createdAt;
   const formattedDate = pubDate ? new Date(pubDate).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
   const avatarUrl = v.authorAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(v.authorName || 'Utilisateur')}`;
+  const isFav = isFavorite(v.id);
 
   return `
     <div class="video-card" onclick="openVideoPlayerModal('${v.id}')">
       <div class="video-thumbnail-wrap">
-        <img class="video-thumbnail" src="${v.thumbnail}" alt="${v.title}" loading="lazy">
-        <div class="play-overlay-btn">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <img class="video-thumbnail" src="${v.thumbnail}" alt="${escapeHtml(v.title)}" loading="lazy">
+        <div class="play-overlay-btn" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
         </div>
-        <span class="video-rating-pill-card"> ${(v.rating || 5.0).toFixed(1)}</span>
+        <span class="video-rating-pill-card">
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          ${(v.rating || 5.0).toFixed(1)}
+        </span>
         <span class="video-duration-badge">${v.duration || '0:30'}</span>
         ${v.status === 'pending' ? '<span class="video-pending-badge">En attente</span>' : ''}
         ${v.isVipExclusive ? '<span class="vip-exclusive-badge">EXCLUSIF VIP</span>' : (v.isVipAuthor ? '<span class="vip-card-badge">VIP</span>' : '')}
+        <button type="button" class="card-fav-btn ${isFav ? 'active' : ''}" data-fav-btn="${v.id}" onclick="event.stopPropagation(); toggleFavorite('${v.id}')" title="${isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}" aria-label="Favori">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="${isFav ? '#ef4444' : 'none'}" stroke="${isFav ? '#ef4444' : 'currentColor'}" stroke-width="2">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+          </svg>
+        </button>
       </div>
 
       <div class="video-card-body">
         <div class="video-card-header">
-          <img src="${avatarUrl}" alt="${v.authorName}" class="creator-avatar" style="cursor:pointer;" onclick="event.stopPropagation(); openPublicUserProfile('${v.authorId || v.authorName}')" title="Voir le profil de ${v.authorName}">
+          <div class="creator-avatar-wrap ${v.isVipAuthor ? 'vip-creator' : ''}">
+            <img src="${avatarUrl}" alt="${escapeHtml(v.authorName || 'Créateur')}" class="creator-avatar" onclick="event.stopPropagation(); openPublicUserProfile('${v.authorId || v.authorName}')" title="Voir le profil de ${escapeHtml(v.authorName)}">
+          </div>
           <div class="video-card-meta">
-            <h4 class="video-card-title">${v.title}</h4>
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:4px;">
-              <span class="video-creator-name" style="cursor:pointer;" onclick="event.stopPropagation(); openPublicUserProfile('${v.authorId || v.authorName}')" title="Voir le profil de ${v.authorName}">
-                ${v.authorName} ${v.isVipAuthor ? '(VIP)' : ''}
+            <h4 class="video-card-title">${escapeHtml(v.title)}</h4>
+            <div class="video-card-creator-row">
+              <span class="video-creator-name" onclick="event.stopPropagation(); openPublicUserProfile('${v.authorId || v.authorName}')" title="Voir le profil de ${escapeHtml(v.authorName)}">
+                ${escapeHtml(v.authorName || 'Anonyme')} ${v.isVipAuthor ? '(VIP)' : ''}
               </span>
-              <span class="badge-region-pill" title="Region">${regionName}</span>
+              <span class="badge-region-pill" title="Région">${escapeHtml(regionName)}</span>
             </div>
-            ${v.creatorBadge ? `<span style="font-size:0.65rem;font-weight:700;color:${{'Bronze':'#cd7f32','Argent':'#a8a9ad','Or':'#ffd700','Platine':'#e5e4e2'}[v.creatorBadge]||'#94a3b8'};letter-spacing:0.3px;">Createur ${v.creatorBadge}</span>` : ''}
+            ${v.creatorBadge ? `<span style="font-size:0.65rem;font-weight:700;color:${{'Bronze':'#cd7f32','Argent':'#a8a9ad','Or':'#ffd700','Platine':'#e5e4e2'}[v.creatorBadge]||'#94a3b8'};letter-spacing:0.3px;">Créateur ${v.creatorBadge}</span>` : ''}
           </div>
         </div>
 
         <div class="video-card-pub-row">
           <span>${formattedDate ? 'Publiée le ' + formattedDate : 'Récemment'}</span>
-          <span>${(v.views || 0).toLocaleString()} vues • ${v.likes || 0} j'aime</span>
-        </div>
-        
-        <div style="display:flex;justify-content:flex-end;padding:4px 0 0;">
-          <button data-fav-btn="${v.id}" onclick="event.stopPropagation(); toggleFavorite('${v.id}')" 
-            style="background:none;border:none;cursor:pointer;padding:4px 8px;border-radius:6px;color:var(--text-muted);display:flex;align-items:center;gap:4px;font-size:0.78rem;">
-            ${isFavorite(v.id) 
-              ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="#ef4444" stroke="#ef4444" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
-              : '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
-            }
-          </button>
+          <span>${(v.views || 0).toLocaleString()} vues · ${v.likes || 0} j'aime</span>
         </div>
 
         <div class="video-stats-footer">
           <div class="video-tags-wrap">
-            ${cats.map(c => `
+            ${cats.slice(0, 3).map(c => `
               <span class="video-tag-pill" onclick="event.stopPropagation(); quickFilterByTag('${c}')" title="Filtrer par #${c}">
-                #${c}
+                #${escapeHtml(c)}
               </span>
             `).join('')}
           </div>
@@ -1916,6 +1955,16 @@ function updateUnreadBadgesUI(totalUnread) {
       sideBadge.classList.remove('hidden');
     } else {
       sideBadge.classList.add('hidden');
+    }
+  }
+
+  const bottomBadge = document.getElementById('bottomNavUnreadBadge');
+  if (bottomBadge) {
+    if (totalUnread > 0) {
+      bottomBadge.textContent = totalUnread > 9 ? '9+' : totalUnread;
+      bottomBadge.classList.remove('hidden');
+    } else {
+      bottomBadge.classList.add('hidden');
     }
   }
 }
@@ -4498,16 +4547,16 @@ function isFavorite(videoId) {
 
 function updateFavoriteButtonsUI(videoId, isFav) {
   document.querySelectorAll(`[data-fav-btn="${videoId}"]`).forEach(btn => {
+    btn.classList.toggle('active', isFav);
     if (btn.id === 'modalFavBtn') {
-      btn.classList.toggle('active', isFav);
       btn.innerHTML = `
         <svg viewBox="0 0 24 24" width="16" height="16" fill="${isFav ? '#ef4444' : 'none'}" stroke="${isFav ? '#ef4444' : 'currentColor'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
         <span class="action-text">${isFav ? 'Ajouté' : 'Favori'}</span>
       `;
     } else {
-      btn.innerHTML = isFav
-        ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="#ef4444" stroke="#ef4444" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
-        : '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+      btn.innerHTML = `
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="${isFav ? '#ef4444' : 'none'}" stroke="${isFav ? '#ef4444' : 'currentColor'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      `;
     }
     btn.title = isFav ? 'Retirer des favoris' : 'Ajouter aux favoris';
   });
