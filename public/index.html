@@ -129,15 +129,6 @@
           <span id="headerMobileUnreadBadge" class="header-mobile-unread-badge hidden">0</span>
         </a>
 
-        <!-- Bouton Déposer une vidéo (Caméra) à la place de la cloche -->
-        <button id="btnHeaderUploadCamera" class="btn-header-camera-upload" onclick="switchTab('upload')" title="Déposer une vidéo" aria-label="Déposer une vidéo">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="23 7 16 12 23 17 23 7"/>
-            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-            <line x1="8.5" y1="9" x2="8.5" y2="15"/>
-            <line x1="5.5" y1="12" x2="11.5" y2="12"/>
-          </svg>
-        </button>
         <div id="notifBellWrapper" class="hidden"></div>
 
         <!-- Notification Panel -->
@@ -298,6 +289,31 @@
           </ul>
 
         </div>
+
+        <div class="sidebar-divider"></div>
+
+        <!-- Bouton Déconnexion / Connexion dans la sidebar -->
+        <button id="sideNavLogout" class="sidebar-logout-btn hidden" onclick="AUTH.logout(); toggleSidebar(false);">
+          <span class="sidebar-item-icon">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </span>
+          <span>Se déconnecter</span>
+        </button>
+
+        <button id="sideNavLogin" class="sidebar-login-btn" onclick="switchTab('profil'); toggleSidebar(false);">
+          <span class="sidebar-item-icon">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+              <polyline points="10 17 15 12 10 7"/>
+              <line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
+          </span>
+          <span>Se connecter</span>
+        </button>
 
         <div class="sidebar-divider"></div>
 
@@ -2709,6 +2725,19 @@
       <span>Profil</span>
     </button>
   </nav>
+
+  <!-- BANDEAU CONSENTEMENT COOKIES (RGPD) -->
+  <div id="cookieConsentBanner" class="hidden" role="dialog" aria-label="Consentement des cookies">
+    <span class="cookie-banner-icon" aria-hidden="true">&#x1F36A;</span>
+    <div class="cookie-banner-text">
+      <strong>Ce site utilise des cookies</strong>
+      <small>Nous utilisons des cookies pour améliorer votre expérience de navigation. Vous pouvez accepter ou refuser leur utilisation.</small>
+    </div>
+    <div class="cookie-banner-actions">
+      <button type="button" class="btn-cookie-accept" onclick="acceptCookies()">Accepter</button>
+      <button type="button" class="btn-cookie-refuse" onclick="refuseCookies()">Refuser</button>
+    </div>
+  </div>
 
 </body>
 </html>

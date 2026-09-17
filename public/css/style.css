@@ -7535,3 +7535,250 @@ button:active,
   }
 }
 
+/* ====================================================
+   SIDEBAR MOBILE : 50vw au lieu de 270px
+   ==================================================== */
+@media (max-width: 767px) {
+  .app-sidebar {
+    width: 50vw;
+    max-width: 50vw;
+    min-width: 0;
+  }
+
+  .sidebar-inner {
+    padding: 12px 8px 20px;
+    gap: 8px;
+  }
+
+  .sidebar-section-title.main-title {
+    font-size: 0.68rem;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar-nav-item {
+    padding: 8px 8px;
+    font-size: 0.78rem;
+    gap: 8px;
+  }
+
+  .sidebar-item-icon {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  .sidebar-vip-card {
+    padding: 10px 10px;
+  }
+
+  .sidebar-vip-title {
+    font-size: 0.78rem;
+  }
+
+  .sidebar-vip-price {
+    font-size: 1rem;
+  }
+
+  .sidebar-vip-desc {
+    font-size: 0.7rem;
+  }
+}
+
+/* ====================================================
+   SIDEBAR BOUTONS LOGOUT / LOGIN
+   ==================================================== */
+.sidebar-logout-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-md);
+  color: #ef4444;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.sidebar-logout-btn:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.sidebar-logout-btn .sidebar-item-icon {
+  color: #ef4444;
+}
+
+.sidebar-login-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid rgba(249, 115, 22, 0.25);
+  border-radius: var(--radius-md);
+  color: var(--primary);
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.sidebar-login-btn:hover {
+  background: rgba(249, 115, 22, 0.2);
+  border-color: rgba(249, 115, 22, 0.5);
+}
+
+.sidebar-login-btn .sidebar-item-icon {
+  color: var(--primary);
+}
+
+@media (max-width: 767px) {
+  .sidebar-logout-btn,
+  .sidebar-login-btn {
+    padding: 8px 8px;
+    font-size: 0.78rem;
+    gap: 8px;
+  }
+}
+
+/* ====================================================
+   BANDEAU DE CONSENTEMENT DES COOKIES
+   ==================================================== */
+#cookieConsentBanner {
+  position: fixed;
+  bottom: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 560px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 8900;
+  animation: cookieBannerIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes cookieBannerIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+#cookieConsentBanner.hidden {
+  display: none;
+}
+
+.cookie-banner-icon {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.cookie-banner-text {
+  flex: 1;
+}
+
+.cookie-banner-text strong {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+
+.cookie-banner-text small {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.cookie-banner-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn-cookie-accept {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btn-cookie-accept:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-cookie-refuse {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btn-cookie-refuse:hover {
+  border-color: var(--text-muted);
+  color: var(--text-main);
+}
+
+@media (max-width: 480px) {
+  #cookieConsentBanner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+
+  .cookie-banner-actions {
+    width: 100%;
+  }
+
+  .btn-cookie-accept,
+  .btn-cookie-refuse {
+    flex: 1;
+    text-align: center;
+  }
+}
+
+/* ====================================================
+   APERCU MASQUE DANS LA LISTE DES CONVERSATIONS
+   ==================================================== */
+.dedicated-conv-preview-locked {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #f59e0b;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-style: normal;
+}
+
+.dedicated-conv-preview-locked svg {
+  flex-shrink: 0;
+}
+

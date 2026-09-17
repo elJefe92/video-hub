@@ -1610,6 +1610,16 @@ function renderDedicatedConversationsList(conversations) {
       minute: '2-digit'
     }) : '';
 
+    const previewHtml = c.isLocked
+      ? `<span class="dedicated-conv-preview-locked">
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          Message masqué · Débloquez le Pass VIP
+        </span>`
+      : `<span class="dedicated-conv-preview">${escapeHtml(c.lastMessage || '')}</span>`;
+
     return `
       <div class="dedicated-conv-item ${isActive ? 'active' : ''}" data-username="${escapeHtml(c.partnerName)}" onclick="openDedicatedChatWith({ username: '${escapeHtml(c.partnerName)}', avatar: '${escapeHtml(c.partnerAvatar || '')}' })">
         <img src="${c.partnerAvatar || 'https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(c.partnerName)}" alt="${escapeHtml(c.partnerName)}" class="dedicated-conv-avatar">
@@ -1618,7 +1628,7 @@ function renderDedicatedConversationsList(conversations) {
             <span class="dedicated-conv-name">${escapeHtml(c.partnerName)}</span>
             <span class="dedicated-conv-time">${timeStr}</span>
           </div>
-          <span class="dedicated-conv-preview">${escapeHtml(c.lastMessage || '')}</span>
+          ${previewHtml}
         </div>
         ${c.unreadCount > 0 ? `<span class="dedicated-conv-unread">${c.unreadCount}</span>` : ''}
       </div>
@@ -4746,4 +4756,51 @@ setTimeout(() => {
     loadNotifications();
   }
 }, 2000);
+
+// ============================================================
+// CONSENTEMENT DES COOKIES
+// ============================================================
+function initCookieConsent() {
+  const choice = localStorage.getItem('vh_cookie_consent');
+  const banner = document.getElementById('cookieConsentBanner');
+  if (!banner) return;
+  if (!choice) {
+    // Afficher avec un léger délai pour ne pas être intrusif
+    setTimeout(() => banner.classList.remove('hidden'), 1200);
+  }
+}
+
+function acceptCookies() {
+  localStorage.setItem('vh_cookie_consent', 'accepted');
+  const banner = document.getElementById('cookieConsentBanner');
+  if (banner) banner.classList.add('hidden');
+}
+
+function refuseCookies() {
+  localStorage.setItem('vh_cookie_consent', 'refused');
+  const banner = document.getElementById('cookieConsentBanner');
+  if (banner) banner.classList.add('hidden');
+}
+
+// Initialiser le bandeau au chargement
+document.addEventListener('DOMContentLoaded', () => {
+  initCookieConsent();
+});
+
+// ============================================================
+// SIDEBAR : SYNC BOUTONS LOGOUT / LOGIN
+// ============================================================
+function updateSidebarAuthButtons() {
+  const logoutBtn = document.getElementById('sideNavLogout');
+  const loginBtn  = document.getElementById('sideNavLogin');
+  if (!logoutBtn || !loginBtn) return;
+
+  if (AUTH && AUTH.isLoggedIn()) {
+    logoutBtn.classList.remove('hidden');
+    loginBtn.classList.add('hidden');
+  } else {
+    logoutBtn.classList.add('hidden');
+    loginBtn.classList.remove('hidden');
+  }
+}
 

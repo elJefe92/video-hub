@@ -176,6 +176,11 @@ const AUTH = {
       if (authView) authView.classList.remove('hidden');
       if (profileView) profileView.classList.add('hidden');
     }
+
+    // Sync sidebar logout/login buttons
+    if (typeof updateSidebarAuthButtons === 'function') {
+      updateSidebarAuthButtons();
+    }
   }
 };
 

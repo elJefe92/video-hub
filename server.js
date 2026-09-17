@@ -1832,6 +1832,8 @@ app.get('/api/messages/conversations', optionalAuthenticate, async (req, res) =>
     (m.recipientName && m.recipientName.toLowerCase() === myUsername)
   );
 
+  const isVipUser = Boolean(req.user && (req.user.isVip || req.user.role === 'admin' || (req.user.email && req.user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') || (req.user.username && req.user.username.toLowerCase() === 'administrateur')));
+
   // Group by conversation partner
   const conversationsMap = new Map();
   userMessages.forEach(m => {
@@ -1844,22 +1846,41 @@ app.get('/api/messages/conversations', optionalAuthenticate, async (req, res) =>
         partnerName,
         partnerAvatar: partnerAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(partnerName)}`,
         lastMessage: m.text,
+        lastMessageIsMine: isSender,
         lastMessageTime: m.createdAt,
-        unreadCount: (!isSender && !m.read) ? 1 : 0
+        unreadCount: (!isSender && !m.read) ? 1 : 0,
+        sentCount: isSender ? 1 : 0
       });
     } else {
       const conv = conversationsMap.get(partnerName.toLowerCase());
       if (new Date(m.createdAt) > new Date(conv.lastMessageTime)) {
         conv.lastMessage = m.text;
+        conv.lastMessageIsMine = isSender;
         conv.lastMessageTime = m.createdAt;
       }
       if (!isSender && !m.read) {
         conv.unreadCount++;
       }
+      if (isSender) {
+        conv.sentCount = (conv.sentCount || 0) + 1;
+      }
     }
   });
 
-  const list = Array.from(conversationsMap.values()).sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+  const freeLimit = 2;
+  const list = Array.from(conversationsMap.values()).map(conv => {
+    // Lock last message preview if non-VIP has exhausted quota AND last message is from the partner
+    const isLocked = !isVipUser && conv.sentCount >= freeLimit && !conv.lastMessageIsMine;
+    return {
+      partnerName: conv.partnerName,
+      partnerAvatar: conv.partnerAvatar,
+      lastMessage: isLocked ? null : conv.lastMessage,
+      lastMessageTime: conv.lastMessageTime,
+      unreadCount: conv.unreadCount,
+      isLocked
+    };
+  }).sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+
   res.json({ conversations: list });
 });
 
@@ -1999,6 +2020,63 @@ app.post('/api/messages/send', optionalAuthenticate, async (req, res) => {
 
   const quotaInfo = isVip ? 'VIP illimité' : `${sentCount + 1}/2 gratuit`;
   addLog('Message Envoyé', `Message de "${mySenderName}" à "${targetUsername}" (${quotaInfo})`);
+
+  // Email incitatif au destinataire (s'il a un email enregistré)
+  if (recipientUser && recipientUser.email) {
+    const siteUrl = 'https://video-hub-mu-nine.vercel.app';
+    const chatLink = `${siteUrl}/#messages?with=${encodeURIComponent(mySenderName)}`;
+    const recipientIsVip = recipientUser.isVip || recipientUser.role === 'admin';
+
+    // Teaser du message (flouté partiellement pour les non-VIP destinataires)
+    const msgTeaser = text.length > 30 ? text.substring(0, 30) + '...' : text;
+    const blurredTeaser = recipientIsVip
+      ? `<span style="font-style:italic;color:#e2e8f0;">${msgTeaser}</span>`
+      : `<span style="filter:blur(4px);user-select:none;color:#94a3b8;font-style:italic;">${msgTeaser}</span>`;
+
+    const vipBlock = recipientIsVip ? '' : `
+      <div style="margin-top:20px;background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid rgba(245,158,11,0.35);border-radius:12px;padding:16px 20px;text-align:center;">
+        <p style="font-size:0.82rem;color:#f59e0b;font-weight:700;margin:0 0 6px;">Réponse masquée</p>
+        <p style="font-size:0.8rem;color:#94a3b8;margin:0 0 14px;">La réponse de <strong style="color:#f8fafc;">${mySenderName}</strong> est masquée. Passez VIP pour lire et répondre en illimité.</p>
+        <a href="${siteUrl}/#vip" style="display:inline-block;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;font-weight:800;font-size:0.9rem;padding:12px 28px;border-radius:999px;text-decoration:none;">Débloquer le Pass VIP - 9,99€</a>
+      </div>
+    `;
+
+    try {
+      await sendRobustEmail({
+        to: recipientUser.email,
+        subject: `${mySenderName} vous a envoyé un message - Répondez vite !`,
+        html: `
+          <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:580px;margin:0 auto;background:#0f172a;color:#f8fafc;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
+            <div style="background:linear-gradient(135deg,#f97316,#ea580c);padding:28px 24px;text-align:center;">
+              <p style="margin:0;color:rgba(255,255,255,0.85);font-size:0.82rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;">Messagerie Privée</p>
+              <h1 style="margin:8px 0 0;color:#fff;font-size:1.6rem;font-weight:900;">VideoHub</h1>
+            </div>
+            <div style="padding:28px 24px;">
+              <p style="font-size:1rem;font-weight:700;color:#f8fafc;margin:0 0 6px;">${mySenderName} vous a écrit un message !</p>
+              <p style="font-size:0.88rem;color:#94a3b8;margin:0 0 20px;">Ne le laissez pas sans réponse — il attend votre retour.</p>
+
+              <div style="background:#1e293b;border-left:3px solid #f97316;border-radius:0 10px 10px 0;padding:14px 18px;margin-bottom:20px;">
+                <p style="font-size:0.78rem;color:#64748b;margin:0 0 4px;font-weight:600;">${mySenderName} - Message privé</p>
+                <p style="margin:0;font-size:0.95rem;line-height:1.5;">${blurredTeaser}</p>
+              </div>
+
+              <a href="${chatLink}" style="display:block;background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;font-weight:800;font-size:0.95rem;padding:14px 24px;border-radius:12px;text-decoration:none;text-align:center;margin-bottom:16px;">Voir le message &amp; Répondre</a>
+
+              ${vipBlock}
+
+              <p style="font-size:0.72rem;color:#475569;margin-top:24px;text-align:center;">
+                Vous recevez cet email car vous êtes membre VideoHub.<br>
+                <a href="${siteUrl}" style="color:#f97316;">Accéder à VideoHub</a>
+              </p>
+            </div>
+          </div>
+        `,
+        category: 'MESSAGE_NOTIFICATION'
+      });
+    } catch (emailErr) {
+      console.error('[Email Notification Error]', emailErr.message);
+    }
+  }
 
   const remaining = isVip ? 999 : Math.max(0, 2 - (sentCount + 1));
 
