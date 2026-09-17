@@ -2372,10 +2372,23 @@ app.post('/api/contact/submit', async (req, res) => {
     email: email.trim(),
     subject: subject.trim(),
     message: message.trim(),
+    read: false,
+    replied: false,
     createdAt: new Date().toISOString()
   };
 
   db.contactMessages.unshift(newContact);
+
+  // Notify admin in-app
+  const adminUser = (db.users || []).find(u => u.role === 'admin' || (u.email && u.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') || (u.username && u.username.toLowerCase() === 'administrateur'));
+  if (adminUser) {
+    addNotificationToUser(db, adminUser.id, {
+      type: 'contact',
+      message: `Nouveau message de contact de ${newContact.name} (${newContact.subject})`,
+      link: '/admin'
+    });
+  }
+
   saveDb(db);
   await syncDbToCloud(db);
 
@@ -2611,6 +2624,7 @@ app.post('/api/admin/messages/:id/reply', requireAdmin, async (req, res) => {
     return res.status(500).json({ error: "Échec de l'envoi de l'e-mail. Vérifiez la configuration SMTP." });
   }
 
+  msg.read = true;
   msg.replied = true;
   msg.repliedAt = new Date().toISOString();
   msg.lastReplyText = replyText.trim();
@@ -2622,6 +2636,57 @@ app.post('/api/admin/messages/:id/reply', requireAdmin, async (req, res) => {
   addLog('Réponse Contact', `Réponse envoyée à ${msg.email} (Sujet: ${subject}) par Admin`);
 
   res.json({ success: true, message: `Réponse envoyée avec succès à ${msg.email}`, messageRecord: msg });
+});
+
+// Marquer un message de contact comme lu
+app.post('/api/admin/messages/:id/read', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
+  const db = loadDb();
+  const msg = (db.contactMessages || []).find(m => m.id === req.params.id);
+  if (msg) {
+    msg.read = true;
+    saveDb(db);
+    await syncDbToCloud(db);
+  }
+  res.json({ success: true });
+});
+
+// ---------------- ADMIN MODIFY VIDEO TAGS (MAX 5 TAGS) ----------------
+app.put('/api/admin/videos/:id/tags', requireAdmin, async (req, res) => {
+  const { tags } = req.body;
+  if (!Array.isArray(tags)) {
+    return res.status(400).json({ error: 'Le format des tags est invalide.' });
+  }
+  if (tags.length > 5) {
+    return res.status(400).json({ error: 'Vous ne pouvez pas sélectionner plus de 5 tags.' });
+  }
+
+  await syncDbFromCloud();
+  const db = loadDb();
+  const video = (db.videos || []).find(v => v.id === req.params.id);
+  if (!video) {
+    return res.status(404).json({ error: 'Vidéo introuvable.' });
+  }
+
+  const cleanTags = tags.map(t => String(t).trim()).filter(Boolean);
+  video.categories = cleanTags.length > 0 ? cleanTags : ['divers'];
+  video.category = video.categories[0] || 'divers';
+
+  saveDb(db);
+  await syncDbToCloud(db);
+
+  addLog('Modification Tags', `Tags de la vidéo "${video.title}" mis à jour par Admin: ${video.categories.join(', ')}`);
+
+  res.json({
+    success: true,
+    message: 'Tags mis à jour avec succès.',
+    video: {
+      id: video.id,
+      title: video.title,
+      categories: video.categories,
+      category: video.category
+    }
+  });
 });
 
 // ---------------- ADMIN REVIEWS & RATINGS ----------------
@@ -2700,8 +2765,8 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
   const totalVips = db.users.filter(u => u.isVip).length;
   const pendingReports = (db.reports || []).filter(r => r.status === 'pending').length;
   const pendingCategories = (db.categories || []).filter(c => c.status === 'pending').length;
-  const totalReports = (db.reports || []).length;
   const totalMessages = (db.contactMessages || []).length;
+  const unreadMessages = (db.contactMessages || []).filter(m => !m.read && !m.replied).length;
   const totalComments = (db.videos || []).reduce((acc, v) => acc + (v.comments ? v.comments.length : 0), 0);
 
   res.json({
@@ -2717,6 +2782,7 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
     pendingReports,
     totalReports,
     totalMessages,
+    unreadMessages,
     totalComments,
     logs: db.logs || []
   });

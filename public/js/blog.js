@@ -23,7 +23,7 @@ function renderRegionPills() {
 
   let html = `
     <button class="region-btn ${activeRegionFilter === 'all' ? 'active' : ''}" onclick="filterBlogRegion('all')">
-      🗺️ Toutes les Régions
+      Toutes les Régions
     </button>
   `;
 
@@ -65,7 +65,7 @@ function renderBlogPosts() {
     <article class="blog-post-card">
       <div class="blog-post-cover">
         <img src="${post.coverImage}" alt="${post.title}" loading="lazy">
-        <span class="blog-region-badge">📍 ${post.regionName || 'France'}</span>
+        <span class="blog-region-badge">${post.regionName || 'France'}</span>
       </div>
       <div class="blog-post-content">
         <div>

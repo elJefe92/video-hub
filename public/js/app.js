@@ -335,6 +335,16 @@ function populateMultiCategorySelectors() {
 }
 
 function toggleCatCheckboxStyle(checkbox, containerPrefix) {
+  const container = checkbox.closest('.multi-cat-selector');
+  if (container && checkbox.checked) {
+    const checkedBoxes = container.querySelectorAll('input[type="checkbox"]:checked');
+    if (checkedBoxes.length > 5) {
+      checkbox.checked = false;
+      showToast('Vous pouvez sélectionner jusqu\'à 5 tags maximum.');
+      return;
+    }
+  }
+
   const label = document.getElementById(`${containerPrefix}_label_${checkbox.value}`);
   if (label) {
     if (checkbox.checked) {
@@ -343,6 +353,56 @@ function toggleCatCheckboxStyle(checkbox, containerPrefix) {
       label.classList.remove('selected');
     }
   }
+
+  updateCategorySelectionCounter(containerPrefix);
+}
+
+function updateCategorySelectionCounter(containerPrefix) {
+  if (containerPrefix === 'uploadCat') {
+    const container = document.getElementById('uploadCategoriesMultiSelect');
+    const badge = document.getElementById('uploadCatCountBadge');
+    if (container && badge) {
+      const count = container.querySelectorAll('input[type="checkbox"]:checked').length;
+      badge.textContent = `${count} / 5 sélectionnés`;
+      if (count >= 5) {
+        badge.style.color = '#ef4444';
+        badge.style.background = 'rgba(239, 68, 68, 0.12)';
+      } else {
+        badge.style.color = 'var(--primary)';
+        badge.style.background = 'rgba(249, 115, 22, 0.12)';
+      }
+    }
+  } else if (containerPrefix === 'adminEditTag') {
+    const container = document.getElementById('adminEditTagsMultiSelect');
+    const badge = document.getElementById('adminEditTagsCountBadge');
+    if (container && badge) {
+      const count = container.querySelectorAll('input[type="checkbox"]:checked').length;
+      badge.textContent = `${count} / 5 sélectionnés`;
+      if (count >= 5) {
+        badge.style.color = '#ef4444';
+        badge.style.background = 'rgba(239, 68, 68, 0.12)';
+      } else {
+        badge.style.color = 'var(--primary)';
+        badge.style.background = 'rgba(249, 115, 22, 0.12)';
+      }
+    }
+  }
+}
+
+function filterUploadCategories(query) {
+  const term = (query || '').trim().toLowerCase();
+  const container = document.getElementById('uploadCategoriesMultiSelect');
+  if (!container) return;
+  const items = container.querySelectorAll('.multi-cat-item');
+  items.forEach(item => {
+    const text = (item.textContent || '').toLowerCase();
+    const checkbox = item.querySelector('input[type="checkbox"]');
+    if (!term || text.includes(term) || (checkbox && checkbox.checked)) {
+      item.style.display = '';
+    } else {
+      item.style.display = 'none';
+    }
+  });
 }
 
 function filterByCategory(catId) {
@@ -2671,8 +2731,9 @@ function renderAdminOnlineVideos(videos) {
           <span>• ${v.likes||0} likes</span>
         </div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <button class="btn btn-sm btn-secondary" onclick="openVideoPlayerModal('${v.id}')">Voir</button>
+        <button class="btn btn-sm btn-secondary" onclick="openAdminEditTagsModal('${v.id}')" style="border-color:#3b82f6;color:#3b82f6;font-weight:700;">Modifier les tags</button>
         <button class="btn btn-sm btn-secondary" onclick="openAdminEditModal('${v.id}')">Modifier</button>
         <button class="btn btn-sm btn-danger" onclick="handleAdminDeleteVideo('${v.id}')">Supprimer</button>
       </div>
@@ -3007,6 +3068,9 @@ async function loadAdminVideos() {
             </button>
             <button class="btn btn-sm ${v.isVipExclusive ? 'btn-vip-pill' : 'btn-secondary'}" onclick="toggleAdminVipExclusive('${v.id}')" title="Bascule VIP Exclusif">
               ${v.isVipExclusive ? 'Exclusif VIP' : 'Passer en VIP'}
+            </button>
+            <button class="btn btn-sm btn-secondary" onclick="openAdminEditTagsModal('${v.id}')" style="border-color:#3b82f6;color:#3b82f6;font-weight:700;">
+              Modifier les tags
             </button>
             <button class="btn btn-sm btn-secondary" onclick="openAdminEditModal('${v.id}')" style="border-color:var(--primary);color:var(--primary);font-weight:700;">
               Miniature & Éditer
@@ -4801,6 +4865,149 @@ function updateSidebarAuthButtons() {
   } else {
     logoutBtn.classList.add('hidden');
     loginBtn.classList.remove('hidden');
+  }
+}
+
+// ============================================================
+// ADMIN : MODIFICATION DES TAGS DES VIDÉOS (MAX 5 TAGS)
+// ============================================================
+let currentAdminEditingVideo = null;
+
+async function openAdminEditTagsModal(videoId) {
+  if (!AUTH.isAdmin()) {
+    showToast('Accès administrateur requis.');
+    return;
+  }
+
+  // Find video in current lists or fetch
+  let video = (window.allVideosList || []).find(v => v.id === videoId);
+  if (!video) {
+    try {
+      const res = await fetch(`/api/videos/${encodeURIComponent(videoId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        video = data.video || data;
+      }
+    } catch (e) {}
+  }
+
+  if (!video) {
+    showToast('Vidéo introuvable.');
+    return;
+  }
+
+  currentAdminEditingVideo = video;
+  const modal = document.getElementById('adminEditTagsModal');
+  const idInput = document.getElementById('adminEditTagsVideoId');
+  const titleEl = document.getElementById('adminEditTagsVideoTitle');
+  const searchInput = document.getElementById('adminEditTagsSearchInput');
+  const container = document.getElementById('adminEditTagsMultiSelect');
+
+  if (idInput) idInput.value = video.id;
+  if (titleEl) titleEl.textContent = `Vidéo : "${video.title}"`;
+  if (searchInput) searchInput.value = '';
+
+  const currentCats = Array.isArray(video.categories) ? video.categories : (video.category ? [video.category] : []);
+  const availableCats = (window.allCategoriesList || []).filter(c => c.id !== 'all');
+
+  if (container) {
+    container.innerHTML = availableCats.map(cat => {
+      const isChecked = currentCats.includes(cat.id);
+      return `
+        <label class="multi-cat-item ${isChecked ? 'selected' : ''}" id="adminEditTag_label_${cat.id}">
+          <input type="checkbox" value="${cat.id}" ${isChecked ? 'checked' : ''} onchange="toggleCatCheckboxStyle(this, 'adminEditTag')">
+          <span>${escapeHtml(cat.name)}</span>
+        </label>
+      `;
+    }).join('');
+  }
+
+  updateCategorySelectionCounter('adminEditTag');
+
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeAdminEditTagsModal(e) {
+  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) {
+    return;
+  }
+  const modal = document.getElementById('adminEditTagsModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+}
+
+function filterAdminEditTags(query) {
+  const term = (query || '').trim().toLowerCase();
+  const container = document.getElementById('adminEditTagsMultiSelect');
+  if (!container) return;
+  const items = container.querySelectorAll('.multi-cat-item');
+  items.forEach(item => {
+    const text = (item.textContent || '').toLowerCase();
+    const checkbox = item.querySelector('input[type="checkbox"]');
+    if (!term || text.includes(term) || (checkbox && checkbox.checked)) {
+      item.style.display = '';
+    } else {
+      item.style.display = 'none';
+    }
+  });
+}
+
+async function handleSaveAdminVideoTags(e) {
+  if (e) e.preventDefault();
+  const videoId = document.getElementById('adminEditTagsVideoId')?.value;
+  const container = document.getElementById('adminEditTagsMultiSelect');
+  const btn = document.getElementById('btnSaveAdminTags');
+
+  if (!videoId || !container) return;
+
+  const checkedBoxes = container.querySelectorAll('input[type="checkbox"]:checked');
+  if (checkedBoxes.length > 5) {
+    showToast('Vous pouvez sélectionner jusqu\'à 5 tags maximum.');
+    return;
+  }
+
+  const tags = Array.from(checkedBoxes).map(cb => cb.value);
+
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Enregistrement...';
+  }
+
+  try {
+    const res = await fetch(`/api/admin/videos/${encodeURIComponent(videoId)}/tags`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${AUTH.token}`
+      },
+      body: JSON.stringify({ tags })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'Erreur lors de la modification des tags.');
+      return;
+    }
+
+    showToast('Tags mis à jour avec succès.');
+    closeAdminEditTagsModal();
+
+    // Refresh video lists
+    if (typeof loadAdminVideos === 'function') await loadAdminVideos();
+    if (typeof loadAdminOnlineVideos === 'function') await loadAdminOnlineVideos();
+    if (typeof loadVideos === 'function') await loadVideos();
+  } catch (err) {
+    console.error('Error updating video tags', err);
+    showToast('Erreur de communication.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Enregistrer les tags';
+    }
   }
 }
 
