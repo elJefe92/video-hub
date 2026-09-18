@@ -1257,8 +1257,20 @@ async function openVideoPlayerModal(videoId) {
     // Normal Playback
     if (paywallOverlay) paywallOverlay.classList.add('hidden');
     player.style.display = 'block';
-    player.src = video.videoUrl;
-    player.play().catch(() => {});
+    player.poster = video.thumbnail || '';
+
+    let playUrl = video.videoUrl;
+    if (playUrl && /\.mov$/i.test(playUrl)) {
+      playUrl = playUrl.replace(/\.mov$/i, '.mp4');
+    }
+
+    if (player.src !== playUrl && !player.src.endsWith(playUrl)) {
+      player.src = playUrl;
+      player.load();
+    }
+    player.play().catch(err => {
+      console.log('Lecture automatique bloquée par le navigateur:', err);
+    });
   }
 
   modal.classList.remove('hidden');
