@@ -1,0 +1,14 @@
+# Large media files (videos) - must never be packaged into serverless functions
+public/uploads/*.mp4
+public/uploads/*.MP4
+public/uploads/*.mov
+public/uploads/*.MOV
+public/uploads/*.webm
+public/uploads/*.avi
+public/uploads/*.mkv
+
+# Dev and system files
+node_modules/
+.git/
+.env*
+.DS_Store

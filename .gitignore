@@ -3,3 +3,12 @@ node_modules/
 .env
 .vercel
 .env*
+
+# Video uploads (use Bunny Stream or external CDN, do not track in git)
+public/uploads/*.mp4
+public/uploads/*.MP4
+public/uploads/*.mov
+public/uploads/*.MOV
+public/uploads/*.webm
+public/uploads/*.avi
+public/uploads/*.mkv
