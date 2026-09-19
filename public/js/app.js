@@ -1259,6 +1259,21 @@ async function openVideoPlayerModal(videoId) {
     player.style.display = 'block';
     player.poster = video.thumbnail || '';
 
+    const container = player.closest('.player-container');
+    if (container) {
+      container.classList.remove('portrait-mode', 'fit-cover');
+    }
+    const fitBtn = document.getElementById('modalFitBtn');
+    if (fitBtn) {
+      fitBtn.classList.remove('active');
+    }
+
+    player.onloadedmetadata = () => {
+      if (container && player.videoHeight > player.videoWidth) {
+        container.classList.add('portrait-mode');
+      }
+    };
+
     let playUrl = video.videoUrl;
     if (playUrl && /\.mov$/i.test(playUrl)) {
       playUrl = playUrl.replace(/\.mov$/i, '.mp4');
@@ -1270,7 +1285,7 @@ async function openVideoPlayerModal(videoId) {
     const playPromise = player.play();
     if (playPromise !== undefined) {
       playPromise.catch(err => {
-        console.log('Lecture automatique bloquée par le navigateur:', err);
+        console.log('Lecture automatique bloquee par le navigateur:', err);
       });
     }
   }
@@ -2099,11 +2114,32 @@ function closeVideoModal(e) {
     player.removeAttribute('src');
     player.load();
     player.style.display = 'block';
+    const container = player.closest('.player-container');
+    if (container) {
+      container.classList.remove('portrait-mode', 'fit-cover');
+    }
+  }
+  const fitBtn = document.getElementById('modalFitBtn');
+  if (fitBtn) {
+    fitBtn.classList.remove('active');
   }
   if (paywallOverlay) paywallOverlay.classList.add('hidden');
   if (modal) modal.classList.add('hidden');
   document.body.style.overflow = '';
   currentPlayingVideo = null;
+}
+
+function toggleVideoFit() {
+  const player = document.getElementById('modalVideoPlayer');
+  if (!player) return;
+  const container = player.closest('.player-container');
+  if (!container) return;
+  const isCover = container.classList.toggle('fit-cover');
+  const fitBtn = document.getElementById('modalFitBtn');
+  if (fitBtn) {
+    fitBtn.classList.toggle('active', isCover);
+  }
+  showToast(isCover ? 'Format : Remplir l\'ecran' : 'Format : Adapter au cadre');
 }
 
 async function shareCurrentVideo() {
