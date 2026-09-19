@@ -1,6 +1,4 @@
-# Large media files (videos) - must never be packaged into serverless functions
-public/uploads/*.mp4
-public/uploads/*.MP4
+# Large raw video formats (must not be packaged)
 public/uploads/*.mov
 public/uploads/*.MOV
 public/uploads/*.webm

@@ -4,9 +4,7 @@ node_modules/
 .vercel
 .env*
 
-# Video uploads (use Bunny Stream or external CDN, do not track in git)
-public/uploads/*.mp4
-public/uploads/*.MP4
+# Video uploads: keep heavy raw video formats excluded, allow compact web MP4s
 public/uploads/*.mov
 public/uploads/*.MOV
 public/uploads/*.webm

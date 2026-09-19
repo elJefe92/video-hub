@@ -1264,13 +1264,15 @@ async function openVideoPlayerModal(videoId) {
       playUrl = playUrl.replace(/\.mov$/i, '.mp4');
     }
 
-    if (player.src !== playUrl && !player.src.endsWith(playUrl)) {
-      player.src = playUrl;
-      player.load();
+    player.pause();
+    player.src = playUrl;
+    player.load();
+    const playPromise = player.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(err => {
+        console.log('Lecture automatique bloquée par le navigateur:', err);
+      });
     }
-    player.play().catch(err => {
-      console.log('Lecture automatique bloquée par le navigateur:', err);
-    });
   }
 
   modal.classList.remove('hidden');
@@ -2094,7 +2096,8 @@ function closeVideoModal(e) {
   const paywallOverlay = document.getElementById('vipPaywallOverlay');
   if (player) {
     player.pause();
-    player.src = '';
+    player.removeAttribute('src');
+    player.load();
     player.style.display = 'block';
   }
   if (paywallOverlay) paywallOverlay.classList.add('hidden');
