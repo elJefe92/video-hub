@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=2.8">
+  <link rel="stylesheet" href="css/style.css?v=2.9">
   <script>
     // Vérification immédiate anti-clignotement (1h de validité)
     (function() {
@@ -1615,12 +1615,6 @@
 
       <!-- Action Bar immediately below video -->
       <div class="modal-video-action-bar">
-        <button type="button" id="modalLikeBtn" class="video-action-pill btn-action-like" onclick="likeCurrentVideo()" title="J'aime cette vidéo">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
-          <span class="action-text">J'aime</span>
-          <span id="modalLikesCount" class="action-badge">0</span>
-        </button>
-
         <button type="button" id="modalFavBtn" class="video-action-pill btn-action-fav" onclick="toggleFavorite(currentPlayingVideo?.id)" title="Ajouter aux favoris">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
           <span class="action-text">Favori</span>
@@ -2630,10 +2624,10 @@
   <div id="toastNotification" class="toast hidden"></div>
 
   <!-- SCRIPTS -->
-  <script src="js/auth.js?v=2.8"></script>
-  <script src="js/upload.js?v=2.8"></script>
-  <script src="js/vip.js?v=2.8"></script>
-  <script src="js/app.js?v=2.8"></script>
+  <script src="js/auth.js?v=2.9"></script>
+  <script src="js/upload.js?v=2.9"></script>
+  <script src="js/vip.js?v=2.9"></script>
+  <script src="js/app.js?v=2.9"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;">

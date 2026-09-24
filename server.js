@@ -1739,23 +1739,25 @@ app.post('/api/videos/:id/rate', (req, res) => {
 
 // ---------------- COMMENTS & SIMILAR VIDEOS & TAG EDIT ENDPOINTS ----------------
 // Get comments for a video
-app.get('/api/videos/:id/comments', (req, res) => {
+app.get('/api/videos/:id/comments', async (req, res) => {
+  await syncDbFromCloud();
   const db = loadDb();
   const video = db.videos.find(v => v.id === req.params.id);
   if (!video) {
     return res.status(404).json({ error: 'Vidéo introuvable.' });
   }
-  const comments = video.comments || [];
-  res.json({ comments });
+  const comments = (db.comments || []).filter(c => c.videoId === video.id);
+  res.json({ comments: comments.length > 0 ? comments : (video.comments || []) });
 });
 
-// Post a comment on a video
-app.post('/api/videos/:id/comments', optionalAuthenticate, (req, res) => {
+// Post a comment on a video (persisted to database and synced to cloud)
+app.post('/api/videos/:id/comments', optionalAuthenticate, async (req, res) => {
   const { text, authorName } = req.body;
   if (!text || !text.trim()) {
     return res.status(400).json({ error: 'Veuillez saisir un texte de commentaire valide.' });
   }
 
+  await syncDbFromCloud();
   const db = loadDb();
   const video = db.videos.find(v => v.id === req.params.id);
   if (!video) {
@@ -1768,6 +1770,7 @@ app.post('/api/videos/:id/comments', optionalAuthenticate, (req, res) => {
   const newComment = {
     id: 'comm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
     videoId: video.id,
+    videoTitle: video.title || 'Vidéo',
     authorId: req.user ? req.user.id : null,
     authorName: resolvedAuthorName,
     authorAvatar: resolvedAvatar,
@@ -1777,21 +1780,27 @@ app.post('/api/videos/:id/comments', optionalAuthenticate, (req, res) => {
     createdAt: new Date().toISOString()
   };
 
+  db.comments = db.comments || [];
+  db.comments.unshift(newComment);
+
   video.comments = video.comments || [];
   video.comments.unshift(newComment);
+
   saveDb(db);
+  await syncDbToCloud(db);
 
   addLog('Nouveau Commentaire', `Commentaire ajouté sur "${video.title}" par ${resolvedAuthorName}`);
 
   res.status(201).json({
-    message: 'Commentaire publié avec succès ! ',
+    message: 'Commentaire publié avec succès !',
     comment: newComment,
     comments: video.comments
   });
 });
 
 // Delete a comment (SEUL L'ADMINISTRATEUR PEUT SUPPRIMER)
-app.delete('/api/videos/:id/comments/:commentId', requireAdmin, (req, res) => {
+app.delete('/api/videos/:id/comments/:commentId', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
   const db = loadDb();
   const video = db.videos.find(v => v.id === req.params.id);
   if (!video || !video.comments) {
@@ -1804,7 +1813,12 @@ app.delete('/api/videos/:id/comments/:commentId', requireAdmin, (req, res) => {
   }
 
   const removed = video.comments.splice(commentIndex, 1)[0];
+  if (Array.isArray(db.comments)) {
+    db.comments = db.comments.filter(c => c.id !== req.params.commentId);
+  }
+
   saveDb(db);
+  await syncDbToCloud(db);
 
   addLog('Suppression Commentaire', `Commentaire de "${removed.authorName}" sur "${video.title}" supprimé par Admin (${req.user.username})`);
 
@@ -1812,6 +1826,13 @@ app.delete('/api/videos/:id/comments/:commentId', requireAdmin, (req, res) => {
     message: 'Commentaire supprimé par l\'administrateur avec succès.',
     comments: video.comments
   });
+});
+
+// Admin list all recorded comments
+app.get('/api/admin/comments', requireAdmin, async (req, res) => {
+  await syncDbFromCloud();
+  const db = loadDb();
+  res.json({ comments: db.comments || [] });
 });
 
 // ---------------- INTERNAL MESSAGING SYSTEM (MESSAGERIE PRIVÉE) ----------------

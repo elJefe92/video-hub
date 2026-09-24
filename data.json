@@ -1626,7 +1626,7 @@
           "authorAvatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Marc",
           "isVip": false,
           "isAdmin": false,
-          "text": "Superbe vidéo, hâte de voir les prochaines ! 🔥",
+          "text": "Superbe vidéo, hâte de voir les prochaines ! ",
           "createdAt": "2026-09-01T12:32:02.939Z"
         }
       ],
@@ -1887,6 +1887,32 @@
       "subject": "Question générale",
       "message": "Bonjour, ceci est un test du formulaire de contact.",
       "createdAt": "2026-09-02T08:04:58.705Z"
+    }
+  ],
+  "comments": [
+    {
+      "id": "comm_1788265922939_nyyjz",
+      "videoId": "vid_1788264820815",
+      "videoTitle": "hgu",
+      "authorId": null,
+      "authorName": "Marc",
+      "authorAvatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Marc",
+      "isVip": false,
+      "isAdmin": false,
+      "text": "Superbe vidéo, hâte de voir les prochaines ! ",
+      "createdAt": "2026-09-01T12:32:02.939Z"
+    },
+    {
+      "id": "comm_1788266058600_09vcl",
+      "videoId": "vid_1788264754329",
+      "videoTitle": "sensu",
+      "authorId": "user_admin_main",
+      "authorName": "Administrateur",
+      "authorAvatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
+      "isVip": true,
+      "isAdmin": true,
+      "text": "top",
+      "createdAt": "2026-09-01T12:34:18.600Z"
     }
   ]
 }

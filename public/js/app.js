@@ -768,7 +768,7 @@ function renderVideoCard(v) {
 
         <div class="video-card-pub-row">
           <span>${formattedDate ? 'Publiée le ' + formattedDate : 'Récemment'}</span>
-          <span>${(v.views || 0).toLocaleString()} vues · ${v.likes || 0} j'aime</span>
+          <span>${(v.views || 0).toLocaleString()} vues · Note ${(v.rating || 5.0).toFixed(1)}/5</span>
         </div>
 
         <div class="video-stats-footer">
@@ -1149,7 +1149,6 @@ async function openVideoPlayerModal(videoId) {
   const authorAvatar = document.getElementById('modalAuthorAvatar');
   const authorBadge = document.getElementById('modalAuthorBadge');
   const authorLevelBadge = document.getElementById('modalAuthorLevelBadge');
-  const likesCount = document.getElementById('modalLikesCount');
   const adminEditBtn = document.getElementById('modalAdminEditTagsBtn');
   const dateEl = document.getElementById('modalVideoDate');
   const viewsEl = document.getElementById('modalVideoViews');
@@ -1170,8 +1169,6 @@ async function openVideoPlayerModal(videoId) {
     authorAvatar.title = `Voir le profil de ${video.authorName}`;
     authorAvatar.onclick = () => openPublicUserProfile(video.authorId || video.authorName);
   }
-
-  if (likesCount) likesCount.textContent = video.likes || 0;
   
   const modalFavBtn = document.getElementById('modalFavBtn');
   if (modalFavBtn) {
@@ -2174,8 +2171,8 @@ async function likeCurrentVideo() {
   if (!currentPlayingVideo) return;
   try {
     const res = await fetch(`/api/videos/${currentPlayingVideo.id}/like`, { method: 'POST' });
-    const data = await res.json();
-    document.getElementById('modalLikesCount').textContent = data.likes;
+    const likesEl = document.getElementById('modalLikesCount');
+    if (likesEl) likesEl.textContent = data.likes;
     currentPlayingVideo.likes = data.likes;
 
     if (data.isVipExclusive) {
@@ -2784,7 +2781,7 @@ function renderAdminOnlineVideos(videos) {
           <span>Par <strong>${v.authorName}</strong></span>
           <span>• ${v.region || 'France'}</span>
           <span>• ${(v.views||0).toLocaleString()} vues</span>
-          <span>• ${v.likes||0} likes</span>
+          <span>• Note ${(v.rating||5.0).toFixed(1)}/5</span>
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -3108,7 +3105,7 @@ async function loadAdminVideos() {
               <span><strong>${v.authorEmail || v.authorName}</strong></span> • 
               <span>${v.region || 'France'}</span> • 
               <span style="color:var(--primary);font-weight:700;">${(v.views || 0).toLocaleString()} vues</span> • 
-              <span>${v.likes || 0} likes</span> • 
+              <span>Note ${(v.rating || 5.0).toFixed(1)}/5</span> • 
               <span>${cats.map(c => `#${c}`).join(', ')}</span> • 
               <span>${new Date(v.createdAt).toLocaleDateString()}</span>
             </div>
@@ -4645,7 +4642,9 @@ function togglePasswordVisibility(inputId, btnEl) {
 // FAVORITES LOGIC
 async function toggleFavorite(videoId) {
   if (!AUTH.isLoggedIn()) {
-    showToast('Connectez-vous pour ajouter des favoris.');
+    showToast('Connectez-vous pour ajouter cette vidéo à vos favoris.');
+    if (typeof closeVideoModal === 'function') closeVideoModal();
+    if (typeof switchTab === 'function') switchTab('profil');
     return;
   }
   try {
@@ -4753,7 +4752,7 @@ async function loadCreatorDashboard() {
             <img src="${v.thumbnail || 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300'}" style="width:100%;height:75px;object-fit:cover;display:block;">
             <div style="padding:6px 8px;">
               <div style="font-size:0.75rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.title}</div>
-              <div style="font-size:0.68rem;color:var(--text-muted);">${(v.views||0).toLocaleString()} vues · ${v.likes||0} likes</div>
+              <div style="font-size:0.68rem;color:var(--text-muted);">${(v.views||0).toLocaleString()} vues · Note ${(v.rating||5.0).toFixed(1)}/5</div>
             </div>
           </div>
         `).join('')}</div>`

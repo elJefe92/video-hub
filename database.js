@@ -32,6 +32,7 @@ const defaultData = {
     { id: "all", name: "Tous les flux", icon: "", isSystem: true, description: "Flux général de toutes les vidéos" }
   ],
   videos: [],
+  comments: [],
   reports: [],
   contactMessages: [],
   logs: [
@@ -68,6 +69,7 @@ function normalizeData(db) {
   if (!Array.isArray(db.users)) db.users = [];
   if (!Array.isArray(db.categories)) db.categories = [];
   if (!Array.isArray(db.videos)) db.videos = [];
+  if (!Array.isArray(db.comments)) db.comments = [];
   if (!Array.isArray(db.reports)) db.reports = [];
   if (!Array.isArray(db.contactMessages)) db.contactMessages = [];
   if (!Array.isArray(db.messages)) db.messages = [];
@@ -93,6 +95,22 @@ function normalizeData(db) {
     if (!v.categories || !Array.isArray(v.categories)) {
       v.categories = v.category ? [v.category] : [];
     }
+  });
+
+  // Centralize all comments into db.comments and sync with videos
+  const commentMap = new Map();
+  (db.comments || []).forEach(c => { if (c.id) commentMap.set(c.id, c); });
+  (db.videos || []).forEach(v => {
+    (v.comments || []).forEach(c => {
+      if (c.id && !commentMap.has(c.id)) {
+        if (!c.videoId) c.videoId = v.id;
+        commentMap.set(c.id, c);
+      }
+    });
+  });
+  db.comments = Array.from(commentMap.values());
+  db.videos.forEach(v => {
+    v.comments = db.comments.filter(c => c.videoId === v.id);
   });
 
   return db;
@@ -144,15 +162,29 @@ function mergeDbStates(local, remote) {
   (remote.messages || []).forEach(m => { if (m.id) directMessagesMap.set(m.id, m); });
   (local.messages || []).forEach(m => { if (m.id) directMessagesMap.set(m.id, m); });
 
+  // Merge comments uniquely by ID
+  const commentMap = new Map();
+  (remote.comments || []).forEach(c => { if (c.id) commentMap.set(c.id, c); });
+  (local.comments || []).forEach(c => { if (c.id) commentMap.set(c.id, c); });
+  (remote.videos || []).forEach(v => { (v.comments || []).forEach(c => { if (c.id) commentMap.set(c.id, c); }); });
+  (local.videos || []).forEach(v => { (v.comments || []).forEach(c => { if (c.id) commentMap.set(c.id, c); }); });
+  const allComments = Array.from(commentMap.values());
+
+  const mergedVideos = Array.from(videoMap.values()).map(v => ({
+    ...v,
+    comments: allComments.filter(c => c.videoId === v.id)
+  }));
+
   return {
     ...remote,
     ...local,
     users: Array.from(userMap.values()),
-    videos: Array.from(videoMap.values()),
+    videos: mergedVideos,
     categories: Array.from(catMap.values()),
     reports: Array.from(reportMap.values()),
     contactMessages: Array.from(contactMap.values()),
-    messages: Array.from(directMessagesMap.values())
+    messages: Array.from(directMessagesMap.values()),
+    comments: allComments
   };
 }
 
