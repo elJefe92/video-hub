@@ -1268,11 +1268,16 @@ async function openVideoPlayerModal(videoId) {
       fitBtn.classList.remove('active');
     }
 
-    player.onloadedmetadata = () => {
-      if (container && player.videoHeight > player.videoWidth) {
-        container.classList.add('portrait-mode');
+    const checkOrientation = () => {
+      if (container && player.videoHeight && player.videoWidth) {
+        if (player.videoHeight > player.videoWidth) {
+          container.classList.add('portrait-mode');
+        } else {
+          container.classList.remove('portrait-mode');
+        }
       }
     };
+    player.onloadedmetadata = checkOrientation;
 
     let playUrl = video.videoUrl;
     if (playUrl && /\.mov$/i.test(playUrl)) {

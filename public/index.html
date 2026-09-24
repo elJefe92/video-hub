@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=2.7">
+  <link rel="stylesheet" href="css/style.css?v=2.8">
   <script>
     // Vérification immédiate anti-clignotement (1h de validité)
     (function() {
@@ -1600,7 +1600,7 @@
 
       <!-- Video Player Container -->
       <div class="player-container">
-        <video id="modalVideoPlayer" controls autoplay playsinline webkit-playsinline></video>
+        <video id="modalVideoPlayer" controls autoplay playsinline webkit-playsinline preload="auto"></video>
         <!-- VIP Paywall Overlay when video is VIP Exclusive and user is non-VIP -->
         <div id="vipPaywallOverlay" class="vip-paywall-box hidden">
           <div class="vip-lock-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
@@ -2630,10 +2630,10 @@
   <div id="toastNotification" class="toast hidden"></div>
 
   <!-- SCRIPTS -->
-  <script src="js/auth.js?v=2.7"></script>
-  <script src="js/upload.js?v=2.7"></script>
-  <script src="js/vip.js?v=2.7"></script>
-  <script src="js/app.js?v=2.7"></script>
+  <script src="js/auth.js?v=2.8"></script>
+  <script src="js/upload.js?v=2.8"></script>
+  <script src="js/vip.js?v=2.8"></script>
+  <script src="js/app.js?v=2.8"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;">
