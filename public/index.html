@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=2.9">
+  <link rel="stylesheet" href="css/style.css?v=3.0">
   <script>
     // Vérification immédiate anti-clignotement (1h de validité)
     (function() {
@@ -1624,10 +1624,6 @@
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           <span class="action-text">Partager</span>
         </button>
-        <button type="button" id="modalFitBtn" class="video-action-pill" onclick="toggleVideoFit()" title="Ajuster le format de la vidéo">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-          <span class="action-text">Ajuster</span>
-        </button>
 
         <button type="button" id="modalReportBtn" class="video-action-pill report-pill" onclick="openReportModalFromCurrentVideo()" title="Signaler cette vidéo">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
@@ -1697,13 +1693,27 @@
             <span>Espace Commentaires (<span id="modalCommentsCount">0</span>)</span>
           </div>
 
-          <!-- Formulaire Nouveau Commentaire -->
+          <!-- Invitation a se connecter si visiteur non connecte -->
+          <div id="commentAuthRequiredBox" class="comment-auth-required-box hidden">
+            <div class="comment-auth-required-text">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span>Vous devez être connecté avec un compte pour laisser un commentaire.</span>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" onclick="closeVideoModal(); switchTab('profil');">
+              Se connecter / S'inscrire
+            </button>
+          </div>
+
+          <!-- Formulaire Nouveau Commentaire (Membres connectes uniquement) -->
           <form id="modalCommentForm" class="modal-comment-form" onsubmit="handlePostComment(event)">
+            <div class="comment-user-badge-bar">
+              <img id="commentUserAvatar" src="" alt="Avatar" class="comment-user-thumb">
+              <span>Commenter en tant que <strong id="commentUserName">Membre</strong></span>
+            </div>
             <div class="comment-input-wrap">
               <textarea id="commentTextInput" class="comment-input" rows="2" placeholder="Écrire un commentaire sur cette vidéo..." required></textarea>
             </div>
             <div class="comment-submit-bar">
-              <input type="text" id="commentGuestNameInput" class="comment-guest-name" placeholder="Votre pseudo (optionnel)">
               <button type="submit" id="btnSubmitComment" class="btn btn-primary btn-sm">
                 Publier le commentaire
               </button>
@@ -2624,10 +2634,10 @@
   <div id="toastNotification" class="toast hidden"></div>
 
   <!-- SCRIPTS -->
-  <script src="js/auth.js?v=2.9"></script>
-  <script src="js/upload.js?v=2.9"></script>
-  <script src="js/vip.js?v=2.9"></script>
-  <script src="js/app.js?v=2.9"></script>
+  <script src="js/auth.js?v=3.0"></script>
+  <script src="js/upload.js?v=3.0"></script>
+  <script src="js/vip.js?v=3.0"></script>
+  <script src="js/app.js?v=3.0"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;">

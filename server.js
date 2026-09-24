@@ -1750,9 +1750,9 @@ app.get('/api/videos/:id/comments', async (req, res) => {
   res.json({ comments: comments.length > 0 ? comments : (video.comments || []) });
 });
 
-// Post a comment on a video (persisted to database and synced to cloud)
-app.post('/api/videos/:id/comments', optionalAuthenticate, async (req, res) => {
-  const { text, authorName } = req.body;
+// Post a comment on a video (AUTHENTICATED ONLY - requires account)
+app.post('/api/videos/:id/comments', authenticate, async (req, res) => {
+  const { text } = req.body;
   if (!text || !text.trim()) {
     return res.status(400).json({ error: 'Veuillez saisir un texte de commentaire valide.' });
   }
@@ -1764,18 +1764,18 @@ app.post('/api/videos/:id/comments', optionalAuthenticate, async (req, res) => {
     return res.status(404).json({ error: 'Vidéo introuvable.' });
   }
 
-  const resolvedAuthorName = (req.user ? req.user.username : (authorName || 'Visiteur')).trim();
-  const resolvedAvatar = req.user ? req.user.avatar : `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(resolvedAuthorName)}`;
+  const resolvedAuthorName = (req.user.username || 'Membre').trim();
+  const resolvedAvatar = req.user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(resolvedAuthorName)}`;
 
   const newComment = {
     id: 'comm_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
     videoId: video.id,
     videoTitle: video.title || 'Vidéo',
-    authorId: req.user ? req.user.id : null,
+    authorId: req.user.id,
     authorName: resolvedAuthorName,
     authorAvatar: resolvedAvatar,
-    isVip: Boolean(req.user && req.user.isVip),
-    isAdmin: Boolean(req.user && (req.user.role === 'admin' || req.user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com')),
+    isVip: Boolean(req.user.isVip),
+    isAdmin: Boolean(req.user.role === 'admin' || req.user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com'),
     text: text.trim(),
     createdAt: new Date().toISOString()
   };

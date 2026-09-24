@@ -1231,16 +1231,24 @@ async function openVideoPlayerModal(videoId) {
   // Load Comments
   loadVideoComments(video.id);
 
-  // Pre-fill user name in comment form if logged in
-  const guestNameInput = document.getElementById('commentGuestNameInput');
-  if (guestNameInput) {
-    if (AUTH.isLoggedIn()) {
-      guestNameInput.value = AUTH.user.username;
-      guestNameInput.disabled = true;
-    } else {
-      guestNameInput.value = '';
-      guestNameInput.disabled = false;
+  // Comment section: Require account
+  const commentAuthBox = document.getElementById('commentAuthRequiredBox');
+  const commentForm = document.getElementById('modalCommentForm');
+  const commentUserAvatar = document.getElementById('commentUserAvatar');
+  const commentUserName = document.getElementById('commentUserName');
+
+  if (AUTH.isLoggedIn()) {
+    if (commentAuthBox) commentAuthBox.classList.add('hidden');
+    if (commentForm) commentForm.classList.remove('hidden');
+    if (commentUserAvatar) {
+      commentUserAvatar.src = AUTH.user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(AUTH.user.username || 'User')}`;
     }
+    if (commentUserName) {
+      commentUserName.textContent = AUTH.user.username || 'Membre';
+    }
+  } else {
+    if (commentAuthBox) commentAuthBox.classList.remove('hidden');
+    if (commentForm) commentForm.classList.add('hidden');
   }
 
   // Check VIP Exclusive paywall lock
@@ -1259,10 +1267,6 @@ async function openVideoPlayerModal(videoId) {
     const container = player.closest('.player-container');
     if (container) {
       container.classList.remove('portrait-mode', 'fit-cover');
-    }
-    const fitBtn = document.getElementById('modalFitBtn');
-    if (fitBtn) {
-      fitBtn.classList.remove('active');
     }
 
     const checkOrientation = () => {
@@ -1504,33 +1508,40 @@ async function loadVideoComments(videoId) {
   }
 }
 
-// Post a new comment
+// Post a new comment (account required)
 async function handlePostComment(e) {
   e.preventDefault();
   if (!currentPlayingVideo) return;
 
+  if (!AUTH.isLoggedIn()) {
+    showToast('Vous devez être connecté avec un compte pour publier un commentaire.');
+    if (typeof closeVideoModal === 'function') closeVideoModal();
+    if (typeof switchTab === 'function') switchTab('profil');
+    return;
+  }
+
   const textInput = document.getElementById('commentTextInput');
-  const guestNameInput = document.getElementById('commentGuestNameInput');
   const btnSubmit = document.getElementById('btnSubmitComment');
 
   const text = textInput ? textInput.value.trim() : '';
-  const authorName = guestNameInput ? guestNameInput.value.trim() : '';
 
   if (!text) {
-    showToast('Veuillez saisir un commentaire.');
+    showToast('Veuillez saisir votre commentaire.');
     return;
   }
 
   if (btnSubmit) btnSubmit.disabled = true;
 
   try {
-    const headers = { 'Content-Type': 'application/json' };
-    if (AUTH.token) headers['Authorization'] = `Bearer ${AUTH.token}`;
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${AUTH.token}`
+    };
 
     const res = await fetch(`/api/videos/${currentPlayingVideo.id}/comments`, {
       method: 'POST',
       headers: headers,
-      body: JSON.stringify({ text, authorName })
+      body: JSON.stringify({ text })
     });
 
     const data = await res.json();
@@ -2121,27 +2132,10 @@ function closeVideoModal(e) {
       container.classList.remove('portrait-mode', 'fit-cover');
     }
   }
-  const fitBtn = document.getElementById('modalFitBtn');
-  if (fitBtn) {
-    fitBtn.classList.remove('active');
-  }
   if (paywallOverlay) paywallOverlay.classList.add('hidden');
   if (modal) modal.classList.add('hidden');
   document.body.style.overflow = '';
   currentPlayingVideo = null;
-}
-
-function toggleVideoFit() {
-  const player = document.getElementById('modalVideoPlayer');
-  if (!player) return;
-  const container = player.closest('.player-container');
-  if (!container) return;
-  const isCover = container.classList.toggle('fit-cover');
-  const fitBtn = document.getElementById('modalFitBtn');
-  if (fitBtn) {
-    fitBtn.classList.toggle('active', isCover);
-  }
-  showToast(isCover ? 'Format : Remplir l\'ecran' : 'Format : Adapter au cadre');
 }
 
 async function shareCurrentVideo() {
