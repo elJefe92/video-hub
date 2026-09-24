@@ -1176,8 +1176,8 @@ async function openVideoPlayerModal(videoId) {
     const isFav = isFavorite(video.id);
     modalFavBtn.classList.toggle('active', isFav);
     modalFavBtn.innerHTML = `
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="${isFav ? '#ef4444' : 'none'}" stroke="${isFav ? '#ef4444' : 'currentColor'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-      <span class="action-text">${isFav ? 'Ajouté' : 'Favori'}</span>
+      <svg class="action-icon" viewBox="0 0 24 24" width="17" height="17" fill="${isFav ? '#ef4444' : 'none'}" stroke="${isFav ? '#ef4444' : 'currentColor'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      <span class="action-text">${isFav ? 'Enregistré' : 'Favori'}</span>
     `;
   }
 
@@ -1185,7 +1185,8 @@ async function openVideoPlayerModal(videoId) {
     dateEl.textContent = formatTimeAgo(video.createdAt);
   }
   if (viewsEl) {
-    viewsEl.textContent = `${(video.views || 1).toLocaleString()} vues`;
+    const vCount = video.views || 1;
+    viewsEl.textContent = `${vCount.toLocaleString()} ${vCount > 1 ? 'vues' : 'vue'}`;
   }
   if (regionEl) {
     regionEl.textContent = `${video.region || 'France'}`;
@@ -1328,7 +1329,7 @@ function openAdminEditModalFromPlayingVideo() {
   openAdminEditModal(currentPlayingVideo.id);
 }
 
-// ==================== 5-STAR RATING CONTROLLER ====================
+// ==================== 5-STAR RATING CONTROLLER (SVG Vectoriel) ====================
 let myActiveRating = 0;
 
 function updateRatingUI(rating, count, videoId) {
@@ -1336,14 +1337,17 @@ function updateRatingUI(rating, count, videoId) {
   const countEl = document.getElementById('modalRatingCount');
   const metaRatingEl = document.getElementById('modalVideoRatingMeta');
 
-  const rounded = (rating || 5.0).toFixed(1);
+  const numRating = (typeof rating === 'number' && !isNaN(rating)) ? rating : 5.0;
+  const numCount = (typeof count === 'number' && !isNaN(count)) ? count : 1;
+  const rounded = numRating.toFixed(1);
+
   if (scoreEl) scoreEl.textContent = rounded;
-  if (countEl) countEl.textContent = `(${count || 1} avis)`;
-  if (metaRatingEl) metaRatingEl.textContent = ` ${rounded} / 5 (${count || 1})`;
+  if (countEl) countEl.textContent = `(${numCount} avis)`;
+  if (metaRatingEl) metaRatingEl.textContent = `${rounded} / 5`;
 
   // Check if user already rated this video in localStorage
   const storedRating = localStorage.getItem('rated_video_' + videoId);
-  myActiveRating = storedRating ? parseInt(storedRating, 10) : Math.round(rating || 5);
+  myActiveRating = storedRating ? parseInt(storedRating, 10) : Math.round(numRating);
   renderActiveStars(myActiveRating);
 }
 
@@ -1351,10 +1355,19 @@ function renderActiveStars(val) {
   const stars = document.querySelectorAll('#modalRatingStars .star-btn');
   stars.forEach(star => {
     const starVal = parseInt(star.getAttribute('data-val'), 10);
+    const svg = star.querySelector('svg');
     if (starVal <= val) {
       star.classList.add('active-star');
+      if (svg) {
+        svg.setAttribute('fill', '#f59e0b');
+        svg.setAttribute('stroke', '#f59e0b');
+      }
     } else {
       star.classList.remove('active-star');
+      if (svg) {
+        svg.setAttribute('fill', 'rgba(255, 255, 255, 0.08)');
+        svg.setAttribute('stroke', '#64748b');
+      }
     }
   });
 }
@@ -1363,10 +1376,19 @@ function hoverStar(val) {
   const stars = document.querySelectorAll('#modalRatingStars .star-btn');
   stars.forEach(star => {
     const starVal = parseInt(star.getAttribute('data-val'), 10);
+    const svg = star.querySelector('svg');
     if (starVal <= val) {
       star.classList.add('hovered');
+      if (svg) {
+        svg.setAttribute('fill', '#fbbf24');
+        svg.setAttribute('stroke', '#fbbf24');
+      }
     } else {
       star.classList.remove('hovered');
+      if (svg) {
+        svg.setAttribute('fill', 'rgba(255, 255, 255, 0.08)');
+        svg.setAttribute('stroke', '#64748b');
+      }
     }
   });
 }
@@ -1405,6 +1427,13 @@ async function rateCurrentVideo(val) {
     if (itemInList) {
       itemInList.rating = data.rating;
       itemInList.ratingCount = data.ratingCount;
+    }
+
+    const feedbackEl = document.getElementById('modalRatingFeedback');
+    if (feedbackEl) {
+      feedbackEl.textContent = `Votre note de ${val}/5 a été enregistrée avec succès !`;
+      feedbackEl.classList.add('visible');
+      setTimeout(() => feedbackEl.classList.remove('visible'), 4000);
     }
 
     showToast(data.message || `Note de ${val}/5 enregistrée !`);
@@ -2159,6 +2188,21 @@ async function shareCurrentVideo() {
     } catch (e) {}
   }
   prompt('Copiez le lien de la vidéo :', url);
+}
+
+function toggleVideoFit() {
+  const container = document.querySelector('.player-container');
+  if (!container) return;
+  const isCover = container.classList.toggle('fit-cover');
+  const btn = document.getElementById('modalFitBtn');
+  if (btn) {
+    btn.classList.toggle('active', isCover);
+    const btnText = btn.querySelector('.action-text');
+    if (btnText) {
+      btnText.textContent = isCover ? 'Adapté' : 'Format';
+    }
+  }
+  showToast(isCover ? 'Format plein écran actif' : 'Format adapté (16:9)');
 }
 
 async function likeCurrentVideo() {
@@ -4673,8 +4717,8 @@ function updateFavoriteButtonsUI(videoId, isFav) {
     btn.classList.toggle('active', isFav);
     if (btn.id === 'modalFavBtn') {
       btn.innerHTML = `
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="${isFav ? '#ef4444' : 'none'}" stroke="${isFav ? '#ef4444' : 'currentColor'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        <span class="action-text">${isFav ? 'Ajouté' : 'Favori'}</span>
+        <svg class="action-icon" viewBox="0 0 24 24" width="17" height="17" fill="${isFav ? '#ef4444' : 'none'}" stroke="${isFav ? '#ef4444' : 'currentColor'}" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <span class="action-text">${isFav ? 'Enregistré' : 'Favori'}</span>
       `;
     } else {
       btn.innerHTML = `
