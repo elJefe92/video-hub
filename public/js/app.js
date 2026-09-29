@@ -1222,6 +1222,15 @@ function formatTimeAgo(dateStr) {
 }
 
 // Video Player Modal with VIP Paywall check & Rich Details (Tags, Similar, Comments)
+function getVoterSessionId() {
+  let sid = localStorage.getItem('videohub_voter_session');
+  if (!sid) {
+    sid = 'ses_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+    localStorage.setItem('videohub_voter_session', sid);
+  }
+  return sid;
+}
+
 async function openVideoPlayerModal(videoId) {
   let video = (allVideosList || []).find(v => v.id === videoId);
   if (!video && window.adminVideosList) {
@@ -1230,15 +1239,30 @@ async function openVideoPlayerModal(videoId) {
   if (!video && typeof allAdminOnlineVideos !== 'undefined') {
     video = allAdminOnlineVideos.find(v => v.id === videoId);
   }
-  if (!video) {
-    try {
-      const res = await fetch(`/api/videos/${encodeURIComponent(videoId)}`);
-      if (res.ok) {
-        const data = await res.json();
-        video = data.video;
+
+  // Fetch or refresh video to get up-to-date rating and voter rating
+  const sid = getVoterSessionId();
+  try {
+    const headers = {};
+    if (AUTH && AUTH.isLoggedIn() && AUTH.token) {
+      headers['Authorization'] = `Bearer ${AUTH.token}`;
+    }
+    if (sid) {
+      headers['x-voter-session'] = sid;
+    }
+    const res = await fetch(`/api/videos/${encodeURIComponent(videoId)}?sessionId=${encodeURIComponent(sid)}`, { headers });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.video) {
+        video = video ? { ...video, ...data.video } : data.video;
+        const idx = (allVideosList || []).findIndex(v => v.id === videoId);
+        if (idx !== -1) {
+          allVideosList[idx] = { ...allVideosList[idx], ...video };
+        }
       }
-    } catch (e) {}
-  }
+    }
+  } catch (e) {}
+
   if (!video) {
     showToast('Vidéo introuvable.');
     return;
@@ -1467,13 +1491,25 @@ function updateRatingUI(rating, count, videoId, ratingsMap = null, directUserRat
   if (metaRatingEl) metaRatingEl.textContent = `${rounded} / 5`;
 
   let userVote = null;
+  const sid = getVoterSessionId();
+
   if (directUserRating !== undefined && directUserRating !== null) {
     userVote = parseFloat(directUserRating);
   } else if (AUTH && AUTH.isLoggedIn() && AUTH.user) {
-    if (ratingsMap && ratingsMap[AUTH.user.id] !== undefined) {
+    if (ratingsMap && ratingsMap['u_' + AUTH.user.id] !== undefined) {
+      userVote = parseFloat(ratingsMap['u_' + AUTH.user.id]);
+    } else if (ratingsMap && ratingsMap[AUTH.user.id] !== undefined) {
       userVote = parseFloat(ratingsMap[AUTH.user.id]);
     } else {
       const stored = localStorage.getItem(`rated_video_${videoId}_${AUTH.user.id}`) || localStorage.getItem(`rated_video_${videoId}`);
+      if (stored) userVote = parseFloat(stored);
+    }
+  } else {
+    // Visitor / guest not logged in
+    if (ratingsMap && ratingsMap['s_' + sid] !== undefined) {
+      userVote = parseFloat(ratingsMap['s_' + sid]);
+    } else {
+      const stored = localStorage.getItem(`rated_video_${videoId}`);
       if (stored) userVote = parseFloat(stored);
     }
   }
@@ -1545,26 +1581,54 @@ async function rateCurrentVideo(val) {
   if (!currentPlayingVideo) return;
   if (isSubmittingRating) return;
 
-  if (!AUTH.isLoggedIn()) {
-    showToast('Veuillez vous connecter pour noter cette vidéo.');
-    switchTab('profil');
+  const videoId = currentPlayingVideo.id;
+  const sid = getVoterSessionId();
+
+  // Check if voter already gave this exact note
+  let currentVote = null;
+  if (AUTH && AUTH.isLoggedIn() && AUTH.user) {
+    const stored = localStorage.getItem(`rated_video_${videoId}_${AUTH.user.id}`) || localStorage.getItem(`rated_video_${videoId}`);
+    if (stored) currentVote = parseFloat(stored);
+    else if (currentPlayingVideo.ratings && currentPlayingVideo.ratings['u_' + AUTH.user.id] !== undefined) {
+      currentVote = parseFloat(currentPlayingVideo.ratings['u_' + AUTH.user.id]);
+    } else if (currentPlayingVideo.ratings && currentPlayingVideo.ratings[AUTH.user.id] !== undefined) {
+      currentVote = parseFloat(currentPlayingVideo.ratings[AUTH.user.id]);
+    }
+  } else {
+    const stored = localStorage.getItem(`rated_video_${videoId}`);
+    if (stored) currentVote = parseFloat(stored);
+    else if (currentPlayingVideo.ratings && currentPlayingVideo.ratings['s_' + sid] !== undefined) {
+      currentVote = parseFloat(currentPlayingVideo.ratings['s_' + sid]);
+    }
+  }
+
+  if (currentVote === null && currentPlayingVideo.userRating !== undefined && currentPlayingVideo.userRating !== null) {
+    currentVote = parseFloat(currentPlayingVideo.userRating);
+  }
+
+  if (currentVote === val) {
+    showToast(`Vous avez déjà attribué la note de ${val}/5 à cette vidéo.`);
     return;
   }
 
-  const videoId = currentPlayingVideo.id;
   isSubmittingRating = true;
 
   const starsContainer = document.getElementById('modalRatingStars');
   if (starsContainer) starsContainer.style.pointerEvents = 'none';
 
   try {
-    const res = await fetch(`/api/videos/${videoId}/rate`, {
+    const headers = {
+      'Content-Type': 'application/json',
+      'x-voter-session': sid
+    };
+    if (AUTH && AUTH.isLoggedIn() && AUTH.token) {
+      headers['Authorization'] = `Bearer ${AUTH.token}`;
+    }
+
+    const res = await fetch(`/api/videos/${encodeURIComponent(videoId)}/rate`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${AUTH.token}`
-      },
-      body: JSON.stringify({ rating: val })
+      headers,
+      body: JSON.stringify({ rating: val, sessionId: sid })
     });
 
     const data = await res.json();
@@ -1574,12 +1638,14 @@ async function rateCurrentVideo(val) {
     }
 
     myActiveRating = val;
-    if (AUTH.user) {
-      localStorage.setItem(`rated_video_${videoId}_${AUTH.user.id}`, val);
+    localStorage.setItem(`rated_video_${videoId}`, val.toString());
+    if (AUTH && AUTH.isLoggedIn() && AUTH.user) {
+      localStorage.setItem(`rated_video_${videoId}_${AUTH.user.id}`, val.toString());
     }
 
     if (!currentPlayingVideo.ratings) currentPlayingVideo.ratings = {};
-    if (AUTH.user) currentPlayingVideo.ratings[AUTH.user.id] = val;
+    const voterMapKey = (AUTH && AUTH.isLoggedIn() && AUTH.user) ? ('u_' + AUTH.user.id) : ('s_' + sid);
+    currentPlayingVideo.ratings[voterMapKey] = val;
     currentPlayingVideo.rating = data.rating;
     currentPlayingVideo.ratingCount = data.ratingCount;
     currentPlayingVideo.userRating = val;
@@ -1587,7 +1653,7 @@ async function rateCurrentVideo(val) {
     const itemInList = (allVideosList || []).find(x => x.id === videoId);
     if (itemInList) {
       if (!itemInList.ratings) itemInList.ratings = {};
-      if (AUTH.user) itemInList.ratings[AUTH.user.id] = val;
+      itemInList.ratings[voterMapKey] = val;
       itemInList.rating = data.rating;
       itemInList.ratingCount = data.ratingCount;
       itemInList.userRating = val;

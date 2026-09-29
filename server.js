@@ -1487,9 +1487,20 @@ app.get('/api/videos/:id', optionalAuthenticate, async (req, res) => {
   const video = (db.videos || []).find(v => v.id === req.params.id);
   if (!video) return res.status(404).json({ error: 'Vidéo introuvable.' });
 
-  // Enrich with creator badge and current user's rating
+  // Enrich with creator badge and voter's existing rating (by user ID or session)
   const author = video.authorId ? (db.users || []).find(u => u.id === video.authorId) : null;
-  const userRating = (req.user && video.ratings) ? (video.ratings[req.user.id] ?? null) : null;
+  const rawSession = (req.query.sessionId || req.headers['x-voter-session'] || '').toString().trim().slice(0, 64);
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  const voterKey = req.user ? ('u_' + req.user.id) : (rawSession ? ('s_' + rawSession) : ('ip_' + clientIp));
+  let userRating = null;
+  if (video.ratings) {
+    if (video.ratings[voterKey] !== undefined) {
+      userRating = video.ratings[voterKey];
+    } else if (req.user && video.ratings[req.user.id] !== undefined) {
+      userRating = video.ratings[req.user.id];
+    }
+  }
+
   res.json({
     video: {
       ...video,
@@ -1711,8 +1722,8 @@ app.post('/api/admin/videos/:id/toggle-vip-exclusive', requireAdmin, (req, res) 
   });
 });
 
-// Rate video (1 to 5 stars - Authenticated only, 1 vote per user)
-app.post('/api/videos/:id/rate', authenticate, async (req, res) => {
+// Rate video (1 to 5 stars - Open to all visitors, strictly 1 vote per session or user)
+app.post('/api/videos/:id/rate', optionalAuthenticate, async (req, res) => {
   const ratingValue = parseFloat(req.body.rating);
   if (isNaN(ratingValue) || ratingValue < 1 || ratingValue > 5) {
     return res.status(400).json({ error: 'La note doit être comprise entre 1 et 5 étoiles.' });
@@ -1725,12 +1736,20 @@ app.post('/api/videos/:id/rate', authenticate, async (req, res) => {
     return res.status(404).json({ error: 'Vidéo introuvable.' });
   }
 
-  const userId = req.user.id;
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  const rawSession = (req.body.sessionId || req.headers['x-voter-session'] || '').toString().trim().slice(0, 64);
+  const voterKey = req.user ? ('u_' + req.user.id) : (rawSession ? ('s_' + rawSession) : ('ip_' + clientIp));
+
   if (!video.ratings || typeof video.ratings !== 'object') {
     video.ratings = {};
   }
 
-  const existingRating = video.ratings[userId];
+  let existingRating = video.ratings[voterKey];
+  let legacyKey = null;
+  if (existingRating === undefined && req.user && video.ratings[req.user.id] !== undefined) {
+    existingRating = video.ratings[req.user.id];
+    legacyKey = req.user.id;
+  }
 
   if (existingRating !== undefined) {
     if (existingRating === ratingValue) {
@@ -1743,9 +1762,12 @@ app.post('/api/videos/:id/rate', authenticate, async (req, res) => {
       });
     }
 
-    // User is modifying their existing vote: ratingCount DOES NOT CHANGE!
+    // Voter is modifying their existing vote: ratingCount DOES NOT CHANGE!
     const oldRating = existingRating;
-    video.ratings[userId] = ratingValue;
+    if (legacyKey && legacyKey !== voterKey) {
+      delete video.ratings[legacyKey];
+    }
+    video.ratings[voterKey] = ratingValue;
     const currentSum = (typeof video.ratingSum === 'number' && !isNaN(video.ratingSum))
       ? video.ratingSum
       : (video.rating ? video.rating * (video.ratingCount || 1) : oldRating);
@@ -1766,8 +1788,8 @@ app.post('/api/videos/:id/rate', authenticate, async (req, res) => {
     });
   }
 
-  // First vote by this user on this video
-  video.ratings[userId] = ratingValue;
+  // First vote by this session / user on this video
+  video.ratings[voterKey] = ratingValue;
   video.ratingCount = (video.ratingCount || 0) + 1;
   const currentSum = (typeof video.ratingSum === 'number' && !isNaN(video.ratingSum))
     ? video.ratingSum
