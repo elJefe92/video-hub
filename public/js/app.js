@@ -890,12 +890,67 @@ function renderVideoCard(v) {
   `;
 }
 
-// Category-Only Search Engine (Deduplicated & Smart Filter)
+// ==================== SMART RELEVANCE SEARCH ENGINE ====================
 let categorySearchDebounce = null;
+
+function normalizeSearchText(str) {
+  if (!str) return '';
+  return str
+    .toString()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+function scoreSearchMatch(query, targetText, isTitle = false) {
+  const q = normalizeSearchText(query);
+  const t = normalizeSearchText(targetText);
+  if (!q || !t) return 0;
+
+  // 1. Exact match
+  if (t === q) return 100;
+
+  // 2. Starts with query (Prefix match)
+  if (t.startsWith(q)) {
+    return (isTitle ? 90 : 85) - Math.min(20, t.length - q.length);
+  }
+
+  // 3. Word boundary prefix match
+  const words = t.split(/[\s\-_\/]+/);
+  for (let i = 0; i < words.length; i++) {
+    if (words[i].startsWith(q)) {
+      return (isTitle ? 75 : 70) - Math.min(15, words[i].length - q.length) - (i * 3);
+    }
+  }
+
+  // 4. Substring match ONLY if query length >= 4
+  // Prevents short queries (like "se") from matching "baise" or "francaise"
+  if (q.length >= 4 && t.includes(q)) {
+    return isTitle ? 30 : 20;
+  }
+
+  return 0;
+}
+
+function highlightSearchMatch(text, query) {
+  if (!text) return '';
+  if (!query) return escapeHtml(text);
+  const normText = normalizeSearchText(text);
+  const normQuery = normalizeSearchText(query);
+  const idx = normText.indexOf(normQuery);
+  if (idx === -1) return escapeHtml(text);
+  const before = text.substring(0, idx);
+  const match = text.substring(idx, idx + normQuery.length);
+  const after = text.substring(idx + normQuery.length);
+  return `${escapeHtml(before)}<strong style="color:var(--primary);text-decoration:underline;">${escapeHtml(match)}</strong>${escapeHtml(after)}`;
+}
+
 function handleCategorySearch(val) {
   clearTimeout(categorySearchDebounce);
   const dropdown = document.getElementById('categorySearchSuggestions');
-  const query = (val || '').trim().toLowerCase();
+  const rawQuery = (val || '').trim();
+  const query = rawQuery.startsWith('#') ? rawQuery.slice(1).trim() : rawQuery;
 
   if (!query) {
     if (dropdown) dropdown.classList.add('hidden');
@@ -904,42 +959,95 @@ function handleCategorySearch(val) {
   }
 
   categorySearchDebounce = setTimeout(() => {
-    // Unique categories deduplicated
-    const seen = new Set();
-    const matches = allCategoriesList.filter(c => {
-      if (c.id === 'all') return false;
-      const key = (c.name || '').trim().toLowerCase();
-      if (!key || seen.has(key)) return false;
-      if (key.includes(query)) {
-        seen.add(key);
-        return true;
+    // 1. Score and rank categories
+    const seenCat = new Set();
+    const scoredCategories = [];
+    (allCategoriesList || []).forEach(c => {
+      if (c.id === 'all') return;
+      const key = (c.name || '').trim();
+      if (!key) return;
+      const normKey = normalizeSearchText(key);
+      if (seenCat.has(normKey)) return;
+
+      const score = scoreSearchMatch(query, key, false);
+      if (score > 0) {
+        seenCat.add(normKey);
+        scoredCategories.push({ cat: c, score });
       }
-      return false;
     });
 
+    scoredCategories.sort((a, b) => b.score - a.score);
+    const topCategories = scoredCategories.slice(0, 5).map(x => x.cat);
+
+    // 2. Score and rank videos
+    const seenVid = new Set();
+    const scoredVideos = [];
+    (allVideosList || []).forEach(v => {
+      if (!v.id || seenVid.has(v.id)) return;
+      const titleScore = scoreSearchMatch(query, v.title, true);
+      let catScore = 0;
+      const cats = (v.categories && Array.isArray(v.categories)) ? v.categories : [v.category];
+      for (const c of cats) {
+        const catObj = (allCategoriesList || []).find(x => x.id === c);
+        const name = catObj ? catObj.name : c;
+        const s = scoreSearchMatch(query, name, false);
+        if (s > catScore) catScore = s;
+      }
+      const finalScore = Math.max(titleScore, catScore * 0.8);
+      if (finalScore > 0) {
+        seenVid.add(v.id);
+        scoredVideos.push({ video: v, score: finalScore });
+      }
+    });
+
+    scoredVideos.sort((a, b) => b.score - a.score);
+    const topVideos = scoredVideos.slice(0, 3).map(x => x.video);
+
+    // 3. Render smart dropdown suggestions
     if (dropdown) {
-      if (matches.length === 0) {
-        dropdown.innerHTML = `<div class="cat-suggestion-item" style="color:var(--text-muted);">Aucune catégorie correspondant à "${val}"</div>`;
+      if (topCategories.length === 0 && topVideos.length === 0) {
+        dropdown.innerHTML = `
+          <div class="cat-suggestion-empty" style="padding:12px;text-align:center;color:var(--text-muted);font-size:0.85rem;">
+            Aucun résultat pertinent pour "<strong>${escapeHtml(query)}</strong>"
+          </div>
+        `;
         dropdown.classList.remove('hidden');
       } else {
-        dropdown.innerHTML = matches.map(c => `
-          <div class="cat-suggestion-item" onclick="selectCategoryFromSearch('${c.id}')">
-            <span>#${c.name}</span>
-            <span class="cat-suggestion-count">Catégorie</span>
-          </div>
-        `).join('');
+        let html = '';
+        if (topCategories.length > 0) {
+          html += `<div class="cat-suggestion-header" style="font-size:0.72rem;font-weight:800;text-transform:uppercase;color:var(--text-muted);padding:6px 12px 4px;border-bottom:1px solid var(--border-color);margin-bottom:2px;">Catégories pertinentes</div>`;
+          html += topCategories.map(c => `
+            <div class="cat-suggestion-item" onclick="selectCategoryFromSearch('${escapeHtml(c.id)}')">
+              <span style="display:flex;align-items:center;gap:6px;">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"/></svg>
+                #${highlightSearchMatch(c.name, query)}
+              </span>
+              <span class="cat-suggestion-count">Catégorie</span>
+            </div>
+          `).join('');
+        }
+
+        if (topVideos.length > 0) {
+          html += `<div class="cat-suggestion-header" style="font-size:0.72rem;font-weight:800;text-transform:uppercase;color:var(--text-muted);padding:8px 12px 4px;border-bottom:1px solid var(--border-color);margin-top:4px;margin-bottom:2px;">Vidéos correspondantes</div>`;
+          html += topVideos.map(v => `
+            <div class="cat-suggestion-item" onclick="selectVideoFromSearch('${escapeHtml(v.id)}')">
+              <span style="display:flex;align-items:center;gap:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px;">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="var(--primary)" stroke="var(--primary)" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                ${highlightSearchMatch(v.title, query)}
+              </span>
+              <span class="cat-suggestion-count">${(v.views || 0)} vues</span>
+            </div>
+          `).join('');
+        }
+
+        dropdown.innerHTML = html;
         dropdown.classList.remove('hidden');
       }
     }
 
-    // Filter video grid by matched category IDs
-    const matchedIds = matches.map(m => m.id);
-    if (matchedIds.length > 0) {
-      filterVideosByCategoryIds(matchedIds);
-    } else {
-      loadVideos('', query);
-    }
-  }, 200);
+    // 4. Synchronize feed with top ranked matches
+    filterVideosBySmartSearch(query, topCategories.map(c => c.id));
+  }, 150);
 }
 
 function selectCategoryFromSearch(catId) {
@@ -947,8 +1055,64 @@ function selectCategoryFromSearch(catId) {
   if (dropdown) dropdown.classList.add('hidden');
   const cat = allCategoriesList.find(c => c.id === catId);
   const input = document.getElementById('globalSearchInput');
-  if (input && cat) input.value = cat.name;
+  if (input && cat) input.value = `#${cat.name}`;
   quickFilterByTag(catId);
+}
+
+function selectVideoFromSearch(videoId) {
+  const dropdown = document.getElementById('categorySearchSuggestions');
+  if (dropdown) dropdown.classList.add('hidden');
+  openVideoPlayerModal(videoId);
+}
+
+function executeGlobalSearch(query) {
+  const dropdown = document.getElementById('categorySearchSuggestions');
+  if (dropdown) dropdown.classList.add('hidden');
+  const raw = (query || '').trim();
+  const q = raw.startsWith('#') ? raw.slice(1).trim() : raw;
+  if (!q) {
+    loadVideos('all', '');
+    return;
+  }
+  switchTab('accueil');
+  loadVideos('', q);
+}
+
+function filterVideosBySmartSearch(query, matchedCatIds) {
+  const q = normalizeSearchText(query);
+  if (!q) {
+    renderVideoGrid(allVideosList);
+    return;
+  }
+
+  const scored = [];
+  for (const v of (allVideosList || [])) {
+    let score = 0;
+    const titleScore = scoreSearchMatch(query, v.title, true);
+    if (titleScore > score) score = titleScore;
+
+    const cats = (v.categories && Array.isArray(v.categories)) ? v.categories : [v.category];
+    for (const c of cats) {
+      if (matchedCatIds && matchedCatIds.includes(c)) {
+        const catIdx = matchedCatIds.indexOf(c);
+        const catScore = Math.max(score, 65 - catIdx * 4);
+        if (catScore > score) score = catScore;
+      }
+      const cScore = scoreSearchMatch(query, c, false);
+      if (cScore > score) score = cScore;
+    }
+
+    const authorScore = scoreSearchMatch(query, v.authorName, false);
+    if (authorScore > score) score = authorScore;
+
+    if (score > 0) {
+      scored.push({ video: v, score });
+    }
+  }
+
+  scored.sort((a, b) => b.score - a.score);
+  const filtered = scored.map(s => s.video);
+  renderVideoGrid(filtered);
 }
 
 function filterVideosByCategoryIds(catIds) {
@@ -5116,6 +5280,12 @@ document.addEventListener('click', (e) => {
   const bell = document.getElementById('notifBellBtn');
   if (panel && bell && !panel.contains(e.target) && !bell.contains(e.target)) {
     closeNotificationPanel();
+  }
+
+  const searchBox = document.querySelector('.search-box-wrap');
+  const searchDropdown = document.getElementById('categorySearchSuggestions');
+  if (searchDropdown && searchBox && !searchBox.contains(e.target)) {
+    searchDropdown.classList.add('hidden');
   }
 });
 

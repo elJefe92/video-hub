@@ -87,9 +87,9 @@
               <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
           </span>
-          <input type="text" id="globalSearchInput" placeholder="Rechercher une catégorie..." oninput="handleCategorySearch(this.value)" autocomplete="off">
+          <input type="text" id="globalSearchInput" placeholder="Rechercher une catégorie, vidéo, tag..." oninput="handleCategorySearch(this.value)" onfocus="if(this.value.trim()) handleCategorySearch(this.value)" onkeydown="if(event.key==='Enter') executeGlobalSearch(this.value)" autocomplete="off">
         </div>
-        <!-- Smart Category Suggestions Dropdown -->
+        <!-- Smart Search Suggestions Dropdown (Categories & Videos) -->
         <div id="categorySearchSuggestions" class="cat-suggestions-dropdown hidden"></div>
       </div>
 

@@ -302,7 +302,7 @@ body {
   color: #ffffff;
 }
 
-/* Smart Category Suggestions Dropdown */
+/* Smart Category & Video Suggestions Dropdown */
 .cat-suggestions-dropdown {
   position: absolute;
   top: calc(100% + 6px);
@@ -312,13 +312,25 @@ body {
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
-  max-height: 260px;
+  max-height: 340px;
   overflow-y: auto;
   z-index: 1300;
   padding: 6px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  scrollbar-width: thin;
+}
+
+.cat-suggestion-header {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 6px 12px 4px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 2px;
+  letter-spacing: 0.5px;
 }
 
 .cat-suggestion-item {
@@ -331,6 +343,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   transition: background 0.15s ease;
 }
 
@@ -345,6 +358,7 @@ body {
   background: var(--bg-subtle);
   padding: 2px 8px;
   border-radius: 999px;
+  flex-shrink: 0;
 }
 
 .full-width-main {

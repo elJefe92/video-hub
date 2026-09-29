@@ -1438,33 +1438,73 @@ app.get('/api/videos', (req, res) => {
     list = list.filter(v => v.region && v.region.toLowerCase() === region.toLowerCase());
   }
 
-  // Full-text search via ?q= param (also supports legacy ?search=)
-  const qParam = req.query.q || req.query.search;
+  // Optimized full-text relevance search via ?q= (also supports legacy ?search=)
+  const qParam = (req.query.q || req.query.search || '').trim();
   if (qParam) {
-    const s = qParam.toLowerCase();
-    list = list.filter(v => {
-      const titleMatch = v.title && v.title.toLowerCase().includes(s);
-      const descMatch = v.description && v.description.toLowerCase().includes(s);
-      const authorMatch = v.authorName && v.authorName.toLowerCase().includes(s);
-      const regionMatch = v.region && v.region.toLowerCase().includes(s);
-      const catMatch = (v.categories || [v.category]).some(c => (c || '').toLowerCase().includes(s));
-      return titleMatch || descMatch || authorMatch || regionMatch || catMatch;
-    });
-  }
+    const normalize = str => (str || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    const qNorm = normalize(qParam);
 
-  // Sort: recent (default), views, likes
-  const sort = req.query.sort || 'recent';
-  if (sort === 'views') {
-    list.sort((a, b) => (b.views || 0) - (a.views || 0));
-  } else if (sort === 'likes') {
-    list.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    const scoreItem = (text, isTitle = false) => {
+      const t = normalize(text);
+      if (!t || !qNorm) return 0;
+      if (t === qNorm) return isTitle ? 100 : 80;
+      if (t.startsWith(qNorm)) return (isTitle ? 85 : 65) - Math.min(15, t.length - qNorm.length);
+      const words = t.split(/[\s\-_\/]+/);
+      for (let i = 0; i < words.length; i++) {
+        if (words[i].startsWith(qNorm)) {
+          return (isTitle ? 70 : 50) - Math.min(10, words[i].length - qNorm.length) - (i * 2);
+        }
+      }
+      if (qNorm.length >= 4 && t.includes(qNorm)) {
+        return isTitle ? 30 : 15;
+      }
+      return 0;
+    };
+
+    const scored = [];
+    for (const v of list) {
+      let maxScore = 0;
+      const titleScore = scoreItem(v.title, true);
+      if (titleScore > maxScore) maxScore = titleScore;
+
+      const cats = (v.categories && Array.isArray(v.categories)) ? v.categories : [v.category];
+      for (const c of cats) {
+        const catObj = (db.categories || []).find(x => x.id === c);
+        const catName = catObj ? catObj.name : c;
+        const cScore = Math.max(scoreItem(c), scoreItem(catName));
+        if (cScore > maxScore) maxScore = cScore;
+      }
+
+      const authorScore = scoreItem(v.authorName);
+      if (authorScore > maxScore) maxScore = authorScore;
+
+      if (qNorm.length >= 4 && v.description) {
+        const descScore = scoreItem(v.description) * 0.4;
+        if (descScore > maxScore) maxScore = descScore;
+      }
+
+      if (maxScore > 0) {
+        scored.push({ video: v, score: maxScore });
+      }
+    }
+
+    scored.sort((a, b) => b.score - a.score);
+    list = scored.map(item => item.video);
   } else {
-    // Default: VIP authors first, then by date
-    list.sort((a, b) => {
-      if (a.isVipAuthor && !b.isVipAuthor) return -1;
-      if (!a.isVipAuthor && b.isVipAuthor) return 1;
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
+    // Sort: recent (default), views, likes (when no search query is specified)
+    const sort = req.query.sort || 'recent';
+    if (sort === 'views') {
+      list.sort((a, b) => (b.views || 0) - (a.views || 0));
+    } else if (sort === 'likes') {
+      list.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    } else {
+      // Default: VIP authors first, then by date
+      list.sort((a, b) => {
+        if (a.isVipAuthor && !b.isVipAuthor) return -1;
+        if (!a.isVipAuthor && b.isVipAuthor) return 1;
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+    }
   }
 
   // Enrich videos with author's creator badge
