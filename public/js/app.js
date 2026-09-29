@@ -2414,6 +2414,15 @@ function closeVideoModal(e) {
 
 const openWatchPage = openVideoPlayerModal;
 
+function toggleVideoFit() {
+  const player = document.getElementById('modalVideoPlayer');
+  if (!player) return;
+  const container = player.closest('.player-container');
+  if (!container) return;
+  const isContain = container.classList.toggle('fit-contain');
+  showToast(isContain ? 'Format original' : 'Plein cadre (bords recouverts)');
+}
+
 async function shareCurrentVideo() {
   if (!currentPlayingVideo) return;
   const url = `${window.location.origin}/video/${encodeURIComponent(currentPlayingVideo.id)}`;

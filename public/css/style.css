@@ -3576,7 +3576,7 @@ body.theme-light #videoModal .author-name-link {
   max-height: 72vh;
   background: #000000;
   display: block;
-  object-fit: contain;
+  object-fit: cover;
   margin: 0 auto;
   transition: object-fit 0.2s ease;
 }
@@ -3586,6 +3586,11 @@ body.theme-light #videoModal .author-name-link {
   max-width: 100%;
   height: 100%;
   max-height: 78vh;
+  object-fit: contain;
+}
+
+.player-container.fit-contain video {
+  object-fit: contain !important;
 }
 
 .player-container.fit-cover video {
@@ -3618,73 +3623,161 @@ body.theme-light #videoModal .author-name-link {
 
 .video-action-pill,
 #videoModal .video-action-pill,
-body.theme-light #videoModal .video-action-pill {
+.watch-action-bar .video-action-pill,
+#tab-watch .video-action-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 18px;
+  padding: 9px 18px;
   min-height: 42px;
-  background: rgba(255, 255, 255, 0.06) !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: #1e293b !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
   border-radius: 999px;
-  color: #f1f5f9 !important;
+  color: #f8fafc !important;
   font-size: 0.88rem;
   font-weight: 700;
   cursor: pointer;
   flex-shrink: 0;
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   white-space: nowrap;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.video-action-pill svg,
+.watch-action-bar .video-action-pill svg {
+  stroke: #cbd5e1;
+  transition: transform 0.2s;
 }
 
 .video-action-pill:hover,
-#videoModal .video-action-pill:hover {
-  background: rgba(255, 255, 255, 0.12) !important;
-  border-color: rgba(255, 255, 255, 0.24) !important;
+#videoModal .video-action-pill:hover,
+.watch-action-bar .video-action-pill:hover,
+#tab-watch .video-action-pill:hover {
+  background: #334155 !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
   color: #ffffff !important;
   transform: translateY(-1px);
 }
 
 .video-action-pill:active,
-#videoModal .video-action-pill:active {
+#videoModal .video-action-pill:active,
+.watch-action-bar .video-action-pill:active {
   transform: scale(0.96);
 }
 
 .video-action-pill.btn-action-fav:hover,
 .video-action-pill.btn-action-fav.active,
-#videoModal .video-action-pill.btn-action-fav.active {
-  background: rgba(239, 68, 68, 0.18) !important;
+#videoModal .video-action-pill.btn-action-fav.active,
+.watch-action-bar .video-action-pill.btn-action-fav.active {
+  background: rgba(239, 68, 68, 0.2) !important;
   border-color: #ef4444 !important;
   color: #ef4444 !important;
   box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
 }
 
+.video-action-pill.btn-action-fav.active svg,
+.video-action-pill.btn-action-fav:hover svg {
+  stroke: #ef4444 !important;
+  fill: #ef4444 !important;
+}
+
 .video-action-pill.btn-action-share:hover,
-#videoModal .video-action-pill.btn-action-share:hover {
-  background: rgba(59, 130, 246, 0.18) !important;
+#videoModal .video-action-pill.btn-action-share:hover,
+.watch-action-bar .video-action-pill.btn-action-share:hover {
+  background: rgba(59, 130, 246, 0.2) !important;
   border-color: #3b82f6 !important;
   color: #60a5fa !important;
 }
 
-.video-action-pill.btn-action-fit.active,
-#videoModal .video-action-pill.btn-action-fit.active {
-  background: rgba(16, 185, 129, 0.18) !important;
-  border-color: #10b981 !important;
-  color: #34d399 !important;
+.video-action-pill.btn-action-share:hover svg,
+.watch-action-bar .video-action-pill.btn-action-share:hover svg {
+  stroke: #60a5fa !important;
 }
 
 .video-action-pill.report-pill:hover,
-#videoModal .video-action-pill.report-pill:hover {
-  background: rgba(239, 68, 68, 0.16) !important;
+#videoModal .video-action-pill.report-pill:hover,
+.watch-action-bar .video-action-pill.report-pill:hover {
+  background: rgba(239, 68, 68, 0.18) !important;
   border-color: #ef4444 !important;
   color: #ef4444 !important;
 }
 
 .video-action-pill.admin-pill,
-#videoModal .video-action-pill.admin-pill {
-  background: rgba(168, 85, 247, 0.15) !important;
-  border-color: rgba(168, 85, 247, 0.35) !important;
+#videoModal .video-action-pill.admin-pill,
+.watch-action-bar .video-action-pill.admin-pill {
+  background: rgba(168, 85, 247, 0.2) !important;
+  border-color: rgba(168, 85, 247, 0.45) !important;
   color: #c084fc !important;
+}
+
+/* Light Mode Overrides for Action Pills */
+body.theme-light .video-action-pill,
+body.theme-light #videoModal .video-action-pill,
+body.theme-light .watch-action-bar .video-action-pill,
+body.theme-light #tab-watch .video-action-pill {
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08) !important;
+}
+
+body.theme-light .video-action-pill svg,
+body.theme-light .watch-action-bar .video-action-pill svg {
+  stroke: #334155 !important;
+}
+
+body.theme-light .video-action-pill .action-text,
+body.theme-light .watch-action-bar .video-action-pill .action-text {
+  color: #0f172a !important;
+}
+
+body.theme-light .video-action-pill:hover,
+body.theme-light #videoModal .video-action-pill:hover,
+body.theme-light .watch-action-bar .video-action-pill:hover,
+body.theme-light #tab-watch .video-action-pill:hover {
+  background: #e2e8f0 !important;
+  border-color: #94a3b8 !important;
+  color: #020617 !important;
+  transform: translateY(-1px);
+}
+
+body.theme-light .video-action-pill.btn-action-fav.active,
+body.theme-light .video-action-pill.btn-action-fav:hover,
+body.theme-light .watch-action-bar .video-action-pill.btn-action-fav.active {
+  background: #fee2e2 !important;
+  border-color: #ef4444 !important;
+  color: #dc2626 !important;
+}
+
+body.theme-light .video-action-pill.btn-action-fav.active svg,
+body.theme-light .video-action-pill.btn-action-fav:hover svg,
+body.theme-light .watch-action-bar .video-action-pill.btn-action-fav.active svg {
+  stroke: #ef4444 !important;
+  fill: #ef4444 !important;
+}
+
+body.theme-light .video-action-pill.btn-action-share:hover,
+body.theme-light .watch-action-bar .video-action-pill.btn-action-share:hover {
+  background: #e0f2fe !important;
+  border-color: #3b82f6 !important;
+  color: #0284c7 !important;
+}
+
+body.theme-light .video-action-pill.btn-action-share:hover svg,
+body.theme-light .watch-action-bar .video-action-pill.btn-action-share:hover svg {
+  stroke: #0284c7 !important;
+}
+
+body.theme-light .video-action-pill.report-pill:hover,
+body.theme-light .watch-action-bar .video-action-pill.report-pill:hover {
+  background: #fef2f2 !important;
+  border-color: #ef4444 !important;
+  color: #b91c1c !important;
+}
+
+body.theme-light .video-action-pill.report-pill:hover svg,
+body.theme-light .watch-action-bar .video-action-pill.report-pill:hover svg {
+  stroke: #ef4444 !important;
 }
 
 /* Modal Video Details Body */
@@ -3917,23 +4010,25 @@ body.theme-light #videoModal .modal-rating-score-badge {
 
 .modal-meta-pill,
 #videoModal .modal-meta-pill,
-body.theme-light #videoModal .modal-meta-pill {
+#tab-watch .modal-meta-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   font-size: 0.82rem;
   font-weight: 600;
   color: #94a3b8 !important;
-  background: rgba(255, 255, 255, 0.04) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
   padding: 6px 12px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
-.modal-meta-pill.badge-quality {
-  background: rgba(16, 185, 129, 0.1) !important;
-  border-color: rgba(16, 185, 129, 0.3) !important;
-  color: #34d399 !important;
+body.theme-light .modal-meta-pill,
+body.theme-light #videoModal .modal-meta-pill,
+body.theme-light #tab-watch .modal-meta-pill {
+  color: #334155 !important;
+  background: #f1f5f9 !important;
+  border: 1px solid #cbd5e1 !important;
 }
 
 /* Mobile Video Modal Experience (Apple HIG & Android Touch Friendly) */
@@ -4015,7 +4110,7 @@ body.theme-light #videoModal .modal-meta-pill {
     height: 100%;
     min-height: 230px;
     max-height: 48vh;
-    object-fit: contain;
+    object-fit: cover;
     background: #000000;
     display: block;
   }
@@ -4026,6 +4121,7 @@ body.theme-light #videoModal .modal-meta-pill {
     height: 100%;
     min-height: 380px;
     max-height: 70vh;
+    object-fit: contain;
   }
 
   .modal-video-action-bar,
@@ -8216,15 +8312,26 @@ button:active,
 .watch-player-container video {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   background: #000000;
   display: block;
+  transition: object-fit 0.2s ease;
 }
 
 .watch-player-container.portrait-mode video {
   width: auto;
   max-width: 100%;
   height: 100%;
+  object-fit: contain;
+}
+
+.watch-player-container.fit-contain video {
+  object-fit: contain !important;
+}
+
+body.theme-light .watch-player-container {
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(0, 0, 0, 0.12);
 }
 
 .watch-header-block {

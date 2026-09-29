@@ -1484,7 +1484,7 @@
 
           <!-- Video Player Container (Cinema Format) -->
           <div class="player-container watch-player-container">
-            <video id="modalVideoPlayer" controls autoplay playsinline webkit-playsinline preload="auto"></video>
+            <video id="modalVideoPlayer" controls autoplay playsinline webkit-playsinline preload="auto" ondblclick="toggleVideoFit()" title="Double-cliquez pour basculer le cadrage"></video>
             <!-- VIP Paywall Overlay when video is VIP Exclusive and user is non-VIP -->
             <div id="vipPaywallOverlay" class="vip-paywall-box hidden">
               <div class="vip-lock-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
@@ -1609,10 +1609,6 @@
                 <span class="modal-meta-pill">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="#f59e0b" stroke="#f59e0b"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                   <span id="modalVideoRatingMeta">5.0 / 5</span>
-                </span>
-                <span class="modal-meta-pill badge-quality">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-                  <span>HD 720p</span>
                 </span>
               </div>
 
