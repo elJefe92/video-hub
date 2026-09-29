@@ -3717,8 +3717,7 @@ body.theme-light #videoModal .modal-description {
 
 /* ==================== 5-STAR RATING SYSTEM (MODERN GLASS & SVG) ==================== */
 .modal-rating-container,
-#videoModal .modal-rating-container,
-body.theme-light #videoModal .modal-rating-container {
+#videoModal .modal-rating-container {
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -3728,6 +3727,13 @@ body.theme-light #videoModal .modal-rating-container {
   border-radius: var(--radius-lg);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   margin-bottom: 4px;
+}
+
+body.theme-light .modal-rating-container,
+body.theme-light #videoModal .modal-rating-container {
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
 }
 
 .modal-rating-top {
@@ -3745,12 +3751,16 @@ body.theme-light #videoModal .modal-rating-container {
 }
 
 .rating-label-text,
-#videoModal .rating-label-text,
-body.theme-light #videoModal .rating-label-text {
+#videoModal .rating-label-text {
   font-size: 0.94rem;
   font-weight: 700;
-  color: #ffffff !important;
+  color: var(--text-main) !important;
   letter-spacing: -0.01em;
+}
+
+body.theme-light .rating-label-text,
+body.theme-light #videoModal .rating-label-text {
+  color: #0f172a !important;
 }
 
 .modal-rating-score-badge,

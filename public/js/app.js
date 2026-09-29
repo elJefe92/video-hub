@@ -1340,7 +1340,7 @@ async function openVideoPlayerModal(videoId) {
   // Update Star Rating Display
   const currentRating = video.rating || 5.0;
   const ratingCount = video.ratingCount || 1;
-  updateRatingUI(currentRating, ratingCount, video.id);
+  updateRatingUI(currentRating, ratingCount, video.id, video.ratings, video.userRating);
 
   // Render Tags
   renderModalTags(video.categories || [video.category]);
@@ -1451,8 +1451,9 @@ function openAdminEditModalFromPlayingVideo() {
 
 // ==================== 5-STAR RATING CONTROLLER (SVG Vectoriel) ====================
 let myActiveRating = 0;
+let isSubmittingRating = false;
 
-function updateRatingUI(rating, count, videoId) {
+function updateRatingUI(rating, count, videoId, ratingsMap = null, directUserRating = null) {
   const scoreEl = document.getElementById('modalRatingScore');
   const countEl = document.getElementById('modalRatingCount');
   const metaRatingEl = document.getElementById('modalVideoRatingMeta');
@@ -1465,10 +1466,31 @@ function updateRatingUI(rating, count, videoId) {
   if (countEl) countEl.textContent = `(${numCount} avis)`;
   if (metaRatingEl) metaRatingEl.textContent = `${rounded} / 5`;
 
-  // Check if user already rated this video in localStorage
-  const storedRating = localStorage.getItem('rated_video_' + videoId);
-  myActiveRating = storedRating ? parseInt(storedRating, 10) : Math.round(numRating);
+  let userVote = null;
+  if (directUserRating !== undefined && directUserRating !== null) {
+    userVote = parseFloat(directUserRating);
+  } else if (AUTH && AUTH.isLoggedIn() && AUTH.user) {
+    if (ratingsMap && ratingsMap[AUTH.user.id] !== undefined) {
+      userVote = parseFloat(ratingsMap[AUTH.user.id]);
+    } else {
+      const stored = localStorage.getItem(`rated_video_${videoId}_${AUTH.user.id}`) || localStorage.getItem(`rated_video_${videoId}`);
+      if (stored) userVote = parseFloat(stored);
+    }
+  }
+
+  myActiveRating = userVote !== null ? Math.round(userVote) : Math.round(numRating);
   renderActiveStars(myActiveRating);
+
+  const feedbackEl = document.getElementById('modalRatingFeedback');
+  if (feedbackEl) {
+    if (userVote !== null) {
+      feedbackEl.textContent = `Votre note attribuée : ${userVote}/5. (Cliquez pour modifier)`;
+      feedbackEl.classList.add('visible');
+    } else {
+      feedbackEl.textContent = '';
+      feedbackEl.classList.remove('visible');
+    }
+  }
 }
 
 function renderActiveStars(val) {
@@ -1521,12 +1543,27 @@ function resetHoverStars() {
 
 async function rateCurrentVideo(val) {
   if (!currentPlayingVideo) return;
+  if (isSubmittingRating) return;
+
+  if (!AUTH.isLoggedIn()) {
+    showToast('Veuillez vous connecter pour noter cette vidéo.');
+    switchTab('profil');
+    return;
+  }
+
   const videoId = currentPlayingVideo.id;
+  isSubmittingRating = true;
+
+  const starsContainer = document.getElementById('modalRatingStars');
+  if (starsContainer) starsContainer.style.pointerEvents = 'none';
 
   try {
     const res = await fetch(`/api/videos/${videoId}/rate`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${AUTH.token}`
+      },
       body: JSON.stringify({ rating: val })
     });
 
@@ -1537,28 +1574,39 @@ async function rateCurrentVideo(val) {
     }
 
     myActiveRating = val;
-    localStorage.setItem('rated_video_' + videoId, val);
-    updateRatingUI(data.rating, data.ratingCount, videoId);
+    if (AUTH.user) {
+      localStorage.setItem(`rated_video_${videoId}_${AUTH.user.id}`, val);
+    }
 
-    // Update in local array
+    if (!currentPlayingVideo.ratings) currentPlayingVideo.ratings = {};
+    if (AUTH.user) currentPlayingVideo.ratings[AUTH.user.id] = val;
     currentPlayingVideo.rating = data.rating;
     currentPlayingVideo.ratingCount = data.ratingCount;
+    currentPlayingVideo.userRating = val;
+
     const itemInList = (allVideosList || []).find(x => x.id === videoId);
     if (itemInList) {
+      if (!itemInList.ratings) itemInList.ratings = {};
+      if (AUTH.user) itemInList.ratings[AUTH.user.id] = val;
       itemInList.rating = data.rating;
       itemInList.ratingCount = data.ratingCount;
+      itemInList.userRating = val;
     }
+
+    updateRatingUI(data.rating, data.ratingCount, videoId, currentPlayingVideo.ratings, val);
 
     const feedbackEl = document.getElementById('modalRatingFeedback');
     if (feedbackEl) {
-      feedbackEl.textContent = `Votre note de ${val}/5 a été enregistrée avec succès !`;
+      feedbackEl.textContent = data.message || `Votre note de ${val}/5 a été enregistrée avec succès !`;
       feedbackEl.classList.add('visible');
-      setTimeout(() => feedbackEl.classList.remove('visible'), 4000);
     }
 
     showToast(data.message || `Note de ${val}/5 enregistrée !`);
   } catch (err) {
     showToast('Impossible d\'enregistrer la note.');
+  } finally {
+    isSubmittingRating = false;
+    if (starsContainer) starsContainer.style.pointerEvents = '';
   }
 }
 

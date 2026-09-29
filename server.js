@@ -473,6 +473,27 @@ function authenticate(req, res, next) {
   }
 }
 
+// Optional Auth Helper (extracts user if valid Bearer token provided)
+function optionalAuthenticate(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const db = loadDb();
+      const user = db.users.find(u => u.id === decoded.userId);
+      if (user) {
+        if (user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com' || user.role === 'admin' || (user.username && user.username.toLowerCase() === 'administrateur')) {
+          user.role = 'admin';
+          user.isVip = true;
+        }
+        req.user = user;
+      }
+    } catch (e) {}
+  }
+  next();
+}
+
 // Middleware for Admin only
 function requireAdmin(req, res, next) {
   authenticate(req, res, () => {
@@ -1461,22 +1482,22 @@ app.get('/api/videos', (req, res) => {
 });
 
 // Single video lookup
-app.get('/api/videos/:id', async (req, res) => {
+app.get('/api/videos/:id', optionalAuthenticate, async (req, res) => {
   const db = loadDb();
   const video = (db.videos || []).find(v => v.id === req.params.id);
   if (!video) return res.status(404).json({ error: 'Vidéo introuvable.' });
 
-  // Enrich with creator badge
+  // Enrich with creator badge and current user's rating
   const author = video.authorId ? (db.users || []).find(u => u.id === video.authorId) : null;
+  const userRating = (req.user && video.ratings) ? (video.ratings[req.user.id] ?? null) : null;
   res.json({
     video: {
       ...video,
+      userRating,
       creatorBadge: author?.creatorBadge || video.creatorBadge || null
     }
   });
 });
-
-
 
 // Explorer Directory : group videos by category for fast search
 app.get('/api/explorer', (req, res) => {
@@ -1493,7 +1514,7 @@ app.get('/api/explorer', (req, res) => {
       return {
         id: c.id,
         name: c.name,
-        icon: c.icon || '️',
+        icon: c.icon || '',
         description: c.description || '',
         count: matchingVideos.length,
         videos: matchingVideos.slice(0, 6)
@@ -1505,27 +1526,6 @@ app.get('/api/explorer', (req, res) => {
     categories: categoriesWithVideos
   });
 });
-
-// Optional Auth Helper for upload
-function optionalAuthenticate(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.split(' ')[1];
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET);
-      const db = loadDb();
-      const user = db.users.find(u => u.id === decoded.userId);
-      if (user) {
-        if (user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com' || user.role === 'admin' || (user.username && user.username.toLowerCase() === 'administrateur')) {
-          user.role = 'admin';
-          user.isVip = true;
-        }
-        req.user = user;
-      }
-    } catch (e) {}
-  }
-  next();
-}
 
 app.post('/api/videos/upload', optionalAuthenticate, upload.fields([
   { name: 'videoFile', maxCount: 1 },
@@ -1711,28 +1711,78 @@ app.post('/api/admin/videos/:id/toggle-vip-exclusive', requireAdmin, (req, res) 
   });
 });
 
-// Rate video (0 to 5 stars)
-app.post('/api/videos/:id/rate', (req, res) => {
+// Rate video (1 to 5 stars - Authenticated only, 1 vote per user)
+app.post('/api/videos/:id/rate', authenticate, async (req, res) => {
   const ratingValue = parseFloat(req.body.rating);
-  if (isNaN(ratingValue) || ratingValue < 0 || ratingValue > 5) {
-    return res.status(400).json({ error: 'La note doit être comprise entre 0 et 5.' });
+  if (isNaN(ratingValue) || ratingValue < 1 || ratingValue > 5) {
+    return res.status(400).json({ error: 'La note doit être comprise entre 1 et 5 étoiles.' });
   }
 
+  await syncDbFromCloud();
   const db = loadDb();
   const video = db.videos.find(v => v.id === req.params.id);
   if (!video) {
     return res.status(404).json({ error: 'Vidéo introuvable.' });
   }
 
+  const userId = req.user.id;
+  if (!video.ratings || typeof video.ratings !== 'object') {
+    video.ratings = {};
+  }
+
+  const existingRating = video.ratings[userId];
+
+  if (existingRating !== undefined) {
+    if (existingRating === ratingValue) {
+      return res.status(200).json({
+        alreadyRated: true,
+        rating: video.rating,
+        ratingCount: video.ratingCount,
+        userRating: existingRating,
+        message: `Vous avez déjà attribué la note de ${existingRating}/5 à cette vidéo.`
+      });
+    }
+
+    // User is modifying their existing vote: ratingCount DOES NOT CHANGE!
+    const oldRating = existingRating;
+    video.ratings[userId] = ratingValue;
+    const currentSum = (typeof video.ratingSum === 'number' && !isNaN(video.ratingSum))
+      ? video.ratingSum
+      : (video.rating ? video.rating * (video.ratingCount || 1) : oldRating);
+    video.ratingSum = Math.max(0, currentSum - oldRating + ratingValue);
+    const count = Math.max(1, video.ratingCount || 1);
+    video.rating = parseFloat((video.ratingSum / count).toFixed(1));
+
+    saveDb(db);
+    await syncDbToCloud(db);
+
+    return res.json({
+      success: true,
+      updated: true,
+      rating: video.rating,
+      ratingCount: video.ratingCount,
+      userRating: ratingValue,
+      message: `Votre note a été mise à jour : ${ratingValue}/5.`
+    });
+  }
+
+  // First vote by this user on this video
+  video.ratings[userId] = ratingValue;
   video.ratingCount = (video.ratingCount || 0) + 1;
-  video.ratingSum = (video.ratingSum || (video.rating ? video.rating * (video.ratingCount - 1) : 0)) + ratingValue;
+  const currentSum = (typeof video.ratingSum === 'number' && !isNaN(video.ratingSum))
+    ? video.ratingSum
+    : (video.rating ? video.rating * (video.ratingCount - 1) : 0);
+  video.ratingSum = currentSum + ratingValue;
   video.rating = parseFloat((video.ratingSum / video.ratingCount).toFixed(1));
 
   saveDb(db);
+  await syncDbToCloud(db);
 
   res.json({
+    success: true,
     rating: video.rating,
     ratingCount: video.ratingCount,
+    userRating: ratingValue,
     message: `Merci pour votre note de ${ratingValue}/5 !`
   });
 });
