@@ -344,7 +344,6 @@
 
           <div class="section-heading">
             <h3 id="feedHeading">Videos recentes</h3>
-            <span id="videoCount" class="video-counter">0 video</span>
           </div>
 
           <!-- Recherche avancée et filtres -->
@@ -1465,6 +1464,211 @@
         </div>
       </section>
 
+      <!-- ==================== TAB 9 : PAGE DE VISIONNAGE VIDEO DEDIEE (WATCH PAGE) ==================== -->
+      <section id="tab-watch" class="tab-content watch-tab-content">
+        <div class="watch-page-container">
+          
+          <!-- Top Bar: Navigation & Retour -->
+          <div class="watch-topbar">
+            <button type="button" class="watch-back-btn" onclick="closeWatchPage()" title="Retour aux vidéos">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Retour</span>
+            </button>
+            <div class="watch-breadcrumb">
+              <span class="watch-breadcrumb-link" onclick="closeWatchPage()">Accueil</span>
+              <span class="watch-breadcrumb-sep">/</span>
+              <span id="watchBreadcrumbTitle" class="watch-breadcrumb-curr">Vidéo</span>
+            </div>
+          </div>
+
+          <!-- Video Player Container (Cinema Format) -->
+          <div class="player-container watch-player-container">
+            <video id="modalVideoPlayer" controls autoplay playsinline webkit-playsinline preload="auto"></video>
+            <!-- VIP Paywall Overlay when video is VIP Exclusive and user is non-VIP -->
+            <div id="vipPaywallOverlay" class="vip-paywall-box hidden">
+              <div class="vip-lock-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+              <h3>Contenu Exclusif VIP (9,99€ / mois)</h3>
+              <p>Cette vidéo populaire a atteint la communauté VIP et est désormais réservée aux membres abonnés.</p>
+              <button class="btn btn-vip-cta" onclick="switchTab('vip');">
+                S'abonner pour 9,99€ et débloquer
+              </button>
+              <span class="paywall-sub">Accès immédiat à toutes les vidéos exclusives + 0 Pub + Qualité 4K HD</span>
+            </div>
+          </div>
+
+          <!-- Video Header Block : Titre, Auteur, Actions -->
+          <div class="watch-header-block">
+            <h1 id="modalVideoTitle" class="watch-video-title">Titre de la vidéo</h1>
+            
+            <div class="watch-channel-row">
+              <div class="meta-author-wrap">
+                <img id="modalAuthorAvatar" src="" alt="Auteur" class="avatar-author-thumb">
+                <div class="author-details-column">
+                  <div class="author-name-row">
+                    <span class="meta-author-prefix">Par</span>
+                    <strong id="modalAuthorName" class="author-name-link">Auteur</strong>
+                    <span id="modalAuthorBadge" class="vip-author-badge hidden">VIP</span>
+                    <span id="modalAuthorLevelBadge" class="creator-level-badge hidden"></span>
+                  </div>
+                  <div class="meta-time-wrap">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <span id="modalVideoDate">Publiée récemment</span>
+                  </div>
+                </div>
+                <button type="button" id="modalMessageAuthorBtn" class="btn-author-direct-msg" onclick="openDirectMessageFromPlayingVideo()" title="Envoyer un message privé à l'auteur">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                  <span class="btn-msg-label">Message</span>
+                </button>
+              </div>
+
+              <!-- Action Buttons (Favori, Partager, Signaler, Modifier) -->
+              <div class="watch-action-bar">
+                <button type="button" id="modalFavBtn" class="video-action-pill btn-action-fav" onclick="toggleFavorite(currentPlayingVideo?.id)" title="Ajouter aux favoris">
+                  <svg class="action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                  <span class="action-text">Favori</span>
+                </button>
+
+                <button type="button" id="modalShareBtn" class="video-action-pill btn-action-share" onclick="shareCurrentVideo()" title="Partager la vidéo">
+                  <svg class="action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+                  <span class="action-text">Partager</span>
+                </button>
+
+                <button type="button" id="modalReportBtn" class="video-action-pill report-pill" onclick="openReportModalFromCurrentVideo()" title="Signaler cette vidéo">
+                  <svg class="action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+                  <span class="action-text">Signaler</span>
+                </button>
+
+                <button type="button" id="modalAdminEditTagsBtn" class="video-action-pill admin-pill hidden" onclick="openAdminEditModalFromPlayingVideo()" title="Modifier les catégories et tags">
+                  <svg class="action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><polygon points="14 2 18 6 7 17 3 17 3 13 14 2"/><line x1="15" y1="5" x2="19" y2="9"/></svg>
+                  <span class="action-text">Modifier</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Layout Grid: Column Left (Details + Comments) / Column Right (Similar Videos) -->
+          <div class="watch-main-grid">
+            <div class="watch-main-column">
+
+              <!-- Description de la vidéo -->
+              <div class="modal-desc-box watch-desc-box">
+                <p id="modalVideoDesc" class="modal-description">Description...</p>
+              </div>
+
+              <!-- Star Rating Interactive Component (0 à 5 étoiles SVG Vectorielles) -->
+              <div class="modal-rating-container" id="modalRatingContainer">
+                <div class="modal-rating-top">
+                  <div class="modal-rating-heading">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="#f59e0b" stroke="#f59e0b"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <span class="rating-label-text">Noter cette vidéo :</span>
+                  </div>
+                  <div class="modal-rating-score-badge" id="modalRatingScoreBadge">
+                    <svg class="badge-star-icon" viewBox="0 0 24 24" width="13" height="13" fill="#f59e0b" stroke="#f59e0b"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <strong id="modalRatingScore">5.0</strong><span class="score-max">/5</span>
+                    <span id="modalRatingCount" class="rating-count-text">(1 avis)</span>
+                  </div>
+                </div>
+
+                <div class="rating-stars-interactive" id="modalRatingStars" onmouseleave="resetHoverStars()">
+                  <button type="button" class="star-btn" data-val="1" onmouseenter="hoverStar(1)" onclick="rateCurrentVideo(1)" title="Donner 1 étoile" aria-label="1 étoile">
+                    <svg viewBox="0 0 24 24" width="28" height="28" class="star-svg"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  </button>
+                  <button type="button" class="star-btn" data-val="2" onmouseenter="hoverStar(2)" onclick="rateCurrentVideo(2)" title="Donner 2 étoiles" aria-label="2 étoiles">
+                    <svg viewBox="0 0 24 24" width="28" height="28" class="star-svg"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  </button>
+                  <button type="button" class="star-btn" data-val="3" onmouseenter="hoverStar(3)" onclick="rateCurrentVideo(3)" title="Donner 3 étoiles" aria-label="3 étoiles">
+                    <svg viewBox="0 0 24 24" width="28" height="28" class="star-svg"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  </button>
+                  <button type="button" class="star-btn" data-val="4" onmouseenter="hoverStar(4)" onclick="rateCurrentVideo(4)" title="Donner 4 étoiles" aria-label="4 étoiles">
+                    <svg viewBox="0 0 24 24" width="28" height="28" class="star-svg"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  </button>
+                  <button type="button" class="star-btn" data-val="5" onmouseenter="hoverStar(5)" onclick="rateCurrentVideo(5)" title="Donner 5 étoiles" aria-label="5 étoiles">
+                    <svg viewBox="0 0 24 24" width="28" height="28" class="star-svg"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  </button>
+                </div>
+                <div id="modalRatingFeedback" class="rating-feedback-note"></div>
+              </div>
+
+              <!-- Tags associés (#tags) -->
+              <div class="modal-tags-container" id="modalVideoTagsContainer">
+                <span class="modal-tags-label">Tags associés :</span>
+                <div id="modalVideoTagsList" class="modal-tags-list"></div>
+              </div>
+
+              <!-- Meta info (Vues, Région, Note, HD) -->
+              <div class="modal-meta-row">
+                <span class="modal-meta-pill">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <span id="modalVideoViews">0 vues</span>
+                </span>
+                <span class="modal-meta-pill">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                  <span id="modalVideoRegion">France</span>
+                </span>
+                <span class="modal-meta-pill">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="#f59e0b" stroke="#f59e0b"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  <span id="modalVideoRatingMeta">5.0 / 5</span>
+                </span>
+                <span class="modal-meta-pill badge-quality">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                  <span>HD 720p</span>
+                </span>
+              </div>
+
+              <!-- ==================== SECTION ESPACE COMMENTAIRES ==================== -->
+              <div class="modal-comments-box watch-comments-box">
+                <div class="modal-section-title">
+                  <span>Espace Commentaires (<span id="modalCommentsCount">0</span>)</span>
+                </div>
+
+                <!-- Invitation a se connecter si visiteur non connecte -->
+                <div id="commentAuthRequiredBox" class="comment-auth-required-box hidden">
+                  <div class="comment-auth-required-text">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span>Vous devez être connecté avec un compte pour laisser un commentaire.</span>
+                  </div>
+                  <button type="button" class="btn btn-primary btn-sm" onclick="switchTab('profil');">
+                    Se connecter / S'inscrire
+                  </button>
+                </div>
+
+                <!-- Formulaire Nouveau Commentaire (Membres connectes uniquement) -->
+                <form id="modalCommentForm" class="modal-comment-form" onsubmit="handlePostComment(event)">
+                  <div class="comment-user-badge-bar">
+                    <img id="commentUserAvatar" src="" alt="Avatar" class="comment-user-thumb">
+                    <span>Commenter en tant que <strong id="commentUserName">Membre</strong></span>
+                  </div>
+                  <div class="comment-input-wrap">
+                    <textarea id="commentTextInput" class="comment-input" rows="2" placeholder="Écrire un commentaire sur cette vidéo..." required></textarea>
+                  </div>
+                  <div class="comment-submit-bar">
+                    <button type="submit" id="btnSubmitComment" class="btn btn-primary btn-sm">
+                      Publier le commentaire
+                    </button>
+                  </div>
+                </form>
+
+                <!-- Liste des Commentaires -->
+                <div id="modalCommentsList" class="modal-comments-list"></div>
+              </div>
+
+            </div>
+
+            <!-- Right Column: Vidéos similaires -->
+            <div class="watch-sidebar-column">
+              <div class="watch-similar-box">
+                <div class="modal-section-title">
+                  <span>Vidéos similaires</span>
+                </div>
+                <div id="modalSimilarVideosGrid" class="watch-similar-list"></div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
       <!-- ==================== SITE MEGA FOOTER (MULTI-COLONNES & LÉGAL) ==================== -->
       <footer class="site-mega-footer">
         <div class="footer-top-grid">
@@ -1561,214 +1765,8 @@
     </main>
   </div> <!-- end app-layout -->
 
-  <!-- ==================== VIDEO MODAL PLAYER (Modern Mobile & Desktop Layout) ==================== -->
-  <div id="videoModal" class="modal-overlay hidden" onclick="closeVideoModal(event)">
-    <div class="modal-card modal-video" onclick="event.stopPropagation()">
-      
-      <!-- Top Bar: Navigation & Fermeture -->
-      <div class="modal-video-topbar">
-        <button type="button" class="modal-back-btn" onclick="closeVideoModal()" title="Retour aux vidéos">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-          <span>Retour</span>
-        </button>
-        <button type="button" class="modal-close-btn-simple" onclick="closeVideoModal()" title="Fermer le lecteur">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-
-      <!-- En-tête Vidéo : Titre & Créateur -->
-      <div class="video-modal-header">
-        <h2 id="modalVideoTitle" class="modal-video-title">Titre de la vidéo</h2>
-        
-        <div class="modal-video-meta-line">
-          <div class="meta-author-wrap">
-            <img id="modalAuthorAvatar" src="" alt="Auteur" class="avatar-author-thumb">
-            <div class="author-details-column">
-              <div class="author-name-row">
-                <span class="meta-author-prefix">Par</span>
-                <strong id="modalAuthorName" class="author-name-link">Auteur</strong>
-                <span id="modalAuthorBadge" class="vip-author-badge hidden">VIP</span>
-                <span id="modalAuthorLevelBadge" class="creator-level-badge hidden"></span>
-              </div>
-              <div class="meta-time-wrap">
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <span id="modalVideoDate">Publiée récemment</span>
-              </div>
-            </div>
-            <button type="button" id="modalMessageAuthorBtn" class="btn-author-direct-msg" onclick="openDirectMessageFromPlayingVideo()" title="Envoyer un message privé à l'auteur">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              <span class="btn-msg-label">Message</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Video Player Container -->
-      <div class="player-container">
-        <video id="modalVideoPlayer" controls autoplay playsinline webkit-playsinline preload="auto"></video>
-        <!-- VIP Paywall Overlay when video is VIP Exclusive and user is non-VIP -->
-        <div id="vipPaywallOverlay" class="vip-paywall-box hidden">
-          <div class="vip-lock-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-          <h3>Contenu Exclusif VIP (9,99€ / mois)</h3>
-          <p>Cette vidéo populaire a atteint la communauté VIP et est désormais réservée aux membres abonnés.</p>
-          <button class="btn btn-vip-cta" onclick="closeVideoModal(); switchTab('vip');">
-            S'abonner pour 9,99€ et débloquer
-          </button>
-          <span class="paywall-sub">Accès immédiat à toutes les vidéos exclusives + 0 Pub + Qualité 4K HD</span>
-        </div>
-      </div>
-
-      <!-- Action Bar immediately below video -->
-      <div class="modal-video-action-bar">
-        <button type="button" id="modalFavBtn" class="video-action-pill btn-action-fav" onclick="toggleFavorite(currentPlayingVideo?.id)" title="Ajouter aux favoris">
-          <svg class="action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-          <span class="action-text">Favori</span>
-        </button>
-
-        <button type="button" id="modalShareBtn" class="video-action-pill btn-action-share" onclick="shareCurrentVideo()" title="Partager la vidéo">
-          <svg class="action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
-          <span class="action-text">Partager</span>
-        </button>
-
-        <button type="button" id="modalFitBtn" class="video-action-pill btn-action-fit" onclick="toggleVideoFit()" title="Ajuster le format de l'écran">
-          <svg class="action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-          <span class="action-text">Format</span>
-        </button>
-
-        <button type="button" id="modalReportBtn" class="video-action-pill report-pill" onclick="openReportModalFromCurrentVideo()" title="Signaler cette vidéo">
-          <svg class="action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-          <span class="action-text">Signaler</span>
-        </button>
-
-        <!-- Admin Tag / Metadata button -->
-        <button type="button" id="modalAdminEditTagsBtn" class="video-action-pill admin-pill hidden" onclick="openAdminEditModalFromPlayingVideo()" title="Modifier les catégories et tags">
-          <svg class="action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><polygon points="14 2 18 6 7 17 3 17 3 13 14 2"/><line x1="15" y1="5" x2="19" y2="9"/></svg>
-          <span class="action-text">Modifier</span>
-        </button>
-      </div>
-
-      <div class="modal-video-details">
-
-        <!-- Description de la vidéo -->
-        <div class="modal-desc-box">
-          <p id="modalVideoDesc" class="modal-description">Description...</p>
-        </div>
-
-        <!-- Star Rating Interactive Component (0 à 5 étoiles SVG Vectorielles) -->
-        <div class="modal-rating-container" id="modalRatingContainer">
-          <div class="modal-rating-top">
-            <div class="modal-rating-heading">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="#f59e0b" stroke="#f59e0b"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              <span class="rating-label-text">Noter cette vidéo :</span>
-            </div>
-            <div class="modal-rating-score-badge" id="modalRatingScoreBadge">
-              <svg class="badge-star-icon" viewBox="0 0 24 24" width="13" height="13" fill="#f59e0b" stroke="#f59e0b"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              <strong id="modalRatingScore">5.0</strong><span class="score-max">/5</span>
-              <span id="modalRatingCount" class="rating-count-text">(1 avis)</span>
-            </div>
-          </div>
-
-          <div class="rating-stars-interactive" id="modalRatingStars" onmouseleave="resetHoverStars()">
-            <button type="button" class="star-btn" data-val="1" onmouseenter="hoverStar(1)" onclick="rateCurrentVideo(1)" title="Donner 1 étoile" aria-label="1 étoile">
-              <svg viewBox="0 0 24 24" width="28" height="28" class="star-svg"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            </button>
-            <button type="button" class="star-btn" data-val="2" onmouseenter="hoverStar(2)" onclick="rateCurrentVideo(2)" title="Donner 2 étoiles" aria-label="2 étoiles">
-              <svg viewBox="0 0 24 24" width="28" height="28" class="star-svg"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            </button>
-            <button type="button" class="star-btn" data-val="3" onmouseenter="hoverStar(3)" onclick="rateCurrentVideo(3)" title="Donner 3 étoiles" aria-label="3 étoiles">
-              <svg viewBox="0 0 24 24" width="28" height="28" class="star-svg"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            </button>
-            <button type="button" class="star-btn" data-val="4" onmouseenter="hoverStar(4)" onclick="rateCurrentVideo(4)" title="Donner 4 étoiles" aria-label="4 étoiles">
-              <svg viewBox="0 0 24 24" width="28" height="28" class="star-svg"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            </button>
-            <button type="button" class="star-btn" data-val="5" onmouseenter="hoverStar(5)" onclick="rateCurrentVideo(5)" title="Donner 5 étoiles" aria-label="5 étoiles">
-              <svg viewBox="0 0 24 24" width="28" height="28" class="star-svg"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            </button>
-          </div>
-          <div id="modalRatingFeedback" class="rating-feedback-note"></div>
-        </div>
-
-        <!-- Tags associés (#tags) -->
-        <div class="modal-tags-container" id="modalVideoTagsContainer">
-          <span class="modal-tags-label">Tags associés :</span>
-          <div id="modalVideoTagsList" class="modal-tags-list">
-            <!-- Dynamic #tags -->
-          </div>
-        </div>
-
-        <!-- Meta info (Vues, Région, Note, HD) -->
-        <div class="modal-meta-row">
-          <span class="modal-meta-pill">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            <span id="modalVideoViews">0 vues</span>
-          </span>
-          <span class="modal-meta-pill">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-            <span id="modalVideoRegion">France</span>
-          </span>
-          <span class="modal-meta-pill">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="#f59e0b" stroke="#f59e0b"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            <span id="modalVideoRatingMeta">5.0 / 5</span>
-          </span>
-          <span class="modal-meta-pill badge-quality">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
-            <span>HD 720p</span>
-          </span>
-        </div>
-
-        <!-- ==================== SECTION VIDÉOS SIMILAIRES ==================== -->
-        <div class="modal-similar-box">
-          <div class="modal-section-title">
-            <span>Vidéos similaires</span>
-            <small style="color:#94a3b8;font-weight:normal;">(selon les catégories)</small>
-          </div>
-          <div id="modalSimilarVideosGrid" class="similar-videos-grid">
-            <!-- 3 columns on PC / 1 column on Mobile -->
-          </div>
-        </div>
-
-        <!-- ==================== SECTION ESPACE COMMENTAIRES ==================== -->
-        <div class="modal-comments-box">
-          <div class="modal-section-title">
-            <span>Espace Commentaires (<span id="modalCommentsCount">0</span>)</span>
-          </div>
-
-          <!-- Invitation a se connecter si visiteur non connecte -->
-          <div id="commentAuthRequiredBox" class="comment-auth-required-box hidden">
-            <div class="comment-auth-required-text">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-              <span>Vous devez être connecté avec un compte pour laisser un commentaire.</span>
-            </div>
-            <button type="button" class="btn btn-primary btn-sm" onclick="closeVideoModal(); switchTab('profil');">
-              Se connecter / S'inscrire
-            </button>
-          </div>
-
-          <!-- Formulaire Nouveau Commentaire (Membres connectes uniquement) -->
-          <form id="modalCommentForm" class="modal-comment-form" onsubmit="handlePostComment(event)">
-            <div class="comment-user-badge-bar">
-              <img id="commentUserAvatar" src="" alt="Avatar" class="comment-user-thumb">
-              <span>Commenter en tant que <strong id="commentUserName">Membre</strong></span>
-            </div>
-            <div class="comment-input-wrap">
-              <textarea id="commentTextInput" class="comment-input" rows="2" placeholder="Écrire un commentaire sur cette vidéo..." required></textarea>
-            </div>
-            <div class="comment-submit-bar">
-              <button type="submit" id="btnSubmitComment" class="btn btn-primary btn-sm">
-                Publier le commentaire
-              </button>
-            </div>
-          </form>
-
-          <!-- Liste des Commentaires -->
-          <div id="modalCommentsList" class="modal-comments-list">
-            <!-- Dynamic comments list -->
-          </div>
-        </div>
-
-      </div>
-    </div>
-  </div>
+  <!-- Hidden legacy modal placeholder -->
+  <div id="videoModal" class="hidden" style="display:none;" aria-hidden="true"></div>
 
   <!-- ==================== ADD CATEGORY MODAL ==================== -->
   <div id="addCategoryModal" class="modal-overlay hidden" onclick="closeAddCategoryModal(event)">

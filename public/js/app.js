@@ -3,6 +3,7 @@ let allVideosList = [];
 let allCategoriesList = [];
 let activeCategory = 'all';
 let currentPlayingVideo = null;
+let lastActiveTab = 'accueil';
 let selectedExplorerTags = new Set();
 let currentFeedPage = 1;
 const VIDEOS_PER_PAGE = 10;
@@ -33,9 +34,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     setInterval(checkUnreadMessagesCount, 10000);
   }
 
-  // Handle URL hash on load (e.g. #explorer, #tag=gaming)
+  // Handle URL hash and path routing on load
   handleUrlHash();
   window.addEventListener('hashchange', handleUrlHash);
+  window.addEventListener('popstate', handleUrlHash);
 });
 
 // ==================== THEME CONTROLLER (MODE SOMBRE / CLAIR) ====================
@@ -88,9 +90,30 @@ function handleUrlHash() {
   const hash = window.location.hash.replace('#', '');
   const urlParams = new URLSearchParams(window.location.search);
   const catQuery = urlParams.get('cat') || urlParams.get('categorie') || urlParams.get('category');
+  const videoQuery = urlParams.get('video');
+
+  const pathParts = pathname.split('/').filter(Boolean);
+
+  // Handle /video/:id direct URLs
+  if (pathParts[0] === 'video' && pathParts[1]) {
+    const videoId = decodeURIComponent(pathParts[1]);
+    openVideoPlayerModal(videoId);
+    return;
+  }
+
+  // Handle ?video=:id query parameter
+  if (videoQuery) {
+    openVideoPlayerModal(videoQuery);
+    return;
+  }
+
+  // If navigated back from watch page to home
+  if (currentPlayingVideo && pathParts.length === 0 && !hash) {
+    closeWatchPage();
+    return;
+  }
 
   // Handle /profil/:username direct URLs
-  const pathParts = pathname.split('/').filter(Boolean);
   if (pathParts[0] === 'profil' && pathParts[1]) {
     const username = decodeURIComponent(pathParts[1]);
     switchTab('accueil');
@@ -202,7 +225,26 @@ function switchTab(tabName) {
     window.history.pushState(null, '', '/');
   }
 
-  const tabs = ['accueil', 'explorer', 'upload', 'vip', 'faq', 'profil', 'admin', 'messages'];
+  // Handle player cleanup when switching away from watch page
+  if (tabName !== 'watch') {
+    const player = document.getElementById('modalVideoPlayer');
+    if (player && !player.paused) {
+      player.pause();
+      player.removeAttribute('src');
+      player.load();
+    }
+    const paywallOverlay = document.getElementById('vipPaywallOverlay');
+    if (paywallOverlay) paywallOverlay.classList.add('hidden');
+    currentPlayingVideo = null;
+    document.title = 'VideoHub - Plateforme Vidéo Communautaire Sans Doublons';
+    lastActiveTab = tabName;
+
+    if (window.location.pathname.startsWith('/video/')) {
+      window.history.pushState(null, '', '/');
+    }
+  }
+
+  const tabs = ['accueil', 'explorer', 'upload', 'vip', 'faq', 'profil', 'admin', 'messages', 'watch'];
   tabs.forEach(t => {
     const el = document.getElementById(`tab-${t}`);
     if (el) el.classList.remove('active');
@@ -634,13 +676,8 @@ async function loadVideos(cat = 'all', searchQuery = '') {
 
 function renderVideoGrid(videos, targetGridId = 'videoGrid') {
   const grid = document.getElementById(targetGridId);
-  const countEl = document.getElementById('videoCount');
   const paginationContainer = document.getElementById('feedPagination');
   if (!grid) return;
-
-  if (countEl && targetGridId === 'videoGrid') {
-    countEl.textContent = `${videos.length} vidéo${videos.length > 1 ? 's' : ''}`;
-  }
 
   if (videos.length === 0) {
     grid.innerHTML = `
@@ -1140,6 +1177,20 @@ async function openVideoPlayerModal(videoId) {
   }
 
   currentPlayingVideo = video;
+
+  // Switch to dedicated watch page tab
+  switchTab('watch');
+
+  // Update browser URL to /video/:id
+  const targetPath = `/video/${encodeURIComponent(video.id)}`;
+  if (window.location.pathname !== targetPath) {
+    window.history.pushState({ videoId: video.id }, '', targetPath);
+  }
+  document.title = `${video.title || 'Vidéo'} - VideoHub`;
+
+  const breadcrumbEl = document.getElementById('watchBreadcrumbTitle');
+  if (breadcrumbEl) breadcrumbEl.textContent = video.title || 'Vidéo';
+
   const modal = document.getElementById('videoModal');
   const player = document.getElementById('modalVideoPlayer');
   const paywallOverlay = document.getElementById('vipPaywallOverlay');
@@ -1297,8 +1348,9 @@ async function openVideoPlayerModal(videoId) {
     }
   }
 
-  modal.classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
+  if (modal) modal.classList.remove('hidden');
+  document.body.style.overflow = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function renderModalTags(categories) {
@@ -2144,11 +2196,7 @@ function closeDirectMessageModal() {
   showConversationsListMobile();
 }
 
-function closeVideoModal(e) {
-  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn') && !e.target.closest('.modal-back-btn') && !e.target.closest('.modal-close-btn-simple')) {
-    return;
-  }
-  const modal = document.getElementById('videoModal');
+function closeWatchPage() {
   const player = document.getElementById('modalVideoPlayer');
   const paywallOverlay = document.getElementById('vipPaywallOverlay');
   if (player) {
@@ -2162,14 +2210,31 @@ function closeVideoModal(e) {
     }
   }
   if (paywallOverlay) paywallOverlay.classList.add('hidden');
+  const modal = document.getElementById('videoModal');
   if (modal) modal.classList.add('hidden');
   document.body.style.overflow = '';
   currentPlayingVideo = null;
+  document.title = 'VideoHub - Plateforme Vidéo Communautaire Sans Doublons';
+
+  // Navigate back to previous tab
+  const backTab = (lastActiveTab && lastActiveTab !== 'watch') ? lastActiveTab : 'accueil';
+  switchTab(backTab);
+
+  // Restore URL
+  if (window.location.pathname.startsWith('/video/')) {
+    window.history.pushState(null, '', '/');
+  }
 }
+
+function closeVideoModal(e) {
+  closeWatchPage();
+}
+
+const openWatchPage = openVideoPlayerModal;
 
 async function shareCurrentVideo() {
   if (!currentPlayingVideo) return;
-  const url = `${window.location.origin}/?video=${encodeURIComponent(currentPlayingVideo.id)}`;
+  const url = `${window.location.origin}/video/${encodeURIComponent(currentPlayingVideo.id)}`;
   if (navigator.share) {
     try {
       await navigator.share({

@@ -3096,6 +3096,11 @@ app.get(['/messages', '/messages/:username'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Direct video watch page URL - serves SPA with video ID in path
+app.get('/video/:id', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
 // SPA Fallback
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
