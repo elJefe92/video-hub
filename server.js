@@ -3054,6 +3054,14 @@ app.get('/sitemap.xml', async (req, res) => {
     { loc: `${siteUrl}/#explorer`, priority: '0.9', changefreq: 'daily' },
     { loc: `${siteUrl}/#vip`, priority: '0.7', changefreq: 'monthly' },
     { loc: `${siteUrl}/#faq`, priority: '0.6', changefreq: 'monthly' },
+    { loc: `${siteUrl}/contact`, priority: '0.6', changefreq: 'monthly' },
+    { loc: `${siteUrl}/mentions-legales`, priority: '0.5', changefreq: 'monthly' },
+    { loc: `${siteUrl}/cgu`, priority: '0.5', changefreq: 'monthly' },
+    { loc: `${siteUrl}/confidentialite`, priority: '0.5', changefreq: 'monthly' },
+    { loc: `${siteUrl}/reclamations`, priority: '0.5', changefreq: 'monthly' },
+    { loc: `${siteUrl}/signaler`, priority: '0.6', changefreq: 'monthly' },
+    { loc: `${siteUrl}/protection-mineurs`, priority: '0.5', changefreq: 'monthly' },
+    { loc: `${siteUrl}/proposer-categorie`, priority: '0.6', changefreq: 'monthly' },
   ];
 
   const categoryUrls = (db.categories || []).filter(c => !c.isSystem).map(c => ({
@@ -3098,6 +3106,20 @@ app.get(['/messages', '/messages/:username'], (req, res) => {
 
 // Direct video watch page URL - serves SPA with video ID in path
 app.get('/video/:id', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Direct dedicated pages URLs - serves SPA
+app.get([
+  '/contact',
+  '/mentions-legales',
+  '/cgu',
+  '/confidentialite',
+  '/reclamations',
+  '/signaler',
+  '/protection-mineurs',
+  '/proposer-categorie'
+], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 

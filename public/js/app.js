@@ -94,6 +94,23 @@ function handleUrlHash() {
 
   const pathParts = pathname.split('/').filter(Boolean);
 
+  const docPages = [
+    'contact',
+    'mentions-legales',
+    'cgu',
+    'confidentialite',
+    'reclamations',
+    'signaler',
+    'protection-mineurs',
+    'proposer-categorie'
+  ];
+
+  // Handle dedicated doc pages URLs (/contact, /cgu, /mentions-legales, etc.)
+  if (pathParts[0] && docPages.includes(pathParts[0])) {
+    switchTab(pathParts[0]);
+    return;
+  }
+
   // Handle /video/:id direct URLs
   if (pathParts[0] === 'video' && pathParts[1]) {
     const videoId = decodeURIComponent(pathParts[1]);
@@ -160,6 +177,8 @@ function handleUrlHash() {
     if (partner) {
       setTimeout(() => openDedicatedChatWith({ username: partner }), 350);
     }
+  } else if (docPages.includes(hash)) {
+    switchTab(hash);
   } else if (['accueil', 'upload', 'vip', 'faq', 'profil', 'messages'].includes(hash)) {
     switchTab(hash);
   }
@@ -205,12 +224,45 @@ function navigateToTab(tabName) {
     navigateToAdmin();
     return;
   }
+
+  const docPages = [
+    'contact',
+    'mentions-legales',
+    'cgu',
+    'confidentialite',
+    'reclamations',
+    'signaler',
+    'protection-mineurs',
+    'proposer-categorie'
+  ];
+
+  if (docPages.includes(tabName)) {
+    if (window.location.pathname !== `/${tabName}`) {
+      window.history.pushState(null, '', `/${tabName}`);
+    }
+  } else if (['accueil', 'explorer', 'upload', 'vip', 'faq', 'profil'].includes(tabName)) {
+    if (window.location.pathname !== '/' && !window.location.pathname.startsWith('/video/')) {
+      window.history.pushState(null, '', `/#${tabName}`);
+    }
+  }
+
   switchTab(tabName);
   toggleSidebar(false);
 }
 
 // Tab navigation controller
 function switchTab(tabName) {
+  const docPages = [
+    'contact',
+    'mentions-legales',
+    'cgu',
+    'confidentialite',
+    'reclamations',
+    'signaler',
+    'protection-mineurs',
+    'proposer-categorie'
+  ];
+
   if (tabName === 'admin') {
     if (!AUTH.isAdmin()) {
       showToast("Accès refusé. L'Espace Administrateur est strictement réservé au compte ia.project.pro2k26@gmail.com");
@@ -236,15 +288,38 @@ function switchTab(tabName) {
     const paywallOverlay = document.getElementById('vipPaywallOverlay');
     if (paywallOverlay) paywallOverlay.classList.add('hidden');
     currentPlayingVideo = null;
-    document.title = 'VideoHub - Plateforme Vidéo Communautaire Sans Doublons';
     lastActiveTab = tabName;
 
-    if (window.location.pathname.startsWith('/video/')) {
+    if (window.location.pathname.startsWith('/video/') && !docPages.includes(tabName)) {
       window.history.pushState(null, '', '/');
     }
   }
 
-  const tabs = ['accueil', 'explorer', 'upload', 'vip', 'faq', 'profil', 'admin', 'messages', 'watch'];
+  const pageTitles = {
+    contact: 'Nous contacter - VideoHub',
+    'mentions-legales': 'Mentions Légales - VideoHub',
+    cgu: 'Conditions Générales d\'Utilisation - VideoHub',
+    confidentialite: 'Politique de Confidentialité (RGPD) - VideoHub',
+    reclamations: 'Politique de Plaintes & Modération - VideoHub',
+    signaler: 'Signaler un Contenu - VideoHub',
+    'protection-mineurs': 'Protection des Mineurs (CSAM) - VideoHub',
+    'proposer-categorie': 'Proposer une Catégorie - VideoHub',
+    accueil: 'VideoHub - Plateforme Vidéo Communautaire Sans Doublons',
+    explorer: 'Explorer les Vidéos - VideoHub',
+    vip: 'Espace VIP Club Privilège - VideoHub',
+    faq: 'Foire Aux Questions - VideoHub',
+    profil: 'Mon Profil Membre - VideoHub',
+    admin: 'Administration - VideoHub',
+    messages: 'Messagerie Privée - VideoHub'
+  };
+  if (pageTitles[tabName]) {
+    document.title = pageTitles[tabName];
+  }
+
+  const tabs = [
+    'accueil', 'explorer', 'upload', 'vip', 'faq', 'profil', 'admin', 'messages', 'watch',
+    'contact', 'mentions-legales', 'cgu', 'confidentialite', 'reclamations', 'signaler', 'protection-mineurs', 'proposer-categorie'
+  ];
   tabs.forEach(t => {
     const el = document.getElementById(`tab-${t}`);
     if (el) el.classList.remove('active');
@@ -478,7 +553,7 @@ function navigateToAdmin() {
   }
 }
 
-// Add Category Modal
+// Add Category Modal / Page
 function openAddCategoryModal() {
   if (!AUTH.isLoggedIn()) {
     showToast('Vous devez être connecté pour proposer une catégorie.');
@@ -486,8 +561,7 @@ function openAddCategoryModal() {
     return;
   }
 
-  const modal = document.getElementById('addCategoryModal');
-  if (!modal) return;
+  navigateToTab('proposer-categorie');
 
   const isAdmin = AUTH.isAdmin();
   const title = document.getElementById('addCatModalTitle');
@@ -501,16 +575,10 @@ function openAddCategoryModal() {
     : 'Proposez une thématique qui sera soumise à validation par l\'administrateur avant d\'être publiée.';
   if (notice) notice.style.display = isAdmin ? 'none' : 'block';
   if (btn) btn.textContent = isAdmin ? 'Créer et publier la catégorie' : 'Soumettre ma proposition';
-
-  modal.classList.remove('hidden');
 }
 
-function closeAddCategoryModal(e) {
-  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) {
-    return;
-  }
-  const modal = document.getElementById('addCategoryModal');
-  if (modal) modal.classList.add('hidden');
+function closeAddCategoryModal() {
+  navigateToTab('accueil');
 }
 
 async function handleAddCategory(e) {
@@ -4386,80 +4454,57 @@ async function handleConfirmResetPassword(e) {
   }
 }
 
-// ==================== CGU MODAL CONTROLLER ====================
+// ==================== CGU CONTROLLER ====================
 function openCguModal() {
-  const modal = document.getElementById('cguModal');
-  if (modal) modal.classList.remove('hidden');
+  navigateToTab('cgu');
 }
 
-function closeCguModal(e) {
-  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) {
-    return;
-  }
-  const modal = document.getElementById('cguModal');
-  if (modal) modal.classList.add('hidden');
+function closeCguModal() {
+  navigateToTab('accueil');
 }
 
-// ==================== MENTIONS LÉGALES & BLOG MODAL ====================
+// ==================== MENTIONS LÉGALES & INFORMATIONS ÉDITEUR ====================
 function openMentionsLegalesModal() {
-  const modal = document.getElementById('mentionsLegalesModal');
-  if (modal) modal.classList.remove('hidden');
+  navigateToTab('mentions-legales');
 }
 
-function closeMentionsLegalesModal(e) {
-  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) {
-    return;
-  }
-  const modal = document.getElementById('mentionsLegalesModal');
-  if (modal) modal.classList.add('hidden');
+function closeMentionsLegalesModal() {
+  navigateToTab('accueil');
 }
 
-// ==================== POLITIQUE DE CONFIDENTIALITÉ & RGPD MODAL ====================
+// ==================== POLITIQUE DE CONFIDENTIALITÉ & RGPD ====================
 function openPrivacyModal() {
-  const modal = document.getElementById('privacyPolicyModal');
-  if (modal) modal.classList.remove('hidden');
+  navigateToTab('confidentialite');
 }
 
-function closePrivacyModal(e) {
-  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) {
-    return;
-  }
-  const modal = document.getElementById('privacyPolicyModal');
-  if (modal) modal.classList.add('hidden');
+function closePrivacyModal() {
+  navigateToTab('accueil');
 }
 
-// ==================== POLITIQUE DE PLAINTES & DMCA MODAL ====================
+// ==================== POLITIQUE DE PLAINTES & DMCA ====================
 function openComplaintsModal() {
-  const modal = document.getElementById('complaintsPolicyModal');
-  if (modal) modal.classList.remove('hidden');
+  navigateToTab('reclamations');
 }
 
-function closeComplaintsModal(e) {
-  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) {
-    return;
-  }
-  const modal = document.getElementById('complaintsPolicyModal');
-  if (modal) modal.classList.add('hidden');
+function closeComplaintsModal() {
+  navigateToTab('accueil');
 }
 
 // ==================== FORMULAIRE DE SIGNALEMENT DE CONTENU (DMCA / TAKEDOWN) ====================
 function openReportModal(videoInfo = null) {
-  const modal = document.getElementById('reportAbuseModal');
+  navigateToTab('signaler');
   const urlInput = document.getElementById('reportVideoUrl');
   const nameInput = document.getElementById('reportFullName');
   const emailInput = document.getElementById('reportEmail');
 
   if (videoInfo) {
-    if (urlInput) urlInput.value = `${window.location.origin}/?video=${videoInfo.id}`;
+    if (urlInput) urlInput.value = `${window.location.origin}/video/${videoInfo.id}`;
   }
-
 
   if (AUTH.isLoggedIn()) {
     if (nameInput && !nameInput.value) nameInput.value = AUTH.user.username;
     if (emailInput && !emailInput.value) emailInput.value = AUTH.user.email;
   }
-
-  if (modal) modal.classList.remove('hidden');
 }
 
 function openReportModalFromCurrentVideo() {
@@ -4467,12 +4512,8 @@ function openReportModalFromCurrentVideo() {
   openReportModal(currentPlayingVideo);
 }
 
-function closeReportModal(e) {
-  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) {
-    return;
-  }
-  const modal = document.getElementById('reportAbuseModal');
-  if (modal) modal.classList.add('hidden');
+function closeReportModal() {
+  navigateToTab('accueil');
 }
 
 async function handleSendReport(e) {
@@ -4531,16 +4572,11 @@ async function handleSendReport(e) {
 
 // ==================== POLITIQUE CSAM & PROTECTION DES MINEURS ====================
 function openCsamModal() {
-  const modal = document.getElementById('csamPolicyModal');
-  if (modal) modal.classList.remove('hidden');
+  navigateToTab('protection-mineurs');
 }
 
-function closeCsamModal(e) {
-  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) {
-    return;
-  }
-  const modal = document.getElementById('csamPolicyModal');
-  if (modal) modal.classList.add('hidden');
+function closeCsamModal() {
+  navigateToTab('accueil');
 }
 
 // ==================== FAQ ACCORDION ====================
@@ -4618,9 +4654,7 @@ function acceptAdultWarning() {
 
 // ==================== CONTACT FORM HANDLERS ====================
 function openContactModal() {
-  const modal = document.getElementById('contactModal');
-  if (!modal) return;
-  modal.classList.remove('hidden');
+  navigateToTab('contact');
 
   // Pre-fill user info if logged in
   if (AUTH && AUTH.user) {
@@ -4631,12 +4665,8 @@ function openContactModal() {
   }
 }
 
-function closeContactModal(e) {
-  if (e && e.target && e.target.id !== 'contactModal' && !e.target.classList.contains('modal-close-btn') && e.target.tagName !== 'BUTTON') {
-    return;
-  }
-  const modal = document.getElementById('contactModal');
-  if (modal) modal.classList.add('hidden');
+function closeContactModal() {
+  navigateToTab('accueil');
 }
 
 function handleContactSubjectChange(selectEl) {

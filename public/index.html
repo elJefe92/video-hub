@@ -98,9 +98,9 @@
         <button class="btn-header-upload-top" onclick="switchTab('upload')" title="Déposer une vidéo">
           + Déposer une vidéo
         </button>
-        <button class="btn-header-contact" onclick="openContactModal()" title="Formulaire de contact">
+        <a href="/contact" class="btn-header-contact" onclick="navigateToTab('contact'); return false;" title="Formulaire de contact">
           Nous contacter
-        </button>
+        </a>
         
         <button class="btn-theme-toggle" id="themeToggleBtn" onclick="toggleTheme()" title="Basculer Mode Clair / Sombre" aria-label="Mode Clair / Sombre">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" id="themeToggleSvg">
@@ -119,7 +119,7 @@
         <a href="/#messages" class="btn-header-messages" onclick="event.preventDefault(); navigateToTab('messages');" title="Messagerie privée & Tchat">
           Messages <span id="headerUnreadBadge" class="header-unread-badge hidden">0</span>
         </a>
-        <button class="btn-add-cat-top" onclick="openAddCategoryModal()" title="Ajouter une catégorie">+ Catégorie</button>
+        <a href="/proposer-categorie" class="btn-add-cat-top" onclick="navigateToTab('proposer-categorie'); return false;" title="Ajouter une catégorie">+ Catégorie</a>
         
         <!-- Mobile Header Messages Button -->
         <a href="/#messages" id="btnHeaderMessagesMobile" class="btn-header-messages-mobile" onclick="event.preventDefault(); navigateToTab('messages');" title="Messagerie" aria-label="Messagerie">
@@ -246,7 +246,7 @@
               </button>
             </li>
             <li>
-              <button class="sidebar-nav-item" id="side-nav-contact" onclick="openContactModal(); toggleSidebar(false);">
+              <button class="sidebar-nav-item" id="side-nav-contact" onclick="navigateToTab('contact'); toggleSidebar(false);">
                 <span class="sidebar-item-icon">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
@@ -521,7 +521,7 @@
                 <label class="form-label" style="margin-bottom:0;">Catégories &amp; Tags associés <small style="font-weight:400;color:var(--text-muted);">(5 max)</small></label>
                 <div style="display:flex;align-items:center;gap:10px;">
                   <span id="uploadCatCountBadge" style="font-size:0.75rem;font-weight:700;color:var(--primary);background:rgba(249,115,22,0.12);padding:2px 8px;border-radius:999px;">0 / 5 sélectionnés</span>
-                  <button type="button" class="btn-link" onclick="openAddCategoryModal()">+ Nouvelle Catégorie</button>
+                  <a href="/proposer-categorie" class="btn-link" onclick="navigateToTab('proposer-categorie'); return false;">+ Nouvelle Catégorie</a>
                 </div>
               </div>
               <div style="position:relative;margin-bottom:10px;">
@@ -541,7 +541,7 @@
               <label class="cgu-checkbox-label">
                 <input type="checkbox" id="cguAgreementCheckbox" required>
                 <span>
-                  Je certifie sur l'honneur être l'auteur/propriétaire de cette vidéo ou détenir l'intégralité des droits et consentements nécessaires. J'ai lu et j'accepte sans réserve les <a href="javascript:void(0)" onclick="openCguModal()" class="cgu-link">Conditions Générales d'Utilisation (CGU)</a>.
+                  Je certifie sur l'honneur être l'auteur/propriétaire de cette vidéo ou détenir l'intégralité des droits et consentements nécessaires. J'ai lu et j'accepte sans réserve les <a href="/cgu" onclick="navigateToTab('cgu'); return false;" class="cgu-link">Conditions Générales d'Utilisation (CGU)</a>.
                 </span>
               </label>
             </div>
@@ -1669,6 +1669,536 @@
         </div>
       </section>
 
+      <!-- ==================== TAB 10 : NOUS CONTACTER ==================== -->
+      <section id="tab-contact" class="tab-content doc-page-content">
+        <div class="doc-page-container">
+          <div class="watch-topbar">
+            <button type="button" class="watch-back-btn" onclick="navigateToTab('accueil')" title="Retour">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Retour</span>
+            </button>
+            <div class="watch-breadcrumb">
+              <a href="/" onclick="navigateToTab('accueil'); return false;" class="watch-breadcrumb-link">Accueil</a>
+              <span class="watch-breadcrumb-sep">/</span>
+              <span class="watch-breadcrumb-curr">Nous contacter</span>
+            </div>
+          </div>
+
+          <div class="doc-card">
+            <div class="doc-header">
+              <h2>Nous contacter</h2>
+              <p>Une question, un problème technique ou une demande ? Écrivez-nous directement.</p>
+            </div>
+            <div class="doc-body">
+              <form id="contactForm" class="custom-form" onsubmit="handleSendContact(event)">
+                <div class="form-group">
+                  <label class="form-label" for="contactName">Votre Nom ou Pseudo <span style="color:var(--primary);">*</span></label>
+                  <input type="text" id="contactName" class="form-input" placeholder="Ex: Jean / Alex" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="contactEmail">Votre Adresse E-mail <span style="color:var(--primary);">*</span></label>
+                  <input type="email" id="contactEmail" class="form-input" placeholder="votre.email@exemple.com" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="contactSubjectSelect">Objet du message <span style="color:var(--primary);">*</span></label>
+                  <select id="contactSubjectSelect" class="form-input" required onchange="handleContactSubjectChange(this)">
+                    <option value="" disabled selected>Sélectionnez un objet pré-enregistré...</option>
+                    <option value="Question sur mon compte / Connexion">Question sur mon compte / Connexion</option>
+                    <option value="Problème technique / Bug d'affichage">Problème technique / Bug d'affichage</option>
+                    <option value="Question sur l'abonnement VIP (9,99€)">Question sur l'abonnement VIP (9,99€)</option>
+                    <option value="Signalement de contenu ou vidéo">Signalement de contenu ou vidéo</option>
+                    <option value="Demande de suppression de compte (RGPD)">Demande de suppression de compte (RGPD)</option>
+                    <option value="Proposition de partenariat / Créateur">Proposition de partenariat / Créateur</option>
+                    <option value="Autre demande">Autre demande (personnalisée)...</option>
+                  </select>
+                  <input type="text" id="contactSubjectCustom" class="form-input hidden" style="margin-top:8px;" placeholder="Précisez votre objet en détail...">
+                  <input type="hidden" id="contactSubject" value="">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="contactMessage">Votre Message <span style="color:var(--primary);">*</span></label>
+                  <textarea id="contactMessage" class="form-textarea" rows="5" placeholder="Décrivez votre message en détail..." required></textarea>
+                </div>
+
+                <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:16px;">
+                  <button type="button" class="btn btn-secondary" onclick="navigateToTab('accueil')">Annuler</button>
+                  <button type="submit" class="btn btn-primary" id="btnSubmitContact">Envoyer le message</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 11 : MENTIONS LÉGALES ==================== -->
+      <section id="tab-mentions-legales" class="tab-content doc-page-content">
+        <div class="doc-page-container">
+          <div class="watch-topbar">
+            <button type="button" class="watch-back-btn" onclick="navigateToTab('accueil')" title="Retour">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Retour</span>
+            </button>
+            <div class="watch-breadcrumb">
+              <a href="/" onclick="navigateToTab('accueil'); return false;" class="watch-breadcrumb-link">Accueil</a>
+              <span class="watch-breadcrumb-sep">/</span>
+              <span class="watch-breadcrumb-curr">Mentions Légales</span>
+            </div>
+          </div>
+
+          <div class="doc-card">
+            <div class="doc-header">
+              <h2>Mentions Légales & Informations Éditeur</h2>
+              <p>Conformité juridique, statut d'hébergeur technique (LCEN), hébergement et politique de confidentialité (RGPD).</p>
+            </div>
+            <div class="doc-body cgu-content-box">
+              <div class="cgu-alert-box">
+                <strong>AVERTISSEMENT LÉGAL :</strong> VideoHub est un service en ligne communautaire et un blog de partage audiovisuel exclusivement réservé aux personnes majeures (18 ans et plus). L'accès des mineurs est formellement interdit.
+              </div>
+
+              <h4>1. Édition du Service & Directeur de la Publication</h4>
+              <p>Le site et service <strong>VideoHub</strong> est un service de communication au public en ligne, blog vidéo et plateforme d'hébergement audiovisuel.<br>
+              <strong>Directeur de la Publication :</strong> L'Administrateur principal de VideoHub.<br>
+              <strong>Contact administratif, réclamations et signalements :</strong> <a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></p>
+
+              <h4>2. Hébergement & Sécurité Technique</h4>
+              <p>La plateforme VideoHub est propulsée par une infrastructure réseau sécurisée avec protocole de chiffrement SSL/TLS 256-bit, assurant la protection continue des données, la confidentialité des comptes et la traçabilité des opérations de modération.</p>
+
+              <h4>3. Statut d'Hébergeur Technique & Responsabilité Légale (Loi LCEN du 21 juin 2004)</h4>
+              <p>Conformément à l'article 6 de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l'économie numérique (LCEN), VideoHub agit exclusivement en qualité d'<strong>hébergeur technique</strong> de contenus mis en ligne par des créateurs et utilisateurs tiers.<br>
+              VideoHub n'est pas soumis à une obligation générale de surveillance des vidéos et messages stockés. Toutefois, dès lors qu'un contenu illicite ou litigieux est notifié à l'administration, il fait l'objet d'un examen prioritaire et d'un retrait immédiat sous 24h à 48h.</p>
+
+              <h4>4. Protection des Données Personnelles & Conformité RGPD</h4>
+              <p>En conformité avec le Règlement Général sur la Protection des Données (RGPD 2016/679) et la loi Informatique et Libertés :<br>
+              - Les données collectées (adresse e-mail, pseudonyme, messages privés, notes et journaux d'audit) sont strictement nécessaires à l'exécution du service, à la sécurisation des comptes et à la prévention des abus.<br>
+              - Aucune donnée personnelle n'est vendue, louée ou cédée à des tiers à des fins de prospection publicitaire.<br>
+              - Vous disposez d'un droit d'accès, de rectification, de portabilité et d'effacement de vos données personnelles sur simple demande à <a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a>.</p>
+
+              <h4>5. Procédure de Retrait d'Urgence & Protection des Droits (Takedown / DMCA)</h4>
+              <p>Tout titulaire de droits d'auteur, ayant droit ou personne physique estimant qu'un contenu porte atteinte à ses droits, à sa dignité ou à son image peut solliciter le retrait d'urgence en écrivant à <strong>ia.project.pro2k26@gmail.com</strong> en précisant le titre de la vidéo, le lien URL et la preuve de son identité/droits.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 12 : CONDITIONS GÉNÉRALES D'UTILISATION ==================== -->
+      <section id="tab-cgu" class="tab-content doc-page-content">
+        <div class="doc-page-container">
+          <div class="watch-topbar">
+            <button type="button" class="watch-back-btn" onclick="navigateToTab('accueil')" title="Retour">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Retour</span>
+            </button>
+            <div class="watch-breadcrumb">
+              <a href="/" onclick="navigateToTab('accueil'); return false;" class="watch-breadcrumb-link">Accueil</a>
+              <span class="watch-breadcrumb-sep">/</span>
+              <span class="watch-breadcrumb-curr">Conditions Générales (CGU)</span>
+            </div>
+          </div>
+
+          <div class="doc-card">
+            <div class="doc-header">
+              <h2>Conditions Générales d'Utilisation (CGU)</h2>
+              <p>Règles impératives de la communauté, garanties d'upload, politique de tolérance zéro et droits des utilisateurs.</p>
+            </div>
+            <div class="doc-body cgu-content-box">
+              <div class="cgu-alert-box">
+                <strong>ENGAGEMENT FORMEL :</strong> En accédant à <strong>VideoHub</strong> ou en y publiant du contenu, vous reconnaissez avoir pris connaissance des présentes Conditions Générales d'Utilisation et les accepter sans réserve. Si vous refusez l'une quelconque de ces dispositions, vous devez cesser immédiatement toute utilisation du site.
+              </div>
+
+              <h4>1. Majorité Légale Obligatoire (18 Ans et Plus) & Avertissement</h4>
+              <p>L'accès à VideoHub et la consultation des contenus sont <strong>strictement réservés aux personnes ayant atteint l'âge légal de la majorité</strong> (18 ans révolus). En accédant au service, vous déclarez sur l'honneur être majeur. Le contrôle de majorité constitue une déclaration d'engagement de l'utilisateur et ne dispense pas l'éditeur de ses mesures actives de modération.</p>
+
+              <h4>2. Règles et Garanties Impératives de Téléversement (Uploaders & Créateurs)</h4>
+              <p>Pour tout téléversement ou dépôt de vidéo sur VideoHub, le déposant déclare, certifie et garantit formellement sur l'honneur :</p>
+              <ul>
+                <li><strong>Propriété & Titularité des Droits :</strong> Être l'auteur exclusif de la vidéo ou détenir toutes les licences, autorisations et décharges écrites nécessaires pour sa diffusion publique sur VideoHub.</li>
+                <li><strong>Consentement Écrit Libre, Spécifique et Éclairé :</strong> Avoir recueilli l'accord formel et explicite de chaque personne identifiable apparaissant dans le contenu. <em>Un accord pour être photographié ou filmé ne vaut pas, à lui seul, accord de publication.</em> Le déposant reste seul garant et responsable des autorisations de diffusion.</li>
+                <li><strong>Vérification d'Identité & Majorité (Conformité 18 U.S.C. § 2257) :</strong> Avoir personnellement contrôlé les pièces officielles d'identité avec photo attestant que chaque personne figurant dans le contenu était âgée d'au moins 18 ans au moment de la captation, et conserver ces justificatifs à disposition de l'administration.</li>
+                <li><strong>Absence de Faux & Usurpation :</strong> Ne transmettre aucun contenu volé, truqué de manière trompeuse, obtenu sous contrainte ou partagé sans consentement (« revenge porn »).</li>
+              </ul>
+
+              <h4>3. Tolérance Zéro & Contenus Strictement Prohibés</h4>
+              <p>VideoHub applique une politique d'interdiction absolue. Sont formellement prohibés et font l'objet d'une <strong>suppression immédiate, d'un bannissement définitif et d'un signalement systématique auprès des autorités judiciaires</strong> :</p>
+              <ul>
+                <li>Tout contenu impliquant, mettant en scène ou sexualisant des personnes mineures (CSAM/CSAE) ;</li>
+                <li>La diffusion intime non consentie, le chantage, l'extorsion, la contrainte ou la pornographie de vengeance ;</li>
+                <li>Tout contenu faisant l'apologie de la violence réelle, de la haine, des discriminations ou d'actes criminels ;</li>
+                <li>La divulgation non autorisée de données personnelles privées d'autrui (doxxing, numéros, adresses) ;</li>
+                <li>Tout envoi de spam, virus, script automatisé ou tentative de contournement de la sécurité du serveur.</li>
+              </ul>
+
+              <h4>4. Modération Souveraine & Prérogatives Exclusives de l'Administrateur</h4>
+              <p>Dans l'intérêt de la sécurité de la communauté et de la conformité légale de la plateforme, l'administrateur de VideoHub dispose d'un droit de modération souverain :</p>
+              <ul>
+                <li><strong>Validation & Retrait :</strong> L'administrateur examine les soumissions et peut valider, refuser, déplacer, masquer ou supprimer définitivement toute vidéo sans préavis ni droit à indemnisation.</li>
+                <li><strong>Miniatures Officielles :</strong> L'administrateur sélectionne les miniatures à partir des séquences exactes de la vidéo via le studio de capture intégré.</li>
+                <li><strong>Catégorisation & Tags :</strong> L'administrateur peut modifier, enrichir ou réorganiser les tags (#tags) et descriptions des publications.</li>
+                <li><strong>Modération Exclusive des Commentaires :</strong> Seul l'administrateur détient le pouvoir de suppression des commentaires sur l'ensemble du site afin de prévenir le harcèlement et les dérives.</li>
+                <li><strong>Bannissement & Mesures Conservatoires :</strong> Clôture immédiate du compte et blocage d'IP en cas d'infraction.</li>
+              </ul>
+
+              <h4>5. Licence de Publication Concédée par l'Utilisateur</h4>
+              <p>L'auteur conserve ses droits moraux et de propriété intellectuelle. En soumettant un contenu sur VideoHub, il concède à la plateforme une autorisation non exclusive, gratuite et mondiale pour héberger, reproduire techniquement, adapter aux formats de diffusion, modérer et afficher le contenu. Cette licence s'exerce pendant la durée de mise en ligne et prend fin lors du retrait effectif du contenu, sous réserve des copies techniques temporaires de cache et des données conservées à titre de preuve pour satisfaire aux obligations légales.</p>
+
+              <h4>6. Espace Communautaire, Système de Notation (0 à 5 Étoiles) & Tchat Privé</h4>
+              <p>Les fonctionnalités interactives (évaluations par étoiles, commentaires, messagerie directe entre membres) doivent respecter les règles de courtoisie et les lois en vigueur. Les tentatives de votes multiples ou frauduleux sont bloquées par empreinte technique temporaire anti-spam.</p>
+
+              <h4>7. Pass VIP « Club Privilège » (9,99 € / mois) & Absence de Rétractation</h4>
+              <p>L'accès aux vidéos exclusives de la zone VIP est régi par les conditions suivantes :</p>
+              <ul>
+                <li><strong>Tarif & Facturation :</strong> L'abonnement VIP est fixé à 9,99 € TTC par mois, sans engagement de durée.</li>
+                <li><strong>Fourniture Immédiate & Renonciation au Droit de Rétractation :</strong> Conformément à l'article L. 221-28 13° du Code de la consommation, la fourniture du contenu numérique débutant immédiatement dès le paiement, l'abonné renonce expressément à son droit de rétractation de 14 jours.</li>
+                <li><strong>Résiliation en 1 Clic :</strong> Résiliation possible à tout moment sans frais depuis l'espace utilisateur ou par simple demande par e-mail.</li>
+              </ul>
+
+              <h4>8. Conservation des Données, Corbeille & Journal Légal</h4>
+              <p>Les envois en attente non validés sont purgés au plus tard sous 90 jours et les contenus mis à la corbeille sous 30 jours. Les adresses IP et journaux techniques d'audit légal sont conservés pendant 12 mois à compter de l'opération concernée conformément à la loi LCEN, puis supprimés ou anonymisés.</p>
+
+              <h4>9. Limitation de Responsabilité & Obligation de Moyens</h4>
+              <p>VideoHub est fourni avec une obligation de moyens. VideoHub n'est responsable que des dommages directs qui lui sont imputables. L'utilisateur répond seul des contenus qu'il transmet et garantit VideoHub et son administrateur contre tout recours ou réclamation de tiers.</p>
+
+              <h4>10. Divisibilité, Droit Applicable & Contact</h4>
+              <p>Si une clause venait à être déclarée inapplicable, les autres stipulations demeurent pleinement en vigueur. Pour tout signalement ou exercice de vos droits, contactez l'administration 7j/7 à : <strong><a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></strong>.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 13 : CONFIDENTIALITÉ (RGPD) ==================== -->
+      <section id="tab-confidentialite" class="tab-content doc-page-content">
+        <div class="doc-page-container">
+          <div class="watch-topbar">
+            <button type="button" class="watch-back-btn" onclick="navigateToTab('accueil')" title="Retour">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Retour</span>
+            </button>
+            <div class="watch-breadcrumb">
+              <a href="/" onclick="navigateToTab('accueil'); return false;" class="watch-breadcrumb-link">Accueil</a>
+              <span class="watch-breadcrumb-sep">/</span>
+              <span class="watch-breadcrumb-curr">Confidentialité & RGPD</span>
+            </div>
+          </div>
+
+          <div class="doc-card">
+            <div class="doc-header">
+              <h2>Politique de Confidentialité & Protection des Données (RGPD)</h2>
+              <p>Transparence intégrale sur la collecte, l'utilisation, la sécurité de vos données et l'exercice de vos droits.</p>
+            </div>
+            <div class="doc-body cgu-content-box">
+              <div class="cgu-alert-box">
+                <strong>ENGAGEMENT RGPD :</strong> VideoHub applique rigoureusement les principes du Règlement Général sur la Protection des Données (RGPD 2016/679) et de la Loi Informatique et Libertés. Vos données ne sont jamais vendues ni commercialisées.
+              </div>
+
+              <h4>1. Responsable du Traitement & Délégué à la Protection des Données (DPO)</h4>
+              <p>Le responsable du traitement des données personnelles pour le service VideoHub est l'Administrateur principal du site.<br>
+              Pour toute question relative à vos données ou pour contacter le DPO :<br>
+              Email : <strong><a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></strong></p>
+
+              <h4>2. Données Personnelles Collectées & Finalités</h4>
+              <p>VideoHub applique le principe de minimisation des données (seules les données strictement nécessaires sont traitées) :</p>
+              <ul>
+                <li><strong>Création de Compte & Profil :</strong> Pseudonyme public, adresse e-mail (pour l'authentification sécurisée, la récupération de mot de passe et les alertes légales), mot de passe chiffré, avatar et biographie facultative.</li>
+                <li><strong>Publications & Interactions :</strong> Vidéos téléversées, descriptions, tags, notes 5 étoiles attribuées, commentaires déposés, messages privés échangés et liste de favoris.</li>
+                <li><strong>Obligations Légales LCEN & Journaux d'Audit :</strong> Horodatage des opérations, adresses IP techniques (conservées 12 mois conformément aux réquisitions judiciaires de la loi LCEN n° 2004-575).</li>
+              </ul>
+
+              <h4>3. Base Légale des Traitements</h4>
+              <p>Les traitements reposent sur les bases juridiques suivantes :</p>
+              <ul>
+                <li><strong>Exécution du Contrat :</strong> Fourniture du service, gestion du compte et de la messagerie.</li>
+                <li><strong>Obligation Légale :</strong> Conservation des logs techniques (article 6-II LCEN) et traitement des signalements illicites.</li>
+                <li><strong>Intérêt Légitime :</strong> Prévention des fraudes, sécurité de l'infrastructure et protection contre le harcèlement.</li>
+              </ul>
+
+              <h4>4. Sécurité & Chiffrement des Données</h4>
+              <p>VideoHub met en œuvre des mesures techniques et organisationnelles de pointe :</p>
+              <ul>
+                <li><strong>Chiffrement en Transit :</strong> Protocole HTTPS / SSL TLS 256-bit pour l'intégralité des flux.</li>
+                <li><strong>Hachage Cryptographique :</strong> Mots de passe chiffrés via algorithme robuste bcrypt avec salage.</li>
+                <li><strong>Isolement des Données Privées :</strong> Le journal légal LCEN et les journaux d'audit ne sont jamais exposés dans les pages publiques ni via l'API publique.</li>
+                <li><strong>Médias en Attente Sécurisés :</strong> Les vidéos non publiées sont isolées et accessibles uniquement à l'administrateur modérateur.</li>
+              </ul>
+
+              <h4>5. Vos Droits RGPD & Délais de Réponse</h4>
+              <p>Conformément aux dispositions du Règlement Général sur la Protection des Données (RGPD) et de la loi Informatique et Libertés, vous disposez des droits suivants :</p>
+              <ul>
+                <li><strong>Droit d'accès et de rectification :</strong> Modification immédiate de votre profil ou consultation de vos données.</li>
+                <li><strong>Droit à l'effacement (« Droit à l'oubli ») :</strong> Suppression intégrale de votre compte et de vos données sur simple e-mail.</li>
+                <li><strong>Droit à la limitation et d'opposition :</strong> Droit de contester un traitement ou de s'opposer à la modération automatique.</li>
+                <li><strong>Droit à la portabilité :</strong> Transmission de vos données dans un format lisible par machine.</li>
+              </ul>
+              <p>Pour exercer vos droits, écrivez au DPO à : Email : <strong><a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></strong>. Une réponse vous sera apportée sous un délai maximum de 30 jours.<br>
+              Vous disposez également du droit d'introduire une réclamation auprès de la <strong>CNIL</strong> (Commission Nationale de l'Informatique et des Libertés - France).</p>
+
+              <h4>6. Cookies & Traceurs Techniques</h4>
+              <p>VideoHub utilise exclusivement des cookies et du stockage local strictement nécessaires (session utilisateur JWT, mémorisation 1h de l'avertissement de majorité 18+, préférences d'affichage sombre/clair et jeton anti-vote multiple). Aucun cookie publicitaire tiers n'est déposé sans votre consentement.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 14 : RÉCLAMATIONS & PLAINTES (DMCA / LCEN) ==================== -->
+      <section id="tab-reclamations" class="tab-content doc-page-content">
+        <div class="doc-page-container">
+          <div class="watch-topbar">
+            <button type="button" class="watch-back-btn" onclick="navigateToTab('accueil')" title="Retour">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Retour</span>
+            </button>
+            <div class="watch-breadcrumb">
+              <a href="/" onclick="navigateToTab('accueil'); return false;" class="watch-breadcrumb-link">Accueil</a>
+              <span class="watch-breadcrumb-sep">/</span>
+              <span class="watch-breadcrumb-curr">Plaintes & DMCA</span>
+            </div>
+          </div>
+
+          <div class="doc-card">
+            <div class="doc-header">
+              <h2>Politique de Plaintes & Takedown (DMCA)</h2>
+              <p>Procédure de notification, retrait d'urgence de contenu non consenti et protection des droits d'auteur.</p>
+            </div>
+            <div class="doc-body cgu-content-box">
+              <div class="cgu-alert-box">
+                <strong>PROCÉDURE PRIORITAIRE :</strong> VideoHub prend avec la plus haute gravité toute plainte relative à l'atteinte aux droits d'auteur ou à la diffusion non consentie de contenu. Toute notification conforme fait l'objet d'un examen et d'une mesure conservatoire sous 24h à 48h.
+              </div>
+
+              <h4>1. Signalement d'Urgence pour Contenu Non Consenti ou Atteinte à la Personne</h4>
+              <p>Si vous apparaissez dans une vidéo diffusée sur VideoHub et que vous n'avez pas donné votre consentement exprès, ou si vous êtes victime de chantage, de harcèlement, de « revenge porn » ou de divulgation de données privées (doxxing) :<br>
+              - Envoyez immédiatement un e-mail avec pour objet <strong>[URGENT - RETRAIT DE CONTENU]</strong> à :<br>
+              Email : <strong><a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></strong><br>
+              - Indiquez l'URL précise ou le titre exact de la vidéo concernée ainsi qu'une description sommaire permettant de vous identifier.<br>
+              <em>Le contenu signalé sera immédiatement masqué à titre conservatoire pendant la vérification.</em></p>
+
+              <h4>2. Notification de Violation des Droits d'Auteur (DMCA / Droit d'Auteur Français)</h4>
+              <p>Si vous êtes titulaire d'un droit d'auteur ou agent légalement mandaté et estimez qu'une vidéo diffusée sur VideoHub contrefait vos œuvres, vous devez nous adresser une notification écrite comprenant obligatoirement :</p>
+              <ul>
+                <li><strong>Identification de l'œuvre protégée :</strong> Le titre et la description claire de l'œuvre dont vous détenez les droits (ou lien vers la source originale).</li>
+                <li><strong>Localisation précise du contenu contesté :</strong> L'URL exacte de la vidéo sur VideoHub (ex: lien de la page ou identifiant de la vidéo).</li>
+                <li><strong>Coordonnées complètes du déclarant :</strong> Nom complet, raison sociale le cas échéant, adresse postale, numéro de téléphone et adresse e-mail valide.</li>
+                <li><strong>Déclaration de bonne foi :</strong> Une déclaration affirmant que vous estimez en toute bonne foi que l'utilisation contestée n'est pas autorisée par le titulaire des droits, son mandataire ou la loi.</li>
+                <li><strong>Déclaration d'exactitude sous peine de sanctions :</strong> Une attestation confirmant que les informations fournies sont exactes et que vous êtes bien le titulaire des droits exclusifs ou légalement habilité à agir en son nom.</li>
+                <li><strong>Signature :</strong> La signature électronique ou manuscrite du déclarant.</li>
+              </ul>
+
+              <h4>3. Procédure de Contre-Notification (Droit de Réponse de l'Uploader)</h4>
+              <p>Si un utilisateur ayant publié un contenu estime de bonne foi que celui-ci a été retiré par erreur ou mauvaise identification, il peut soumettre une contre-notification écrite à <strong>ia.project.pro2k26@gmail.com</strong> comportant :</p>
+              <ul>
+                <li>Ses coordonnées complètes et sa signature ;</li>
+                <li>L'identification de la vidéo retirée ;</li>
+                <li>Une déclaration sur l'honneur expliquant les motifs et autorisations légales démontrant son droit de diffusion ;</li>
+                <li>L'acceptation formelle de la juridiction compétente.</li>
+              </ul>
+              <p>En cas de contre-notification recevable, celle-ci est transmise au plaignant initial. Sans action en justice initiée par le plaignant sous 10 à 14 jours ouvrés, le contenu pourra être réexaminé.</p>
+
+              <h4>4. Politique Relative aux Infracteurs Récidivistes (Repeat Infringers)</h4>
+              <p>Conformément aux réglementations internationales et à la politique de sécurité de VideoHub, tout utilisateur faisant l'objet de notifications d'infraction répétées ou publiant délibérément des contenus contrefaisants verra son compte <strong>immédiatement résilié, ses vidéos supprimées et son adresse IP bloquée définitivement</strong>.</p>
+
+              <h4>5. Sanction des Fausses Déclarations</h4>
+              <p>Toute fausse notification ou réclamation abusive soumise délibérément engage la responsabilité civile et pénale de son auteur, qui s'expose au paiement de dommages-intérêts et frais de justice engagés par VideoHub et par les créateurs concernés.</p>
+
+              <h4>6. Contact Officiel du Service Modération</h4>
+              <p>Toutes les plaintes et notifications DMCA doivent être exclusivement adressées à l'administrateur modérateur :<br>
+              Email : <strong><a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></strong></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 15 : SIGNALER UN ABUS / RETRAIT ==================== -->
+      <section id="tab-signaler" class="tab-content doc-page-content">
+        <div class="doc-page-container">
+          <div class="watch-topbar">
+            <button type="button" class="watch-back-btn" onclick="navigateToTab('accueil')" title="Retour">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Retour</span>
+            </button>
+            <div class="watch-breadcrumb">
+              <a href="/" onclick="navigateToTab('accueil'); return false;" class="watch-breadcrumb-link">Accueil</a>
+              <span class="watch-breadcrumb-sep">/</span>
+              <span class="watch-breadcrumb-curr">Signaler un abus</span>
+            </div>
+          </div>
+
+          <div class="doc-card">
+            <div class="doc-header">
+              <h2>Signaler un Contenu Abusif ou Illégal</h2>
+              <p>Demande de retrait prioritaire pour atteinte à la vie privée, droits d'auteur ou contenu illicite.</p>
+            </div>
+            <div class="doc-body">
+              <form id="reportAbuseForm" class="custom-form" onsubmit="handleSendReport(event)">
+                <div class="cgu-alert-box mb-3">
+                  <strong>CONFIDENTIALITÉ GARANTIE :</strong> Votre signalement est strictement confidentiel. L'auteur de la vidéo ne verra aucune de vos informations personnelles.
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Votre nom complet *</label>
+                  <input type="text" id="reportFullName" class="form-input" placeholder="Ex: Jean Dupont" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Adresse e-mail de contact *</label>
+                  <input type="email" id="reportEmail" class="form-input" placeholder="Ex: contact@exemple.fr" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Titre ou URL de la vidéo à signaler *</label>
+                  <input type="text" id="reportVideoUrl" class="form-input" placeholder="Ex: https://... ou titre de la vidéo" required>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Motif principal du signalement *</label>
+                  <select id="reportReason" class="form-select" required>
+                    <option value="">-- Sélectionnez le motif --</option>
+                    <option value="Atteinte à la vie privée ou diffusion non consentie">Atteinte à la vie privée ou diffusion non consentie</option>
+                    <option value="Contenu impliquant ou suggérant un mineur">Contenu impliquant ou suggérant un mineur</option>
+                    <option value="Violation de droits d'auteur">Violation de droits d'auteur</option>
+                    <option value="Chantage, intimidation ou contenu intime">Chantage, intimidation ou contenu intime</option>
+                    <option value="Divulgation de données personnelles">Divulgation de données personnelles</option>
+                    <option value="Violence, propos haineux ou contenu illicite">Violence, propos haineux ou contenu illicite</option>
+                    <option value="Autre motif">Autre motif</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Description détaillée des faits *</label>
+                  <textarea id="reportDetails" class="form-textarea" rows="4" placeholder="Expliquez précisément en quoi ce contenu est litigieux..." required></textarea>
+                </div>
+
+                <div class="legal-warning-text" style="font-size:0.76rem;color:var(--text-muted);margin-bottom:12px;line-height:1.45;">
+                  <em>Rappel de l'article 6-I-4 de la loi LCEN : Le fait de présenter un contenu comme illicite dans le but d'en obtenir le retrait en sachant cette information inexacte est puni d'un an d'emprisonnement et de 15 000 € d'amende.</em>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Signature électronique (Tapez votre nom légal complet) *</label>
+                  <input type="text" id="reportSignature" class="form-input" placeholder="En tapant votre nom, vous certifiez l'exactitude des informations fournies" required>
+                </div>
+
+                <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:16px;">
+                  <button type="button" class="btn btn-secondary" onclick="navigateToTab('accueil')">Annuler</button>
+                  <button type="submit" id="btnSubmitReport" class="btn btn-danger">Transmettre le signalement</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 16 : PROTECTION DES MINEURS & CSAM ==================== -->
+      <section id="tab-protection-mineurs" class="tab-content doc-page-content">
+        <div class="doc-page-container">
+          <div class="watch-topbar">
+            <button type="button" class="watch-back-btn" onclick="navigateToTab('accueil')" title="Retour">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Retour</span>
+            </button>
+            <div class="watch-breadcrumb">
+              <a href="/" onclick="navigateToTab('accueil'); return false;" class="watch-breadcrumb-link">Accueil</a>
+              <span class="watch-breadcrumb-sep">/</span>
+              <span class="watch-breadcrumb-curr">Protection des Mineurs</span>
+            </div>
+          </div>
+
+          <div class="doc-card">
+            <div class="doc-header">
+              <h2>Politique de Tolérance Zéro contre les Abus Sexuels sur Enfants (CSAM)</h2>
+              <p>Engagement absolu pour la protection des mineurs, prévention, détection et transmission judiciaire.</p>
+            </div>
+            <div class="doc-body cgu-content-box">
+              <div class="cgu-alert-box" style="border-left-color: #ef4444; background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35);">
+                <strong style="color: #ef4444;">TOLÉRANCE ZÉRO ABSOLUE :</strong> VideoHub applique une politique d'intolérance totale envers tout matériel d'abus ou d'exploitation sexuelle des enfants (CSAM/CSAE). Tout contenu de cette nature est immédiatement supprimé, son auteur banni à vie et les éléments transmis sans délai aux services de police et de justice.
+              </div>
+
+              <h4>1. Définition et Interdiction Stricte</h4>
+              <p>Au sens de la présente politique, est considéré comme mineur toute personne physique âgée de <strong>moins de dix-huit (18) ans</strong>.<br>
+              Sont formellement et absolument proscrits sur l'ensemble de la plateforme VideoHub :</p>
+              <ul>
+                <li>Tout contenu visuel, vidéo ou audio mettant en scène, impliquant ou suggérant un mineur ;</li>
+                <li>Toute sexualisation d'enfant, qu'il s'agisse de captations réelles, de simulations, d'animations ou d'images générées par Intelligence Artificielle (IA) ;</li>
+                <li>Tout texte, titre, tag (#tag), description, commentaire ou message privé faisant référence, faisant l'apologie ou incitant à l'exploitation ou aux abus sur mineurs.</li>
+              </ul>
+
+              <h4>2. Processus de Modération et Contrôle Préalable</h4>
+              <p>Afin de garantir un environnement strictement réservé aux adultes et conforme à la loi :</p>
+              <ul>
+                <li><strong>Examen Humain Rigoureux :</strong> Chaque vidéo téléversée est inspectée par l'administrateur avant ou dès sa mise en ligne.</li>
+                <li><strong>Filtrage Sémantique Continu :</strong> Mise à jour permanente d'une liste noire de mots-clés et blocage automatique des requêtes de recherche suspectes.</li>
+                <li><strong>Audit et Traçabilité :</strong> Conservation des journaux techniques de connexion aux fins d'identification des contrevenants.</li>
+              </ul>
+
+              <h4>3. Signalement Systématique aux Autorités Compétentes</h4>
+              <p>Dès lors qu'une tentative de publication de contenu CSAM est détectée, VideoHub procède sans délai à :</p>
+              <ul>
+                <li>La suppression instantanée et le blocage irréversible du fichier ;</li>
+                <li>Le bannissement immédiat et définitif du compte utilisateur et de son adresse IP ;</li>
+                <li>La transmission d'un signalement officiel d'urgence aux autorités judiciaires compétentes, notamment la plateforme <strong>PHAROS</strong> (Ministère de l'Intérieur français) et le <strong>NCMEC</strong> (National Center for Missing & Exploited Children).</li>
+              </ul>
+
+              <h4>4. Comment Signaler une Violation de cette Politique ?</h4>
+              <p>Si vous identifiez le moindre contenu suspect ou si vous pensez qu'un mineur est en danger :</p>
+              <ul>
+                <li>Utilisez immédiatement notre <a href="/signaler" onclick="navigateToTab('signaler'); return false;" style="color:var(--primary);font-weight:700;">Formulaire de Signalement d'Urgence</a> en sélectionnant le motif <em>« Contenu impliquant un mineur (CSAM) »</em> ;</li>
+                <li>Ou écrivez 24h/24 en urgence absolue à : Email : <strong><a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></strong>.</li>
+              </ul>
+
+              <h4>5. Organismes Officiels et Numéros d'Urgence</h4>
+              <p>En cas de situation d'urgence ou d'assistance directe aux mineurs :</p>
+              <ul>
+                <li><strong>PHAROS (France) :</strong> <a href="https://www.internet-signalement.gouv.fr" target="_blank" rel="noopener" style="color:var(--primary);">internet-signalement.gouv.fr</a></li>
+                <li><strong>119 - Enfance en Danger (France) :</strong> Numéro national gratuit accessible 24h/24</li>
+                <li><strong>NCMEC (International) :</strong> <a href="https://www.missingkids.org" target="_blank" rel="noopener" style="color:var(--primary);">missingkids.org / report.cybertip.org</a></li>
+                <li><strong>Internet Watch Foundation (IWF) :</strong> <a href="https://www.iwf.org.uk" target="_blank" rel="noopener" style="color:var(--primary);">report.iwf.org.uk</a></li>
+                <li><strong>Point de Contact (INHOPE) :</strong> <a href="https://www.pointdecontact.net" target="_blank" rel="noopener" style="color:var(--primary);">pointdecontact.net</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== TAB 17 : PROPOSER UNE CATÉGORIE ==================== -->
+      <section id="tab-proposer-categorie" class="tab-content doc-page-content">
+        <div class="doc-page-container">
+          <div class="watch-topbar">
+            <button type="button" class="watch-back-btn" onclick="navigateToTab('accueil')" title="Retour">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Retour</span>
+            </button>
+            <div class="watch-breadcrumb">
+              <a href="/" onclick="navigateToTab('accueil'); return false;" class="watch-breadcrumb-link">Accueil</a>
+              <span class="watch-breadcrumb-sep">/</span>
+              <span class="watch-breadcrumb-curr">Proposer une Catégorie</span>
+            </div>
+          </div>
+
+          <div class="doc-card">
+            <div class="doc-header">
+              <h2 id="addCatModalTitle">Ajouter une Catégorie</h2>
+              <p id="addCatModalSubtitle">Proposez une nouvelle thématique pour classer les vidéos.</p>
+            </div>
+            <div class="doc-body">
+              <form id="addCategoryForm" class="custom-form" onsubmit="handleAddCategory(event)">
+                <div class="form-group">
+                  <label class="form-label">Nom de la catégorie *</label>
+                  <input type="text" id="newCatName" class="form-input" placeholder="Ex: Podcasts, Manga, Bricolage..." required>
+                </div>
+
+                <div id="addCatValidationNotice" style="font-size:0.85rem; color:var(--text-muted); background:var(--bg-subtle); padding:12px 14px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:16px;">
+                  Note : Votre suggestion sera vérifiée et validée par l'administrateur avant d'être publiée sur le site.
+                </div>
+
+                <div style="display:flex;gap:12px;justify-content:flex-end;">
+                  <button type="button" class="btn btn-secondary" onclick="navigateToTab('accueil')">Annuler</button>
+                  <button type="submit" id="addCatSubmitBtn" class="btn btn-primary">
+                    Créer la catégorie
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- ==================== SITE MEGA FOOTER (MULTI-COLONNES & LÉGAL) ==================== -->
       <footer class="site-mega-footer">
         <div class="footer-top-grid">
@@ -1692,10 +2222,10 @@
           <div class="footer-col">
             <h4 class="footer-col-title">Explorer</h4>
             <ul class="footer-links-list">
-              <li><a href="javascript:void(0)" onclick="navigateToTab('accueil')">Accueil & Récents</a></li>
-              <li><a href="javascript:void(0)" onclick="navigateToTab('explorer')">Explorer par Catégories</a></li>
-              <li><a href="javascript:void(0)" onclick="navigateToTab('vip')">Vidéos Exclusives VIP</a></li>
-              <li><a href="javascript:void(0)" onclick="navigateToTab('upload')">Déposer une vidéo (Gratuit)</a></li>
+              <li><a href="/" onclick="navigateToTab('accueil'); return false;">Accueil & Récents</a></li>
+              <li><a href="/#explorer" onclick="navigateToTab('explorer'); return false;">Explorer par Catégories</a></li>
+              <li><a href="/#vip" onclick="navigateToTab('vip'); return false;">Vidéos Exclusives VIP</a></li>
+              <li><a href="/#upload" onclick="navigateToTab('upload'); return false;">Déposer une vidéo (Gratuit)</a></li>
             </ul>
           </div>
 
@@ -1703,11 +2233,11 @@
           <div class="footer-col">
             <h4 class="footer-col-title">Compte & Membres</h4>
             <ul class="footer-links-list">
-              <li><a href="javascript:void(0)" onclick="navigateToTab('profil'); switchAuthMode('register');">Créer un compte</a></li>
-              <li><a href="javascript:void(0)" onclick="navigateToTab('profil'); switchAuthMode('login');">Se connecter</a></li>
-              <li><a href="javascript:void(0)" onclick="navigateToTab('profil')">Mon Profil & Favoris</a></li>
-              <li><a href="javascript:void(0)" onclick="openMessagesModal()">Messagerie Privée</a></li>
-              <li><a href="javascript:void(0)" onclick="navigateToTab('vip')">Pass VIP (9,99€ / mois)</a></li>
+              <li><a href="/#profil" onclick="navigateToTab('profil'); switchAuthMode('register'); return false;">Créer un compte</a></li>
+              <li><a href="/#profil" onclick="navigateToTab('profil'); switchAuthMode('login'); return false;">Se connecter</a></li>
+              <li><a href="/#profil" onclick="navigateToTab('profil'); return false;">Mon Profil & Favoris</a></li>
+              <li><a href="/messages" onclick="navigateToTab('messages'); return false;">Messagerie Privée</a></li>
+              <li><a href="/#vip" onclick="navigateToTab('vip'); return false;">Pass VIP (9,99€ / mois)</a></li>
             </ul>
           </div>
 
@@ -1715,10 +2245,10 @@
           <div class="footer-col">
             <h4 class="footer-col-title">Aide & Support</h4>
             <ul class="footer-links-list">
-              <li><a href="javascript:void(0)" onclick="navigateToTab('faq')">Foire Aux Questions (FAQ)</a></li>
-              <li><a href="javascript:void(0)" onclick="openReportModal()">Signaler un abus / Retrait</a></li>
-              <li><a href="mailto:ia.project.pro2k26@gmail.com">Contact Support & DPO</a></li>
-              <li><a href="javascript:void(0)" onclick="openCsamModal()">Protection des Mineurs</a></li>
+              <li><a href="/#faq" onclick="navigateToTab('faq'); return false;">Foire Aux Questions (FAQ)</a></li>
+              <li><a href="/signaler" onclick="navigateToTab('signaler'); return false;">Signaler un abus / Retrait</a></li>
+              <li><a href="/contact" onclick="navigateToTab('contact'); return false;">Contact Support & DPO</a></li>
+              <li><a href="/protection-mineurs" onclick="navigateToTab('protection-mineurs'); return false;">Protection des Mineurs</a></li>
             </ul>
           </div>
 
@@ -1726,11 +2256,11 @@
           <div class="footer-col">
             <h4 class="footer-col-title">Légal & Conformité</h4>
             <ul class="footer-links-list">
-              <li><a href="javascript:void(0)" onclick="openMentionsLegalesModal()">Mentions légales</a></li>
-              <li><a href="javascript:void(0)" onclick="openCguModal()">Conditions Générales (CGU)</a></li>
-              <li><a href="javascript:void(0)" onclick="openPrivacyModal()">Confidentialité (RGPD)</a></li>
-              <li><a href="javascript:void(0)" onclick="openComplaintsModal()">Plaintes & DMCA / Retrait</a></li>
-              <li><a href="javascript:void(0)" onclick="openCsamModal()" style="color:#ef4444;font-weight:600;">Politique CSAM (Tolérance 0)</a></li>
+              <li><a href="/mentions-legales" onclick="navigateToTab('mentions-legales'); return false;">Mentions légales</a></li>
+              <li><a href="/cgu" onclick="navigateToTab('cgu'); return false;">Conditions Générales (CGU)</a></li>
+              <li><a href="/confidentialite" onclick="navigateToTab('confidentialite'); return false;">Confidentialité (RGPD)</a></li>
+              <li><a href="/reclamations" onclick="navigateToTab('reclamations'); return false;">Plaintes & DMCA / Retrait</a></li>
+              <li><a href="/protection-mineurs" onclick="navigateToTab('protection-mineurs'); return false;" style="color:#ef4444;font-weight:600;">Politique CSAM (Tolérance 0)</a></li>
             </ul>
           </div>
 
@@ -1740,12 +2270,12 @@
         <div class="footer-sub-strip">
           <span class="strip-label">CATÉGORIES POPULAIRES :</span>
           <div class="strip-tags">
-            <a href="javascript:void(0)" onclick="filterVideosByCategory('Amateur')">Amateur</a> •
-            <a href="javascript:void(0)" onclick="filterVideosByCategory('Beurettes')">Beurettes</a> •
-            <a href="javascript:void(0)" onclick="filterVideosByCategory('Exclusif VIP')">Exclusif VIP</a> •
-            <a href="javascript:void(0)" onclick="filterVideosByCategory('HD 1080p')">HD 1080p</a> •
-            <a href="javascript:void(0)" onclick="filterVideosByCategory('Français')">Français</a> •
-            <a href="javascript:void(0)" onclick="filterVideosByCategory('Tendances')">Tendances</a>
+            <a href="/?cat=Amateur" onclick="filterVideosByCategory('Amateur'); return false;">Amateur</a> •
+            <a href="/?cat=Beurettes" onclick="filterVideosByCategory('Beurettes'); return false;">Beurettes</a> •
+            <a href="/?cat=Exclusif+VIP" onclick="filterVideosByCategory('Exclusif VIP'); return false;">Exclusif VIP</a> •
+            <a href="/?cat=HD+1080p" onclick="filterVideosByCategory('HD 1080p'); return false;">HD 1080p</a> •
+            <a href="/?cat=Français" onclick="filterVideosByCategory('Français'); return false;">Français</a> •
+            <a href="/?cat=Tendances" onclick="filterVideosByCategory('Tendances'); return false;">Tendances</a>
           </div>
         </div>
 
@@ -1768,31 +2298,8 @@
   <!-- Hidden legacy modal placeholder -->
   <div id="videoModal" class="hidden" style="display:none;" aria-hidden="true"></div>
 
-  <!-- ==================== ADD CATEGORY MODAL ==================== -->
-  <div id="addCategoryModal" class="modal-overlay hidden" onclick="closeAddCategoryModal(event)">
-    <div class="modal-card modal-category" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeAddCategoryModal()"></button>
-      <div class="modal-header-box">
-        <h3 id="addCatModalTitle">Ajouter une Catégorie</h3>
-        <p id="addCatModalSubtitle">Proposez une nouvelle thématique pour classer les vidéos.</p>
-      </div>
-
-      <form id="addCategoryForm" class="custom-form" onsubmit="handleAddCategory(event)">
-        <div class="form-group">
-          <label class="form-label">Nom de la catégorie *</label>
-          <input type="text" id="newCatName" class="form-input" placeholder="Ex: Podcasts, Manga, Bricolage..." required>
-        </div>
-
-        <div id="addCatValidationNotice" style="display:none; font-size:0.8rem; color:var(--text-muted); background:var(--bg-subtle); padding:10px 12px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:14px;">
-          Note : Votre suggestion sera vérifiée et validée par l'administrateur avant d'être publiée sur le site.
-        </div>
-
-        <button type="submit" id="addCatSubmitBtn" class="btn btn-primary btn-block">
-          Créer la catégorie
-        </button>
-      </form>
-    </div>
-  </div>
+  <!-- ==================== ADD CATEGORY PLACEHOLDER ==================== -->
+  <div id="addCategoryModal" class="hidden" style="display:none;" aria-hidden="true"></div>
 
   <!-- ==================== ADMIN EDIT VIDEO MODAL ==================== -->
   <div id="adminEditVideoModal" class="modal-overlay hidden" onclick="closeAdminEditModal(event)">
@@ -1938,340 +2445,13 @@
     </div>
   </div>
 
-  <!-- ==================== MENTIONS LÉGALES & INFORMATIONS ÉDITEUR ==================== -->
-  <div id="mentionsLegalesModal" class="modal-overlay hidden" onclick="closeMentionsLegalesModal(event)">
-    <div class="modal-card modal-cgu" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeMentionsLegalesModal()"></button>
-      <div class="modal-header-box">
-        <h3>Mentions Légales & Informations Éditeur</h3>
-        <p>Conformité juridique, statut d'hébergeur technique (LCEN), hébergement et politique de confidentialité (RGPD).</p>
-      </div>
+  <!-- ==================== DEDICATED DOC PAGES PLACEHOLDERS ==================== -->
+  <div id="mentionsLegalesModal" class="hidden" style="display:none;" aria-hidden="true"></div>
+  <div id="cguModal" class="hidden" style="display:none;" aria-hidden="true"></div>
+  <div id="privacyPolicyModal" class="hidden" style="display:none;" aria-hidden="true"></div>
+  <div id="complaintsPolicyModal" class="hidden" style="display:none;" aria-hidden="true"></div>
+  <div id="contactModal" class="hidden" style="display:none;" aria-hidden="true"></div>
 
-      <div class="cgu-content-box">
-        <div class="cgu-alert-box">
-          <strong>AVERTISSEMENT LÉGAL :</strong> VideoHub est un service en ligne communautaire et un blog de partage audiovisuel exclusivement réservé aux personnes majeures (18 ans et plus). L'accès des mineurs est formellement interdit.
-        </div>
-
-        <h4>1. Édition du Service & Directeur de la Publication</h4>
-        <p>Le site et service <strong>VideoHub</strong> est un service de communication au public en ligne, blog vidéo et plateforme d'hébergement audiovisuel.<br>
-        <strong>Directeur de la Publication :</strong> L'Administrateur principal de VideoHub.<br>
-        <strong>Contact administratif, réclamations et signalements :</strong> <a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></p>
-
-        <h4>2. Hébergement & Sécurité Technique</h4>
-        <p>La plateforme VideoHub est propulsée par une infrastructure réseau sécurisée avec protocole de chiffrement SSL/TLS 256-bit, assurant la protection continue des données, la confidentialité des comptes et la traçabilité des opérations de modération.</p>
-
-        <h4>3. Statut d'Hébergeur Technique & Responsabilité Légale (Loi LCEN du 21 juin 2004)</h4>
-        <p>Conformément à l'article 6 de la loi n° 2004-575 du 21 juin 2004 pour la confiance dans l'économie numérique (LCEN), VideoHub agit exclusivement en qualité d'<strong>hébergeur technique</strong> de contenus mis en ligne par des créateurs et utilisateurs tiers.<br>
-        VideoHub n'est pas soumis à une obligation générale de surveillance des vidéos et messages stockés. Toutefois, dès lors qu'un contenu illicite ou litigieux est notifié à l'administration, il fait l'objet d'un examen prioritaire et d'un retrait immédiat sous 24h à 48h.</p>
-
-        <h4>4. Protection des Données Personnelles & Conformité RGPD</h4>
-        <p>En conformité avec le Règlement Général sur la Protection des Données (RGPD 2016/679) et la loi Informatique et Libertés :<br>
-        - Les données collectées (adresse e-mail, pseudonyme, messages privés, notes et journaux d'audit) sont strictement nécessaires à l'exécution du service, à la sécurisation des comptes et à la prévention des abus.<br>
-        - Aucune donnée personnelle n'est vendue, louée ou cédée à des tiers à des fins de prospection publicitaire.<br>
-        - Vous disposez d'un droit d'accès, de rectification, de portabilité et d'effacement de vos données personnelles sur simple demande à <a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a>.</p>
-
-        <h4>5. Procédure de Retrait d'Urgence & Protection des Droits (Takedown / DMCA)</h4>
-        <p>Tout titulaire de droits d'auteur, ayant droit ou personne physique estimant qu'un contenu porte atteinte à ses droits, à sa dignité ou à son image peut solliciter le retrait d'urgence en écrivant à <strong>ia.project.pro2k26@gmail.com</strong> en précisant le titre de la vidéo, le lien URL et la preuve de son identité/droits.</p>
-      </div>
-
-      <button type="button" class="btn btn-primary btn-block mt-3" onclick="closeMentionsLegalesModal()">
-        Fermer les Mentions Légales
-      </button>
-    </div>
-  </div>
-
-  <!-- ==================== CONDITIONS GÉNÉRALES D'UTILISATION (CGU) ==================== -->
-  <div id="cguModal" class="modal-overlay hidden" onclick="closeCguModal(event)">
-    <div class="modal-card modal-cgu" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeCguModal()"></button>
-      <div class="modal-header-box">
-        <h3>Conditions Générales d'Utilisation (CGU)</h3>
-        <p>Dernière mise à jour : 2026 • Règles de publication, certification 18+, modération admin et engagements légaux.</p>
-      </div>
-
-      <div class="cgu-content-box">
-        <div class="cgu-alert-box">
-          <strong>ENGAGEMENT FORMEL :</strong> En accédant à <strong>VideoHub</strong> ou en y publiant du contenu, vous reconnaissez avoir pris connaissance des présentes Conditions Générales d'Utilisation et les accepter sans réserve. Si vous refusez l'une quelconque de ces dispositions, vous devez cesser immédiatement toute utilisation du site.
-        </div>
-
-        <h4>1. Majorité Légale Obligatoire (18 Ans et Plus) & Avertissement</h4>
-        <p>L'accès à VideoHub et la consultation des contenus sont <strong>strictement réservés aux personnes ayant atteint l'âge légal de la majorité</strong> (18 ans révolus). En accédant au service, vous déclarez sur l'honneur être majeur. Le contrôle de majorité constitue une déclaration d'engagement de l'utilisateur et ne dispense pas l'éditeur de ses mesures actives de modération.</p>
-
-        <h4>2. Règles et Garanties Impératives de Téléversement (Uploaders & Créateurs)</h4>
-        <p>Pour tout téléversement ou dépôt de vidéo sur VideoHub, le déposant déclare, certifie et garantit formellement sur l'honneur :</p>
-        <ul>
-          <li><strong>Propriété & Titularité des Droits :</strong> Être l'auteur exclusif de la vidéo ou détenir toutes les licences, autorisations et décharges écrites nécessaires pour sa diffusion publique sur VideoHub.</li>
-          <li><strong>Consentement Écrit Libre, Spécifique et Éclairé :</strong> Avoir recueilli l'accord formel et explicite de chaque personne identifiable apparaissant dans le contenu. <em>Un accord pour être photographié ou filmé ne vaut pas, à lui seul, accord de publication.</em> Le déposant reste seul garant et responsable des autorisations de diffusion.</li>
-          <li><strong>Vérification d'Identité & Majorité (Conformité 18 U.S.C. § 2257) :</strong> Avoir personnellement contrôlé les pièces officielles d'identité avec photo attestant que chaque personne figurant dans le contenu était âgée d'au moins 18 ans au moment de la captation, et conserver ces justificatifs à disposition de l'administration.</li>
-          <li><strong>Absence de Faux & Usurpation :</strong> Ne transmettre aucun contenu volé, truqué de manière trompeuse, obtenu sous contrainte ou partagé sans consentement (« revenge porn »).</li>
-        </ul>
-
-        <h4>3. Tolérance Zéro & Contenus Strictement Prohibés</h4>
-        <p>VideoHub applique une politique d'interdiction absolue. Sont formellement prohibés et font l'objet d'une <strong>suppression immédiate, d'un bannissement définitif et d'un signalement systématique auprès des autorités judiciaires</strong> :</p>
-        <ul>
-          <li>Tout contenu impliquant, mettant en scène ou sexualisant des personnes mineures (CSAM/CSAE) ;</li>
-          <li>La diffusion intime non consentie, le chantage, l'extorsion, la contrainte ou la pornographie de vengeance ;</li>
-          <li>Tout contenu faisant l'apologie de la violence réelle, de la haine, des discriminations ou d'actes criminels ;</li>
-          <li>La divulgation non autorisée de données personnelles privées d'autrui (doxxing, numéros, adresses) ;</li>
-          <li>Tout envoi de spam, virus, script automatisé ou tentative de contournement de la sécurité du serveur.</li>
-        </ul>
-
-        <h4>4. Modération Souveraine & Prérogatives Exclusives de l'Administrateur</h4>
-        <p>Dans l'intérêt de la sécurité de la communauté et de la conformité légale de la plateforme, l'administrateur de VideoHub dispose d'un droit de modération souverain :</p>
-        <ul>
-          <li><strong>Validation & Retrait :</strong> L'administrateur examine les soumissions et peut valider, refuser, déplacer, masquer ou supprimer définitivement toute vidéo sans préavis ni droit à indemnisation.</li>
-          <li><strong>Miniatures Officielles :</strong> L'administrateur sélectionne les miniatures à partir des séquences exactes de la vidéo via le studio de capture intégré.</li>
-          <li><strong>Catégorisation & Tags :</strong> L'administrateur peut modifier, enrichir ou réorganiser les tags (#tags) et descriptions des publications.</li>
-          <li><strong>Modération Exclusive des Commentaires :</strong> Seul l'administrateur détient le pouvoir de suppression des commentaires sur l'ensemble du site afin de prévenir le harcèlement et les dérives.</li>
-          <li><strong>Bannissement & Mesures Conservatoires :</strong> Clôture immédiate du compte et blocage d'IP en cas d'infraction.</li>
-        </ul>
-
-        <h4>5. Licence de Publication Concédée par l'Utilisateur</h4>
-        <p>L'auteur conserve ses droits moraux et de propriété intellectuelle. En soumettant un contenu sur VideoHub, il concède à la plateforme une autorisation non exclusive, gratuite et mondiale pour héberger, reproduire techniquement, adapter aux formats de diffusion, modérer et afficher le contenu. Cette licence s'exerce pendant la durée de mise en ligne et prend fin lors du retrait effectif du contenu, sous réserve des copies techniques temporaires de cache et des données conservées à titre de preuve pour satisfaire aux obligations légales.</p>
-
-        <h4>6. Espace Communautaire, Système de Notation (0 à 5 Étoiles) & Tchat Privé</h4>
-        <p>Les fonctionnalités interactives (évaluations par étoiles, commentaires, messagerie directe entre membres) doivent respecter les règles de courtoisie et les lois en vigueur. Les tentatives de votes multiples ou frauduleux sont bloquées par empreinte technique temporaire anti-spam.</p>
-
-        <h4>7. Pass VIP « Club Privilège » (9,99 € / mois) & Absence de Rétractation</h4>
-        <p>L'accès aux vidéos exclusives de la zone VIP est régi par les conditions suivantes :</p>
-        <ul>
-          <li><strong>Tarif & Facturation :</strong> L'abonnement VIP est fixé à 9,99 € TTC par mois, sans engagement de durée.</li>
-          <li><strong>Fourniture Immédiate & Renonciation au Droit de Rétractation :</strong> Conformément à l'article L. 221-28 13° du Code de la consommation, la fourniture du contenu numérique débutant immédiatement dès le paiement, l'abonné renonce expressément à son droit de rétractation de 14 jours.</li>
-          <li><strong>Résiliation en 1 Clic :</strong> Résiliation possible à tout moment sans frais depuis l'espace utilisateur ou par simple demande par e-mail.</li>
-        </ul>
-
-        <h4>8. Conservation des Données, Corbeille & Journal Légal</h4>
-        <p>Les envois en attente non validés sont purgés au plus tard sous 90 jours et les contenus mis à la corbeille sous 30 jours. Les adresses IP et journaux techniques d'audit légal sont conservés pendant 12 mois à compter de l'opération concernée conformément à la loi LCEN, puis supprimés ou anonymisés.</p>
-
-        <h4>9. Limitation de Responsabilité & Obligation de Moyens</h4>
-        <p>VideoHub est fourni avec une obligation de moyens. VideoHub n'est responsable que des dommages directs qui lui sont imputables. L'utilisateur répond seul des contenus qu'il transmet et garantit VideoHub et son administrateur contre tout recours ou réclamation de tiers.</p>
-
-        <h4>10. Divisibilité, Droit Applicable & Contact</h4>
-        <p>Si une clause venait à être déclarée inapplicable, les autres stipulations demeurent pleinement en vigueur. Pour tout signalement ou exercice de vos droits, contactez l'administration 7j/7 à : <strong><a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></strong>.</p>
-      </div>
-
-      <button type="button" class="btn btn-primary btn-block mt-3" onclick="closeCguModal()">
-        J'ai compris et j'accepte les CGU
-      </button>
-    </div>
-  </div>
-
-  <!-- ==================== POLITIQUE DE CONFIDENTIALITÉ & RGPD ==================== -->
-  <div id="privacyPolicyModal" class="modal-overlay hidden" onclick="closePrivacyModal(event)">
-    <div class="modal-card modal-cgu" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closePrivacyModal()"></button>
-      <div class="modal-header-box">
-        <h3>Politique de Confidentialité & Protection des Données (RGPD)</h3>
-        <p>Dernière modification : 2026 • Engagements de protection de la vie privée, registre des traitements et conformité CNIL / RGPD.</p>
-      </div>
-
-      <div class="cgu-content-box">
-        <div class="cgu-alert-box">
-          <strong>ENGAGEMENT VIE PRIVÉE :</strong> La protection de votre vie privée et la confidentialité de vos données sont au cœur de nos priorités sur <strong>VideoHub</strong>. Aucune de vos données personnelles n'est vendue, louée ou cédée à des tiers à des fins publicitaires.
-        </div>
-
-        <h4>1. Responsable du Traitement & Délégué aux Données (DPO)</h4>
-        <p>Le responsable du traitement des données personnelles pour la plateforme en ligne <strong>VideoHub</strong> est l'Administrateur principal du service.<br>
-        <strong>Délégué à la Protection des Données (DPO) & Contact :</strong> <a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></p>
-
-        <h4>2. Tableau Récapitulatif des Traitements Réalisés</h4>
-        <div style="overflow-x:auto;margin:10px 0;">
-          <table class="legal-table" style="width:100%;font-size:0.78rem;border-collapse:collapse;color:var(--text-muted);">
-            <thead>
-              <tr style="border-bottom:1px solid var(--border-color);color:var(--primary);text-align:left;">
-                <th style="padding:6px 8px;">Traitement / Données</th>
-                <th style="padding:6px 8px;">Finalité</th>
-                <th style="padding:6px 8px;">Base Juridique</th>
-                <th style="padding:6px 8px;">Durée de Conservation</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style="border-bottom:1px solid var(--border-subtle);">
-                <td style="padding:6px 8px;"><strong>Dépôt de Vidéo</strong> (titre, tags, e-mail/pseudo, vidéo)</td>
-                <td style="padding:6px 8px;">Hébergement, modération administrative et diffusion publique</td>
-                <td style="padding:6px 8px;">Exécution du service & consentement explicite</td>
-                <td style="padding:6px 8px;">Pendant la publication. En attente : 90j max. Corbeille : 30j. Archive preuve : 5 ans.</td>
-              </tr>
-              <tr style="border-bottom:1px solid var(--border-subtle);">
-                <td style="padding:6px 8px;"><strong>Journal Légal (LCEN)</strong> (IP source, port, date/heure, ID vidéo)</td>
-                <td style="padding:6px 8px;">Identification légale des auteurs de publications et coopération judiciaire</td>
-                <td style="padding:6px 8px;">Obligation légale (Loi LCEN du 21 juin 2004)</td>
-                <td style="padding:6px 8px;">12 mois à compter de l'opération, puis anonymisation ou suppression.</td>
-              </tr>
-              <tr style="border-bottom:1px solid var(--border-subtle);">
-                <td style="padding:6px 8px;"><strong>Signalements & Takedown</strong> (nom, e-mail, URL, motif, signature)</td>
-                <td style="padding:6px 8px;">Traitement d'urgence des retraits de contenus non consentis ou contrefaisants</td>
-                <td style="padding:6px 8px;">Obligation légale & intérêt légitime à protéger les personnes</td>
-                <td style="padding:6px 8px;">12 mois après clôture du dossier (jusqu'à 5 ans en cas de contentieux).</td>
-              </tr>
-              <tr style="border-bottom:1px solid var(--border-subtle);">
-                <td style="padding:6px 8px;"><strong>Compte Membre & Profil</strong> (pseudo, e-mail, avatar, bio)</td>
-                <td style="padding:6px 8px;">Gestion de l'espace membre, personnalisation et favoris</td>
-                <td style="padding:6px 8px;">Exécution du contrat de service</td>
-                <td style="padding:6px 8px;">Durée d'activité du compte (supprimé sous 30 jours sur demande).</td>
-              </tr>
-              <tr style="border-bottom:1px solid var(--border-subtle);">
-                <td style="padding:6px 8px;"><strong>Commentaires & Évaluations</strong> (texte, note 0 à 5)</td>
-                <td style="padding:6px 8px;">Animation communautaire et modération des échanges</td>
-                <td style="padding:6px 8px;">Intérêt légitime & exécution du service</td>
-                <td style="padding:6px 8px;">Public jusqu'à suppression par l'administrateur.</td>
-              </tr>
-              <tr style="border-bottom:1px solid var(--border-subtle);">
-                <td style="padding:6px 8px;"><strong>Messagerie Privée</strong> (messages entre membres)</td>
-                <td style="padding:6px 8px;">Échanges directs et privés entre utilisateurs du site</td>
-                <td style="padding:6px 8px;">Exécution du service demandé</td>
-                <td style="padding:6px 8px;">Tant que les comptes participants sont actifs.</td>
-              </tr>
-              <tr>
-                <td style="padding:6px 8px;"><strong>Empreinte Anti-Abus & Votes</strong> (hash temporaire)</td>
-                <td style="padding:6px 8px;">Limiter les spams, attaques automatisées et votes multiples</td>
-                <td style="padding:6px 8px;">Intérêt légitime à la sécurité du site</td>
-                <td style="padding:6px 8px;">24 heures pour l'empreinte anti-abus.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <h4>3. Contenus Intimes & Consentement Exprès</h4>
-        <p>Toute vidéo ou image intime révélant des données relatives à la vie privée ne peut être publiée que si l'auteur détient le <strong>consentement libre, spécifique, éclairé et explicite</strong> de chaque personne identifiable. <em>Un accord pour être photographié ou filmé ne vaut pas accord de publication.</em> Tout consentement peut être révoqué à tout moment via notre <a href="javascript:void(0)" onclick="closePrivacyModal(); openReportModal();" style="color:var(--primary);font-weight:700;">Formulaire de Signalement & Retrait</a>.</p>
-
-        <h4>4. Mesures de Sécurité & Confidentialité de l'Hébergement</h4>
-        <p>Nous mettons en œuvre des mesures techniques avancées :</p>
-        <ul>
-          <li><strong>Chiffrement Global :</strong> Navigation et flux protégés par certificat SSL/TLS 256 bits (HTTPS).</li>
-          <li><strong>Hachage Cryptographique :</strong> Mots de passe chiffrés via algorithme robuste bcrypt avec salage.</li>
-          <li><strong>Isolement des Données Privées :</strong> Le journal légal LCEN et les journaux d'audit ne sont jamais exposés dans les pages publiques ni via l'API publique.</li>
-          <li><strong>Médias en Attente Sécurisés :</strong> Les vidéos non publiées sont isolées et accessibles uniquement à l'administrateur modérateur.</li>
-        </ul>
-
-        <h4>5. Vos Droits RGPD & Délais de Réponse</h4>
-        <p>Conformément aux dispositions du Règlement Général sur la Protection des Données (RGPD) et de la loi Informatique et Libertés, vous disposez des droits suivants :</p>
-        <ul>
-          <li><strong>Droit d'accès et de rectification :</strong> Modification immédiate de votre profil ou consultation de vos données.</li>
-          <li><strong>Droit à l'effacement (« Droit à l'oubli ») :</strong> Suppression intégrale de votre compte et de vos données sur simple e-mail.</li>
-          <li><strong>Droit à la limitation et d'opposition :</strong> Droit de contester un traitement ou de s'opposer à la modération automatique.</li>
-          <li><strong>Droit à la portabilité :</strong> Transmission de vos données dans un format lisible par machine.</li>
-        </ul>
-        <p>Pour exercer vos droits, écrivez au DPO à : Email : <strong><a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></strong>. Une réponse vous sera apportée sous un délai maximum de 30 jours.<br>
-        Vous disposez également du droit d'introduire une réclamation auprès de la <strong>CNIL</strong> (Commission Nationale de l'Informatique et des Libertés - France).</p>
-
-        <h4>6. Cookies & Traceurs Techniques</h4>
-        <p>VideoHub utilise exclusivement des cookies et du stockage local strictement nécessaires (session utilisateur JWT, mémorisation 1h de l'avertissement de majorité 18+, préférences d'affichage sombre/clair et jeton anti-vote multiple). Aucun cookie publicitaire tiers n'est déposé sans votre consentement.</p>
-      </div>
-
-      <button type="button" class="btn btn-primary btn-block mt-3" onclick="closePrivacyModal()">
-        Fermer la Politique de Confidentialité
-      </button>
-    </div>
-  </div>
-
-  <!-- ==================== POLITIQUE DE PLAINTES & SIGNALEMENT (DMCA / TAKEDOWN) ==================== -->
-  <div id="complaintsPolicyModal" class="modal-overlay hidden" onclick="closeComplaintsModal(event)">
-    <div class="modal-card modal-cgu" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeComplaintsModal()"></button>
-      <div class="modal-header-box">
-        <h3>Politique de Plaintes & Takedown (DMCA)</h3>
-        <p>Procédure de notification, retrait d'urgence de contenu non consenti et protection des droits d'auteur.</p>
-      </div>
-
-      <div class="cgu-content-box">
-        <div class="cgu-alert-box">
-          <strong>PROCÉDURE PRIORITAIRE :</strong> VideoHub prend avec la plus haute gravité toute plainte relative à l'atteinte aux droits d'auteur ou à la diffusion non consentie de contenu. Toute notification conforme fait l'objet d'un examen et d'une mesure conservatoire sous 24h à 48h.
-        </div>
-
-        <h4>1. Signalement d'Urgence pour Contenu Non Consenti ou Atteinte à la Personne</h4>
-        <p>Si vous apparaissez dans une vidéo diffusée sur VideoHub et que vous n'avez pas donné votre consentement exprès, ou si vous êtes victime de chantage, de harcèlement, de « revenge porn » ou de divulgation de données privées (doxxing) :<br>
-        - Envoyez immédiatement un e-mail avec pour objet <strong>[URGENT - RETRAIT DE CONTENU]</strong> à :<br>
-        Email : <strong><a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></strong><br>
-        - Indiquez l'URL précise ou le titre exact de la vidéo concernée ainsi qu'une description sommaire permettant de vous identifier.<br>
-        <em>Le contenu signalé sera immédiatement masqué à titre conservatoire pendant la vérification.</em></p>
-
-        <h4>2. Notification de Violation des Droits d'Auteur (DMCA / Droit d'Auteur Français)</h4>
-        <p>Si vous êtes titulaire d'un droit d'auteur ou agent légalement mandaté et estimez qu'une vidéo diffusée sur VideoHub contrefait vos œuvres, vous devez nous adresser une notification écrite comprenant obligatoirement :</p>
-        <ul>
-          <li><strong>Identification de l'œuvre protégée :</strong> Le titre et la description claire de l'œuvre dont vous détenez les droits (ou lien vers la source originale).</li>
-          <li><strong>Localisation précise du contenu contesté :</strong> L'URL exacte de la vidéo sur VideoHub (ex: lien de la page ou identifiant de la vidéo).</li>
-          <li><strong>Coordonnées complètes du déclarant :</strong> Nom complet, raison sociale le cas échéant, adresse postale, numéro de téléphone et adresse e-mail valide.</li>
-          <li><strong>Déclaration de bonne foi :</strong> Une déclaration affirmant que vous estimez en toute bonne foi que l'utilisation contestée n'est pas autorisée par le titulaire des droits, son mandataire ou la loi.</li>
-          <li><strong>Déclaration d'exactitude sous peine de sanctions :</strong> Une attestation confirmant que les informations fournies sont exactes et que vous êtes bien le titulaire des droits exclusifs ou légalement habilité à agir en son nom.</li>
-          <li><strong>Signature :</strong> La signature électronique ou manuscrite du déclarant.</li>
-        </ul>
-
-        <h4>3. Procédure de Contre-Notification (Droit de Réponse de l'Uploader)</h4>
-        <p>Si un utilisateur ayant publié un contenu estime de bonne foi que celui-ci a été retiré par erreur ou mauvaise identification, il peut soumettre une contre-notification écrite à <strong>ia.project.pro2k26@gmail.com</strong> comportant :</p>
-        <ul>
-          <li>Ses coordonnées complètes et sa signature ;</li>
-          <li>L'identification de la vidéo retirée ;</li>
-          <li>Une déclaration sur l'honneur expliquant les motifs et autorisations légales démontrant son droit de diffusion ;</li>
-          <li>L'acceptation formelle de la juridiction compétente.</li>
-        </ul>
-        <p>En cas de contre-notification recevable, celle-ci est transmise au plaignant initial. Sans action en justice initiée par le plaignant sous 10 à 14 jours ouvrés, le contenu pourra être réexaminé.</p>
-
-        <h4>4. Politique Relative aux Infracteurs Récidivistes (Repeat Infringers)</h4>
-        <p>Conformément aux réglementations internationales et à la politique de sécurité de VideoHub, tout utilisateur faisant l'objet de notifications d'infraction répétées ou publiant délibérément des contenus contrefaisants verra son compte <strong>immédiatement résilié, ses vidéos supprimées et son adresse IP bloquée définitivement</strong>.</p>
-
-        <h4>5. Sanction des Fausses Déclarations</h4>
-        <p>Toute fausse notification ou réclamation abusive soumise délibérément engage la responsabilité civile et pénale de son auteur, qui s'expose au paiement de dommages-intérêts et frais de justice engagés par VideoHub et par les créateurs concernés.</p>
-
-        <h4>6. Contact Officiel du Service Modération</h4>
-        <p>Toutes les plaintes et notifications DMCA doivent être exclusivement adressées à l'administrateur modérateur :<br>
-        Email : <strong><a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></strong></p>
-      </div>
-
-      <button type="button" class="btn btn-primary btn-block mt-3" onclick="closeComplaintsModal()">
-        Fermer la Politique de Plaintes
-      </button>
-    </div>
-  </div>
-
-  <!-- ==================== FORMULAIRE NOUS CONTACTER ==================== -->
-  <div id="contactModal" class="modal-overlay hidden" onclick="closeContactModal(event)">
-    <div class="modal-card modal-cgu" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeContactModal()">✕</button>
-      <div class="modal-header-box">
-        <h3>Nous contacter</h3>
-        <p>Une question, un problème technique ou une demande ? Écrivez-nous directement.</p>
-      </div>
-
-      <form id="contactForm" class="custom-form" onsubmit="handleSendContact(event)">
-        <div class="form-group">
-          <label class="form-label" for="contactName">Votre Nom ou Pseudo <span style="color:var(--primary);">*</span></label>
-          <input type="text" id="contactName" class="form-input" placeholder="Ex: Jean / Alex" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="contactEmail">Votre Adresse E-mail <span style="color:var(--primary);">*</span></label>
-          <input type="email" id="contactEmail" class="form-input" placeholder="votre.email@exemple.com" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="contactSubjectSelect">Objet du message <span style="color:var(--primary);">*</span></label>
-          <select id="contactSubjectSelect" class="form-input" required onchange="handleContactSubjectChange(this)">
-            <option value="" disabled selected>Sélectionnez un objet pré-enregistré...</option>
-            <option value="Question sur mon compte / Connexion">Question sur mon compte / Connexion</option>
-            <option value="Problème technique / Bug d'affichage">Problème technique / Bug d'affichage</option>
-            <option value="Question sur l'abonnement VIP (9,99€)">Question sur l'abonnement VIP (9,99€)</option>
-            <option value="Signalement de contenu ou vidéo">Signalement de contenu ou vidéo</option>
-            <option value="Demande de suppression de compte (RGPD)">Demande de suppression de compte (RGPD)</option>
-            <option value="Proposition de partenariat / Créateur">Proposition de partenariat / Créateur</option>
-            <option value="Autre demande">Autre demande (personnalisée)...</option>
-          </select>
-          <input type="text" id="contactSubjectCustom" class="form-input hidden" style="margin-top:8px;" placeholder="Précisez votre objet en détail...">
-          <input type="hidden" id="contactSubject" value="">
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="contactMessage">Votre Message <span style="color:var(--primary);">*</span></label>
-          <textarea id="contactMessage" class="form-textarea" rows="5" placeholder="Décrivez votre message en détail..." required></textarea>
-        </div>
-
-        <div class="modal-actions-box mt-3" style="display:flex;gap:10px;justify-content:flex-end;">
-          <button type="button" class="btn btn-secondary" onclick="closeContactModal()">Annuler</button>
-          <button type="submit" class="btn btn-primary" id="btnSubmitContact">Envoyer le message</button>
-        </div>
-      </form>
-    </div>
-  </div>
 
   <!-- ==================== MODALE MOT DE PASSE OUBLIÉ ==================== -->
   <div id="forgotPasswordModal" class="modal-overlay hidden" onclick="closeForgotPasswordModal(event)">
@@ -2393,133 +2573,10 @@
     </div>
   </div>
 
-  <!-- ==================== FORMULAIRE DE SIGNALEMENT & TAKEDOWN ==================== -->
-  <div id="reportAbuseModal" class="modal-overlay hidden" onclick="closeReportModal(event)">
-    <div class="modal-card modal-cgu" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeReportModal()"></button>
-      <div class="modal-header-box">
-        <h3>Signaler un Contenu Abusif ou Illégal</h3>
-        <p>Demande de retrait prioritaire pour atteinte à la vie privée, droits d'auteur ou contenu illicite.</p>
-      </div>
+  <!-- ==================== REPORT ABUSE & CSAM PLACEHOLDERS ==================== -->
+  <div id="reportAbuseModal" class="hidden" style="display:none;" aria-hidden="true"></div>
+  <div id="csamPolicyModal" class="hidden" style="display:none;" aria-hidden="true"></div>
 
-      <form id="reportAbuseForm" class="custom-form" onsubmit="handleSendReport(event)">
-        <div class="cgu-alert-box mb-3">
-          <strong>CONFIDENTIALITÉ GARANTIE :</strong> Votre signalement est strictement confidentiel. L'auteur de la vidéo ne verra aucune de vos informations personnelles.
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Votre nom complet *</label>
-          <input type="text" id="reportFullName" class="form-input" placeholder="Ex: Jean Dupont" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Adresse e-mail de contact *</label>
-          <input type="email" id="reportEmail" class="form-input" placeholder="Ex: contact@exemple.fr" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Titre ou URL de la vidéo à signaler *</label>
-          <input type="text" id="reportVideoUrl" class="form-input" placeholder="Ex: https://... ou titre de la vidéo" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Motif principal du signalement *</label>
-          <select id="reportReason" class="form-select" required>
-            <option value="">-- Sélectionnez le motif --</option>
-            <option value="Atteinte à la vie privée ou diffusion non consentie">Atteinte à la vie privée ou diffusion non consentie</option>
-            <option value="Contenu impliquant ou suggérant un mineur">Contenu impliquant ou suggérant un mineur</option>
-            <option value="Violation de droits d'auteur">Violation de droits d'auteur</option>
-            <option value="Chantage, intimidation ou contenu intime">Chantage, intimidation ou contenu intime</option>
-            <option value="Divulgation de données personnelles">Divulgation de données personnelles</option>
-            <option value="Violence, propos haineux ou contenu illicite">Violence, propos haineux ou contenu illicite</option>
-            <option value="Autre motif">Autre motif</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Description détaillée des faits *</label>
-          <textarea id="reportDetails" class="form-textarea" rows="3" placeholder="Expliquez précisément en quoi ce contenu est litigieux..." required></textarea>
-        </div>
-
-        <div class="legal-warning-text" style="font-size:0.76rem;color:var(--text-muted);margin-bottom:12px;line-height:1.45;">
-          <em>Rappel de l'article 6-I-4 de la loi LCEN : Le fait de présenter un contenu comme illicite dans le but d'en obtenir le retrait en sachant cette information inexacte est puni d'un an d'emprisonnement et de 15 000 € d'amende.</em>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Signature électronique (Tapez votre nom légal complet) *</label>
-          <input type="text" id="reportSignature" class="form-input" placeholder="En tapant votre nom, vous certifiez l'exactitude des informations fournies" required>
-        </div>
-
-        <button type="submit" id="btnSubmitReport" class="btn btn-danger btn-block">
-          Transmettre le signalement
-        </button>
-
-      </form>
-    </div>
-  </div>
-
-  <!-- ==================== POLITIQUE CSAM & PROTECTION DES MINEURS ==================== -->
-  <div id="csamPolicyModal" class="modal-overlay hidden" onclick="closeCsamModal(event)">
-    <div class="modal-card modal-cgu" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeCsamModal()"></button>
-      <div class="modal-header-box">
-        <h3>Politique de Tolérance Zéro contre les Abus Sexuels sur Enfants (CSAM)</h3>
-        <p>Engagement absolu pour la protection des mineurs, prévention, détection et transmission judiciaire.</p>
-      </div>
-
-      <div class="cgu-content-box">
-        <div class="cgu-alert-box" style="border-left-color: #ef4444; background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.35);">
-          <strong style="color: #ef4444;">TOLÉRANCE ZÉRO ABSOLUE :</strong> VideoHub applique une politique d'intolérance totale envers tout matériel d'abus ou d'exploitation sexuelle des enfants (CSAM/CSAE). Tout contenu de cette nature est immédiatement supprimé, son auteur banni à vie et les éléments transmis sans délai aux services de police et de justice.
-        </div>
-
-        <h4>1. Définition et Interdiction Stricte</h4>
-        <p>Au sens de la présente politique, est considéré comme mineur toute personne physique âgée de <strong>moins de dix-huit (18) ans</strong>.<br>
-        Sont formellement et absolument proscrits sur l'ensemble de la plateforme VideoHub :</p>
-        <ul>
-          <li>Tout contenu visuel, vidéo ou audio mettant en scène, impliquant ou suggérant un mineur ;</li>
-          <li>Toute sexualisation d'enfant, qu'il s'agisse de captations réelles, de simulations, d'animations ou d'images générées par Intelligence Artificielle (IA) ;</li>
-          <li>Tout texte, titre, tag (#tag), description, commentaire ou message privé faisant référence, faisant l'apologie ou incitant à l'exploitation ou aux abus sur mineurs.</li>
-        </ul>
-
-        <h4>2. Processus de Modération et Contrôle Préalable</h4>
-        <p>Afin de garantir un environnement strictement réservé aux adultes et conforme à la loi :</p>
-        <ul>
-          <li><strong>Examen Humain Rigoureux :</strong> Chaque vidéo téléversée est inspectée par l'administrateur avant ou dès sa mise en ligne.</li>
-          <li><strong>Filtrage Sémantique Continu :</strong> Mise à jour permanente d'une liste noire de mots-clés et blocage automatique des requêtes de recherche suspectes.</li>
-          <li><strong>Audit et Traçabilité :</strong> Conservation des journaux techniques de connexion aux fins d'identification des contrevenants.</li>
-        </ul>
-
-        <h4>3. Signalement Systématique aux Autorités Compétentes</h4>
-        <p>Dès lors qu'une tentative de publication de contenu CSAM est détectée, VideoHub procède sans délai à :</p>
-        <ul>
-          <li>La suppression instantanée et le blocage irréversible du fichier ;</li>
-          <li>Le bannissement immédiat et définitif du compte utilisateur et de son adresse IP ;</li>
-          <li>La transmission d'un signalement officiel d'urgence aux autorités judiciaires compétentes, notamment la plateforme <strong>PHAROS</strong> (Ministère de l'Intérieur français) et le <strong>NCMEC</strong> (National Center for Missing & Exploited Children).</li>
-        </ul>
-
-        <h4>4. Comment Signaler une Violation de cette Politique ?</h4>
-        <p>Si vous identifiez le moindre contenu suspect ou si vous pensez qu'un mineur est en danger :</p>
-        <ul>
-          <li>Utilisez immédiatement notre <a href="javascript:void(0)" onclick="closeCsamModal(); openReportModal();" style="color:var(--primary);font-weight:700;">Formulaire de Signalement d'Urgence</a> en sélectionnant le motif <em>« Contenu impliquant un mineur (CSAM) »</em> ;</li>
-          <li>Ou écrivez 24h/24 en urgence absolue à : Email : <strong><a href="mailto:ia.project.pro2k26@gmail.com" style="color:var(--primary);">ia.project.pro2k26@gmail.com</a></strong>.</li>
-        </ul>
-
-        <h4>5. Organismes Officiels et Numéros d'Urgence</h4>
-        <p>En cas de situation d'urgence ou d'assistance directe aux mineurs :</p>
-        <ul>
-          <li><strong>PHAROS (France) :</strong> <a href="https://www.internet-signalement.gouv.fr" target="_blank" rel="noopener" style="color:var(--primary);">internet-signalement.gouv.fr</a></li>
-          <li><strong>119 - Enfance en Danger (France) :</strong> Numéro national gratuit accessible 24h/24</li>
-          <li><strong>NCMEC (International) :</strong> <a href="https://www.missingkids.org" target="_blank" rel="noopener" style="color:var(--primary);">missingkids.org / report.cybertip.org</a></li>
-          <li><strong>Internet Watch Foundation (IWF) :</strong> <a href="https://www.iwf.org.uk" target="_blank" rel="noopener" style="color:var(--primary);">report.iwf.org.uk</a></li>
-          <li><strong>Point de Contact (INHOPE) :</strong> <a href="https://www.pointdecontact.net" target="_blank" rel="noopener" style="color:var(--primary);">pointdecontact.net</a></li>
-        </ul>
-      </div>
-
-      <button type="button" class="btn btn-primary btn-block mt-3" onclick="closeCsamModal()">
-        Fermer la Politique CSAM
-      </button>
-    </div>
-  </div>
 
   <!-- ==================== VIP CHECKOUT MODAL ==================== -->
   <div id="vipModal" class="modal-overlay hidden" onclick="closeVipModal(event)">
