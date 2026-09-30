@@ -87,7 +87,7 @@
               <line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
           </span>
-          <input type="text" id="globalSearchInput" placeholder="Rechercher une catégorie, vidéo, tag..." oninput="handleCategorySearch(this.value)" onfocus="if(this.value.trim()) handleCategorySearch(this.value)" onkeydown="if(event.key==='Enter') executeGlobalSearch(this.value)" autocomplete="off">
+          <input type="text" id="globalSearchInput" placeholder="Rechercher une catégorie, vidéo, tag..." oninput="handleCategorySearch(this.value)" onfocus="if(this.value.trim()) handleCategorySearch(this.value)" onkeydown="if(event.key==='Enter') executeGlobalSearch(this.value)" onblur="setTimeout(closeSearchSuggestions, 200)" autocomplete="off">
         </div>
         <!-- Smart Search Suggestions Dropdown (Categories & Videos) -->
         <div id="categorySearchSuggestions" class="cat-suggestions-dropdown hidden"></div>
@@ -1136,6 +1136,10 @@
               <div class="stat-number" id="statTotalViews" style="color:#f59e0b; font-size:1.6rem; font-weight:800;">0</div>
               <div class="stat-label" style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-top:4px;">VUES CUMULÉES</div>
             </div>
+            <div class="admin-stat-card stat-categories" onclick="switchAdminSection('categories')" style="border-left:4px solid #ea580c; cursor:pointer;" title="Consulter et gérer toutes les catégories">
+              <div class="stat-number" id="statAdminCategories" style="color:#ea580c; font-size:1.6rem; font-weight:800;">0</div>
+              <div class="stat-label" style="font-size:0.72rem; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-top:4px;">CATÉGORIES</div>
+            </div>
           </div>
 
           <!-- Admin Sub-tabs (Shop Ton Partiel Style - Full Width No Scrollbar) -->
@@ -1156,7 +1160,7 @@
               Avis (<span id="adminReviewsCountText">0</span>)
             </button>
             <button class="admin-tab-btn" id="adminTabCategoriesBtn" onclick="switchAdminSection('categories')">
-              Suggestions (<span id="adminPendingCatsCount">0</span>) & Catégories
+              Catégories (<span id="adminTotalCatsCount">0</span>)<span id="adminPendingCatsBadgeTop" class="pending-pill-small hidden" style="margin-left:6px; background:#ef4444; color:#fff; font-size:0.7rem; font-weight:700; padding:1px 6px; border-radius:999px;">0 en attente</span>
             </button>
             <button class="admin-tab-btn" id="adminTabUsersBtn" onclick="switchAdminSection('users')">
               Utilisateurs (<span id="adminUsersCountText">0</span>)
@@ -1298,7 +1302,7 @@
               </div>
               <div style="display:flex; gap:8px;">
                 <button class="btn btn-sm btn-secondary" onclick="renderAdminCategoriesManager(); loadAdminStats();">Actualiser</button>
-                <button class="btn btn-sm btn-primary" onclick="openAddCategoryModal()">+ Ajouter une Catégorie</button>
+                <button class="btn btn-sm btn-primary" onclick="openAdminCreateCategoryModal()">+ Créer une Catégorie</button>
               </div>
             </div>
 
@@ -2170,8 +2174,8 @@
 
           <div class="doc-card">
             <div class="doc-header">
-              <h2 id="addCatModalTitle">Ajouter une Catégorie</h2>
-              <p id="addCatModalSubtitle">Proposez une nouvelle thématique pour classer les vidéos.</p>
+              <h2 id="addCatModalTitle">Proposer une Catégorie</h2>
+              <p id="addCatModalSubtitle">Proposez une nouvelle thématique pour classer les vidéos sur la plateforme.</p>
             </div>
             <div class="doc-body">
               <form id="addCategoryForm" class="custom-form" onsubmit="handleAddCategory(event)">
@@ -2181,13 +2185,13 @@
                 </div>
 
                 <div id="addCatValidationNotice" style="font-size:0.85rem; color:var(--text-muted); background:var(--bg-subtle); padding:12px 14px; border-radius:8px; border:1px solid var(--border-color); margin-bottom:16px;">
-                  Note : Votre suggestion sera vérifiée et validée par l'administrateur avant d'être publiée sur le site.
+                  Note importante : Toutes les propositions de catégories sont soumises à vérification et doivent être validées par l'administrateur dans son espace admin avant d'apparaître sur la plateforme.
                 </div>
 
                 <div style="display:flex;gap:12px;justify-content:flex-end;">
                   <button type="button" class="btn btn-secondary" onclick="navigateToTab('accueil')">Annuler</button>
                   <button type="submit" id="addCatSubmitBtn" class="btn btn-primary">
-                    Créer la catégorie
+                    Soumettre ma proposition
                   </button>
                 </div>
               </form>
@@ -2408,6 +2412,34 @@
         <button type="submit" id="btnSaveProfileSubmit" class="btn btn-primary btn-block">
           Enregistrer mon profil
         </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== ADMIN CREATE CATEGORY MODAL ==================== -->
+  <div id="adminCreateCategoryModal" class="modal-overlay hidden" onclick="closeAdminCreateCategoryModal(event)">
+    <div class="modal-card modal-category" onclick="event.stopPropagation()">
+      <button class="modal-close-btn" onclick="closeAdminCreateCategoryModal()">✕</button>
+      <div class="modal-header-box">
+        <h3>Créer une Catégorie (Admin)</h3>
+        <p>Cette catégorie sera directement validée et publiée sur la plateforme.</p>
+      </div>
+
+      <form id="adminCreateCategoryForm" class="custom-form" onsubmit="handleAdminDirectCreateCategory(event)">
+        <div class="form-group">
+          <label class="form-label">Nom de la catégorie *</label>
+          <input type="text" id="adminNewCatName" class="form-input" placeholder="Ex: Podcasts, Manga, Bricolage..." required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description (optionnelle)</label>
+          <textarea id="adminNewCatDesc" class="form-textarea" rows="3" placeholder="Description courte de la thématique..."></textarea>
+        </div>
+
+        <div class="modal-actions-box mt-3" style="display:flex;gap:10px;justify-content:flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="closeAdminCreateCategoryModal()">Annuler</button>
+          <button type="submit" id="btnAdminCreateCatSubmit" class="btn btn-primary">Créer et publier</button>
+        </div>
       </form>
     </div>
   </div>

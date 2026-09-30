@@ -218,8 +218,16 @@ function navigateToAdmin() {
   toggleSidebar(false);
 }
 
+function closeSearchSuggestions() {
+  const searchDropdown = document.getElementById('categorySearchSuggestions');
+  if (searchDropdown) {
+    searchDropdown.classList.add('hidden');
+  }
+}
+
 // Navigate from sidebar with auto-close on mobile
 function navigateToTab(tabName) {
+  closeSearchSuggestions();
   if (tabName === 'admin') {
     navigateToAdmin();
     return;
@@ -252,6 +260,7 @@ function navigateToTab(tabName) {
 
 // Tab navigation controller
 function switchTab(tabName) {
+  closeSearchSuggestions();
   const docPages = [
     'contact',
     'mentions-legales',
@@ -555,26 +564,18 @@ function navigateToAdmin() {
 
 // Add Category Modal / Page
 function openAddCategoryModal() {
-  if (!AUTH.isLoggedIn()) {
-    showToast('Vous devez être connecté pour proposer une catégorie.');
-    switchTab('profil');
-    return;
-  }
-
+  closeSearchSuggestions();
   navigateToTab('proposer-categorie');
 
-  const isAdmin = AUTH.isAdmin();
   const title = document.getElementById('addCatModalTitle');
   const subtitle = document.getElementById('addCatModalSubtitle');
   const notice = document.getElementById('addCatValidationNotice');
   const btn = document.getElementById('addCatSubmitBtn');
 
-  if (title) title.textContent = isAdmin ? 'Ajouter une Catégorie' : 'Proposer une Catégorie';
-  if (subtitle) subtitle.textContent = isAdmin 
-    ? 'Créer une nouvelle thématique immédiatement publiée.' 
-    : 'Proposez une thématique qui sera soumise à validation par l\'administrateur avant d\'être publiée.';
-  if (notice) notice.style.display = isAdmin ? 'none' : 'block';
-  if (btn) btn.textContent = isAdmin ? 'Créer et publier la catégorie' : 'Soumettre ma proposition';
+  if (title) title.textContent = 'Proposer une Catégorie';
+  if (subtitle) subtitle.textContent = 'Proposez une nouvelle thématique pour classer les vidéos sur la plateforme.';
+  if (notice) notice.style.display = 'block';
+  if (btn) btn.textContent = 'Soumettre ma proposition';
 }
 
 function closeAddCategoryModal() {
@@ -584,17 +585,83 @@ function closeAddCategoryModal() {
 async function handleAddCategory(e) {
   e.preventDefault();
 
-  if (!AUTH.isLoggedIn()) {
-    showToast('Vous devez être connecté pour proposer une catégorie.');
-    switchTab('profil');
-    closeAddCategoryModal();
-    return;
-  }
-
   const nameInput = document.getElementById('newCatName');
   const name = (nameInput?.value || '').trim();
   const icon = '';
-  const description = '';
+  const description = (document.getElementById('newCatDescription')?.value || '').trim();
+
+  if (!name) {
+    showToast('Le nom de la catégorie est obligatoire.');
+    return;
+  }
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (AUTH && AUTH.isLoggedIn() && AUTH.token) {
+    headers['Authorization'] = `Bearer ${AUTH.token}`;
+  }
+
+  try {
+    const res = await fetch('/api/categories', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name,
+        icon,
+        description,
+        authorName: (AUTH && AUTH.isLoggedIn() && AUTH.user) ? AUTH.user.username : 'Visiteur',
+        isDirectAdmin: false
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'Erreur lors de la proposition.');
+      return;
+    }
+
+    showToast(data.message || 'Votre proposition a été soumise avec succès.');
+    document.getElementById('addCategoryForm')?.reset();
+    closeAddCategoryModal();
+
+    await loadCategories();
+    if (typeof loadExplorerData === 'function') loadExplorerData();
+    if (AUTH && AUTH.isAdmin()) {
+      await renderAdminCategoriesManager();
+      await loadAdminStats();
+    }
+  } catch (err) {
+    showToast('Erreur de communication avec le serveur.');
+  }
+}
+
+function openAdminCreateCategoryModal() {
+  const modal = document.getElementById('adminCreateCategoryModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    const input = document.getElementById('adminNewCatName');
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+    const desc = document.getElementById('adminNewCatDesc');
+    if (desc) desc.value = '';
+  }
+}
+
+function closeAdminCreateCategoryModal(e) {
+  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn') && e.target.tagName !== 'BUTTON') {
+    return;
+  }
+  const modal = document.getElementById('adminCreateCategoryModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function handleAdminDirectCreateCategory(e) {
+  e.preventDefault();
+  if (!AUTH.isAdmin()) return;
+
+  const name = (document.getElementById('adminNewCatName')?.value || '').trim();
+  const description = (document.getElementById('adminNewCatDesc')?.value || '').trim();
 
   if (!name) {
     showToast('Le nom de la catégorie est obligatoire.');
@@ -608,25 +675,25 @@ async function handleAddCategory(e) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${AUTH.token}`
       },
-      body: JSON.stringify({ name, icon, description })
+      body: JSON.stringify({
+        name,
+        description,
+        isDirectAdmin: true
+      })
     });
 
     const data = await res.json();
     if (!res.ok) {
-      showToast(data.error || 'Erreur lors de l\'ajout');
+      showToast(data.error || 'Erreur lors de la création');
       return;
     }
 
-    showToast(data.message);
-    document.getElementById('addCategoryForm')?.reset();
-    closeAddCategoryModal();
-
+    showToast(data.message || 'Catégorie créée et publiée avec succès !');
+    closeAdminCreateCategoryModal();
+    await renderAdminCategoriesManager();
+    await loadAdminStats();
     await loadCategories();
     if (typeof loadExplorerData === 'function') loadExplorerData();
-    if (AUTH.isAdmin()) {
-      await renderAdminCategoriesManager();
-      await loadAdminStats();
-    }
   } catch (err) {
     showToast('Erreur de communication avec le serveur.');
   }
@@ -3372,10 +3439,30 @@ async function loadAdminStats() {
     setVal('adminReviewsCountText', stats.totalComments || 0);
     setVal('adminUsersCountText', stats.totalUsers || 0);
     setVal('reportCountPending', stats.pendingReports || 0);
-    setVal('adminPendingCatsCount', stats.pendingCategories || 0);
-    setVal('adminPendingCatsBadge', stats.pendingCategories || 0);
-    const approvedCatsCount = (stats.totalCategories || 0) - (stats.pendingCategories || 0);
-    setVal('adminApprovedCatsBadge', Math.max(0, approvedCatsCount));
+
+    const approvedCatsCount = stats.approvedCategories !== undefined 
+      ? stats.approvedCategories 
+      : Math.max(0, (stats.totalCategories || 0) - (stats.pendingCategories || 0));
+    const pendingCatsCount = stats.pendingCategories || 0;
+
+    setVal('statAdminCategories', approvedCatsCount);
+    setVal('adminTotalCatsCount', approvedCatsCount);
+    setVal('statTotalCategories', stats.totalCategories || 0);
+    setVal('adminPendingCatsCount', pendingCatsCount);
+    setVal('adminPendingCatsBadge', pendingCatsCount);
+    setVal('adminApprovedCatsBadge', approvedCatsCount);
+
+    const pendingBadgeTop = document.getElementById('adminPendingCatsBadgeTop');
+    if (pendingBadgeTop) {
+      if (pendingCatsCount > 0) {
+        pendingBadgeTop.textContent = `${pendingCatsCount} en attente`;
+        pendingBadgeTop.classList.remove('hidden');
+        pendingBadgeTop.style.display = 'inline-block';
+      } else {
+        pendingBadgeTop.classList.add('hidden');
+        pendingBadgeTop.style.display = 'none';
+      }
+    }
 
     window.allAdminLogs = stats.logs || [];
     renderFilteredAdminLogs();
@@ -4195,9 +4282,30 @@ async function renderAdminCategoriesManager() {
     const approved = data.approved || [];
     adminCachedApprovedCats = approved;
 
-    if (pendingCountBadge) pendingCountBadge.textContent = pending.length;
-    if (pendingBadgeEl) pendingBadgeEl.textContent = pending.length;
-    if (approvedBadgeEl) approvedBadgeEl.textContent = approved.length;
+    const pendingCount = pending.length;
+    const approvedCount = approved.length;
+
+    if (pendingCountBadge) pendingCountBadge.textContent = pendingCount;
+    if (pendingBadgeEl) pendingBadgeEl.textContent = pendingCount;
+    if (approvedBadgeEl) approvedBadgeEl.textContent = approvedCount;
+
+    const totalCatsEl = document.getElementById('adminTotalCatsCount');
+    if (totalCatsEl) totalCatsEl.textContent = approvedCount;
+
+    const statAdminCatsEl = document.getElementById('statAdminCategories');
+    if (statAdminCatsEl) statAdminCatsEl.textContent = approvedCount;
+
+    const pendingBadgeTop = document.getElementById('adminPendingCatsBadgeTop');
+    if (pendingBadgeTop) {
+      if (pendingCount > 0) {
+        pendingBadgeTop.textContent = `${pendingCount} en attente`;
+        pendingBadgeTop.classList.remove('hidden');
+        pendingBadgeTop.style.display = 'inline-block';
+      } else {
+        pendingBadgeTop.classList.add('hidden');
+        pendingBadgeTop.style.display = 'none';
+      }
+    }
 
     // 1. Pending categories list
     if (pendingContainer) {
@@ -4255,23 +4363,33 @@ function renderApprovedCategoriesList(cats) {
     return;
   }
 
-  container.innerHTML = cats.map(cat => `
-    <div class="category-manager-item">
-      <div class="cat-item-left">
-        <div>
-          <strong>${escapeHtml(cat.name)}</strong>
-          ${cat.isSystem ? '<small style="color:var(--text-light);font-size:0.7rem;display:block;">(Système)</small>' : ''}
-          ${cat.description ? `<small style="color:var(--text-muted);display:block;font-size:0.75rem;">${escapeHtml(cat.description)}</small>` : ''}
+  container.innerHTML = cats.map(cat => {
+    const videoCount = (allVideosList || []).filter(v => {
+      const vCats = (v.categories && Array.isArray(v.categories)) ? v.categories : [v.category];
+      return vCats.includes(cat.id);
+    }).length;
+
+    return `
+      <div class="category-manager-item">
+        <div class="cat-item-left">
+          <div>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <strong style="font-size:0.9rem; color:var(--text-main);">${escapeHtml(cat.name)}</strong>
+              ${cat.isSystem ? '<span style="font-size:0.68rem; padding:1px 5px; border-radius:4px; background:var(--bg-subtle); color:var(--text-muted); border:1px solid var(--border-color);">Système</span>' : ''}
+              <span style="font-size:0.72rem; color:var(--text-muted); background:var(--bg-subtle); padding:1px 6px; border-radius:999px;">${videoCount} vidéo${videoCount > 1 ? 's' : ''}</span>
+            </div>
+            ${cat.description ? `<small style="color:var(--text-muted);display:block;font-size:0.72rem;margin-top:2px;">${escapeHtml(cat.description)}</small>` : ''}
+          </div>
+        </div>
+        <div class="cat-item-actions" style="display:flex;gap:6px;align-items:center;">
+          ${!cat.isSystem ? `
+            <button class="btn btn-sm btn-secondary" onclick="openAdminEditCategoryModal('${cat.id}')" style="padding:4px 8px;font-size:0.75rem;">Modifier</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteCategory('${cat.id}')" style="padding:4px 8px;font-size:0.75rem;" title="Supprimer la catégorie">Supprimer</button>
+          ` : '<span style="font-size:0.72rem;color:var(--text-light);padding:4px 8px;">Protégée</span>'}
         </div>
       </div>
-      <div class="cat-item-actions" style="display:flex;gap:6px;align-items:center;">
-        ${!cat.isSystem ? `
-          <button class="btn btn-sm btn-secondary" onclick="openAdminEditCategoryModal('${cat.id}')">Modifier</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteCategory('${cat.id}')" title="Supprimer la catégorie">Supprimer</button>
-        ` : '<span style="font-size:0.75rem;color:var(--text-light);">Protégée</span>'}
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 function filterAdminApprovedCategories() {
@@ -5275,6 +5393,14 @@ async function markAllNotificationsRead() {
   } catch(e) {}
 }
 
+// Close search suggestions on pointerdown or click anywhere outside the search container
+document.addEventListener('pointerdown', (e) => {
+  const searchBox = document.querySelector('.search-box-wrap');
+  if (searchBox && !searchBox.contains(e.target)) {
+    closeSearchSuggestions();
+  }
+});
+
 document.addEventListener('click', (e) => {
   const panel = document.getElementById('notificationPanel');
   const bell = document.getElementById('notifBellBtn');
@@ -5283,11 +5409,20 @@ document.addEventListener('click', (e) => {
   }
 
   const searchBox = document.querySelector('.search-box-wrap');
-  const searchDropdown = document.getElementById('categorySearchSuggestions');
-  if (searchDropdown && searchBox && !searchBox.contains(e.target)) {
-    searchDropdown.classList.add('hidden');
+  if (searchBox && !searchBox.contains(e.target)) {
+    closeSearchSuggestions();
   }
 });
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeSearchSuggestions();
+  }
+});
+
+window.addEventListener('scroll', () => {
+  closeSearchSuggestions();
+}, { passive: true });
 
 // Periodic notification check & initial load
 setInterval(() => {

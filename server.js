@@ -1265,9 +1265,9 @@ app.get('/api/admin/categories', requireAdmin, async (req, res) => {
   res.json({ categories: all, pending, approved });
 });
 
-// Users propose, Admin approves (users proposals require admin approval)
-app.post('/api/categories', authenticate, async (req, res) => {
-  const { name, icon, description } = req.body;
+// Users propose, Admin approves (proposals from users/guests require admin approval)
+app.post('/api/categories', optionalAuthenticate, async (req, res) => {
+  const { name, icon, description, authorName, isDirectAdmin } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Le nom de la catégorie est obligatoire.' });
   }
@@ -1281,15 +1281,18 @@ app.post('/api/categories', authenticate, async (req, res) => {
     return res.status(400).json({ error: 'Cette catégorie existe déjà ou est déjà en attente de validation.' });
   }
 
-  const isAdmin = req.user.role === 'admin' || (req.user.email && req.user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com');
+  const isAdmin = req.user && (req.user.role === 'admin' || (req.user.email && req.user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com'));
+  const shouldApproveDirectly = Boolean(isAdmin && isDirectAdmin);
+  const creatorName = req.user ? req.user.username : (authorName ? authorName.trim() : 'Visiteur');
+
   const newCat = {
     id,
     name: cleanName,
     icon: icon || '',
     description: (description || '').trim(),
-    createdBy: req.user.username,
-    createdById: req.user.id,
-    status: isAdmin ? 'approved' : 'pending',
+    createdBy: creatorName,
+    createdById: req.user ? req.user.id : null,
+    status: shouldApproveDirectly ? 'approved' : 'pending',
     createdAt: new Date().toISOString()
   };
 
@@ -1297,19 +1300,19 @@ app.post('/api/categories', authenticate, async (req, res) => {
   saveDb(db);
   await syncDbToCloud(db);
 
-  if (isAdmin) {
+  if (shouldApproveDirectly) {
     addLog('Ajout Catégorie', `Catégorie "${newCat.name}" créée directement par Admin (${req.user.username})`);
     res.status(201).json({
       success: true,
-      message: `La catégorie "${newCat.name}" a été ajoutée avec succès !`,
+      message: `La catégorie "${newCat.name}" a été ajoutée et publiée avec succès !`,
       category: newCat,
       status: 'approved'
     });
   } else {
-    addLog('Proposition Catégorie', `Catégorie "${newCat.name}" proposée par ${req.user.username} (en attente de validation admin)`);
+    addLog('Proposition Catégorie', `Catégorie "${newCat.name}" proposée par ${creatorName} (en attente de validation admin)`);
     res.status(201).json({
       success: true,
-      message: `Votre proposition de catégorie "${newCat.name}" a été soumise avec succès. Elle sera visible sur la plateforme dès sa validation par un administrateur.`,
+      message: `Votre proposition de catégorie "${newCat.name}" a été soumise avec succès. Elle sera vérifiée et validée par l'administrateur dans son espace admin avant d'être publiée.`,
       category: newCat,
       status: 'pending'
     });
@@ -2902,12 +2905,15 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
   const unreadMessages = (db.contactMessages || []).filter(m => !m.read && !m.replied).length;
   const totalComments = (db.videos || []).reduce((acc, v) => acc + (v.comments ? v.comments.length : 0), 0);
 
+  const approvedCategories = (db.categories || []).filter(c => c.status !== 'pending').length;
+
   res.json({
     totalUsers: db.users.length,
     totalVideos: db.videos.length,
     approvedVideos: db.videos.filter(v => v.status === 'approved').length,
     pendingVideos: db.videos.filter(v => v.status === 'pending').length,
     totalCategories: db.categories.length,
+    approvedCategories,
     pendingCategories,
     totalViews,
     totalLikes,
