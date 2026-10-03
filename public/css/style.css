@@ -5236,6 +5236,9 @@ body.theme-light {
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
   --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+
+  background-color: var(--bg-main) !important;
+  color: var(--text-main) !important;
 }
 
 body.theme-light .app-header {
@@ -8356,12 +8359,17 @@ body.theme-light .watch-player-container {
 }
 
 .watch-video-title {
-  font-size: 1.6rem;
+  font-size: 1.55rem;
   font-weight: 800;
   line-height: 1.35;
   color: var(--text-main);
-  margin: 0 0 16px 0;
+  margin: 0 0 14px 0;
   font-family: var(--font-heading);
+  letter-spacing: -0.02em;
+}
+
+body.theme-light .watch-video-title {
+  color: #0f172a !important;
 }
 
 .watch-channel-row {
@@ -8377,6 +8385,20 @@ body.theme-light .watch-player-container {
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .watch-action-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 4px 0;
+    width: 100%;
+  }
+  .watch-action-bar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .watch-main-grid {

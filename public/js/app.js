@@ -4084,6 +4084,8 @@ function filterAndRenderAdminUsers() {
   }).join('');
 }
 
+let previousProfileUrl = null;
+
 async function openPublicUserProfile(userIdOrUsername) {
   if (!userIdOrUsername) return;
   const modal = document.getElementById('userProfileModal');
@@ -4189,11 +4191,16 @@ async function openPublicUserProfile(userIdOrUsername) {
       actionsEl.innerHTML = actionsHtml;
     }
 
+    // Save previous URL before showing profile
+    if (!previousProfileUrl) {
+      previousProfileUrl = window.location.pathname + window.location.search + window.location.hash;
+    }
+
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
 
-    // Update URL to /profil/:username for shareability
-    window.history.pushState(null, '', `/profil/${encodeURIComponent(profile.username)}`);
+    // Update URL with replaceState so it never pollutes the history stack or causes bouncing
+    window.history.replaceState({ modal: 'profile' }, '', `/profil/${encodeURIComponent(profile.username)}`);
   } catch (err) {
     showToast('Erreur lors du chargement du profil.');
   }
@@ -4206,9 +4213,11 @@ function closeUserProfileModal(e) {
     modal.classList.add('hidden');
     document.body.style.overflow = '';
   }
-  // Restore URL if we came from a /profil/ path
+  // Restore exact previous URL (whether /video/:id or /) without pushing new history entries
+  const restoreUrl = previousProfileUrl || '/';
+  previousProfileUrl = null;
   if (window.location.pathname.startsWith('/profil/')) {
-    window.history.pushState(null, '', '/');
+    window.history.replaceState(null, '', restoreUrl);
   }
 }
 

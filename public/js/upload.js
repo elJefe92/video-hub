@@ -262,13 +262,21 @@ async function handleVideoUpload(e) {
       body: formData
     });
 
-    const data = await res.json();
+    const resText = await res.text();
+    let data = {};
+    try {
+      data = JSON.parse(resText);
+    } catch (parseErr) {
+      if (res.status === 413) {
+        showToast('Fichier trop lourd : La taille limite est dépassée. Compressez la vidéo avant envoi.');
+        return;
+      }
+      showToast(`Erreur (${res.status}) lors de l'envoi de la vidéo.`);
+      return;
+    }
+
     if (!res.ok) {
       showToast(data.error || 'Erreur lors de l\'envoi');
-      if (btnSubmit) {
-        btnSubmit.disabled = false;
-        btnSubmit.innerHTML = originalText;
-      }
       return;
     }
 
@@ -284,7 +292,7 @@ async function handleVideoUpload(e) {
     switchTab('accueil');
   } catch (err) {
     console.error(err);
-    showToast('Erreur lors de l\'envoi au serveur.');
+    showToast('Erreur de transmission : Vérifiez votre connexion.');
   } finally {
     if (btnSubmit) {
       btnSubmit.disabled = false;
