@@ -193,19 +193,9 @@ async function handleVideoUpload(e) {
   const title = (titleInput ? titleInput.value.trim() : '');
   const description = (descInput ? descInput.value.trim() : '');
 
-  const externalUrlInput = document.getElementById('uploaderExternalUrl');
-  const externalVideoUrl = externalUrlInput ? externalUrlInput.value.trim() : '';
-
-  if ((!videoFileInput || !videoFileInput.files[0]) && !externalVideoUrl) {
-    showToast('Veuillez sélectionner un fichier vidéo ou renseigner un lien vidéo direct.');
+  if (!videoFileInput || !videoFileInput.files[0]) {
+    showToast('Veuillez sélectionner un fichier vidéo.');
     return;
-  }
-
-  if (videoFileInput && videoFileInput.files[0] && videoFileInput.files[0].size > 4.5 * 1024 * 1024) {
-    const sizeMb = (videoFileInput.files[0].size / (1024 * 1024)).toFixed(1);
-    if (!externalVideoUrl) {
-      showToast(`Attention (${sizeMb} Mo) : L'upload direct sur Vercel est limité à 4.5 Mo. En cas d'échec, collez un lien vidéo direct ci-dessous.`);
-    }
   }
 
   if (!email) {
@@ -242,12 +232,7 @@ async function handleVideoUpload(e) {
   }
 
   const formData = new FormData();
-  if (videoFileInput && videoFileInput.files && videoFileInput.files[0]) {
-    formData.append('videoFile', videoFileInput.files[0]);
-  }
-  if (externalVideoUrl) {
-    formData.append('externalVideoUrl', externalVideoUrl);
-  }
+  formData.append('videoFile', videoFileInput.files[0]);
 
   // Thumbnail priority: 1) Custom file uploaded by user, 2) Automatic frame captured from video
   if (thumbFileInput && thumbFileInput.files && thumbFileInput.files[0]) {
@@ -277,21 +262,13 @@ async function handleVideoUpload(e) {
       body: formData
     });
 
-    const resText = await res.text();
-    let data = {};
-    try {
-      data = JSON.parse(resText);
-    } catch (parseErr) {
-      if (res.status === 413) {
-        showToast('Fichier trop lourd (Erreur 413) : La limite d\'envoi direct Vercel est de 4.5 Mo. Utilisez un lien vidéo direct ou compressez la vidéo.');
-        return;
-      }
-      showToast(`Erreur serveur (${res.status}) lors de l'envoi.`);
-      return;
-    }
-
+    const data = await res.json();
     if (!res.ok) {
       showToast(data.error || 'Erreur lors de l\'envoi');
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = originalText;
+      }
       return;
     }
 
@@ -299,7 +276,6 @@ async function handleVideoUpload(e) {
     
     // Reset form
     document.getElementById('uploadForm').reset();
-    if (externalUrlInput) externalUrlInput.value = '';
     removeVideoFile(e);
 
     // Refresh video feed & explorer
@@ -308,7 +284,7 @@ async function handleVideoUpload(e) {
     switchTab('accueil');
   } catch (err) {
     console.error(err);
-    showToast('Erreur de transmission : Vérifiez votre connexion ou le poids de la vidéo.');
+    showToast('Erreur lors de l\'envoi au serveur.');
   } finally {
     if (btnSubmit) {
       btnSubmit.disabled = false;

@@ -1581,23 +1581,10 @@ app.get('/api/explorer', (req, res) => {
   });
 });
 
-const uploadVideoMiddleware = (req, res, next) => {
-  upload.fields([
-    { name: 'videoFile', maxCount: 1 },
-    { name: 'thumbnailFile', maxCount: 1 }
-  ])(req, res, (err) => {
-    if (err) {
-      console.error('[Upload Middleware Error]:', err);
-      if (err.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ error: 'Le fichier dépasse la taille maximale autorisée (100 Mo).' });
-      }
-      return res.status(400).json({ error: err.message || 'Erreur lors du traitement du fichier.' });
-    }
-    next();
-  });
-};
-
-app.post('/api/videos/upload', optionalAuthenticate, uploadVideoMiddleware, async (req, res) => {
+app.post('/api/videos/upload', optionalAuthenticate, upload.fields([
+  { name: 'videoFile', maxCount: 1 },
+  { name: 'thumbnailFile', maxCount: 1 }
+]), async (req, res) => {
   const { title, description, category, categories, email, uploaderEmail, region, uploaderRegion, externalVideoUrl, customThumbnailUrl } = req.body;
 
   const resolvedEmail = (req.user ? req.user.email : (uploaderEmail || email || '')).trim().toLowerCase();

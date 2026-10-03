@@ -477,15 +477,6 @@
               </div>
             </div>
 
-            <!-- Alternative Video URL -->
-            <div class="form-group" style="margin-top:-6px; margin-bottom: 18px;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
-                <label for="uploaderExternalUrl" class="form-label" style="margin:0; font-size: 0.88rem;">Ou coller un lien direct de vidéo :</label>
-                <small style="color:var(--text-muted); font-size:0.75rem;">MP4, Stream, Cloud, etc.</small>
-              </div>
-              <input type="url" id="uploaderExternalUrl" class="form-input" placeholder="https://exemple.com/video.mp4">
-            </div>
-
             <!-- Email (Obligatoire) -->
             <div class="form-group">
               <label for="uploaderEmail" class="form-label">Votre Adresse E-mail * <small style="font-weight:400;color:var(--text-muted);">(pour le suivi de publication)</small></label>
@@ -2204,82 +2195,6 @@
                   </button>
                 </div>
               </form>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ==================== TAB DEDICATED PUBLIC PROFILE PAGE (/profil/:username) ==================== -->
-      <section id="tab-profil-public" class="tab-content doc-page-content">
-        <div class="doc-page-container" style="max-width: 1040px; padding-top: 14px;">
-          <!-- Top Bar: Navigation & Retour -->
-          <div class="watch-topbar" style="margin-bottom: 20px;">
-            <button type="button" class="watch-back-btn" onclick="navigateToTab('accueil')" title="Retour à l'accueil">
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-              <span>Retour</span>
-            </button>
-            <div class="watch-breadcrumb">
-              <a href="/" onclick="navigateToTab('accueil'); return false;" class="watch-breadcrumb-link">Accueil</a>
-              <span class="watch-breadcrumb-sep">/</span>
-              <span class="watch-breadcrumb-curr" id="pageProfileBreadcrumb">Profil Créateur</span>
-            </div>
-          </div>
-
-          <div class="doc-card" style="padding: 0; overflow: hidden; border-radius: 18px;">
-            <!-- Profile Banner -->
-            <div style="height: 160px; background: linear-gradient(135deg, #f97316 0%, #7c2d12 50%, #0f172a 100%); position: relative;">
-              <div style="position: absolute; bottom: 14px; right: 16px;">
-                <button type="button" class="btn btn-secondary btn-sm" onclick="copyCurrentProfileLink()" style="background: rgba(0,0,0,0.65); color: #ffffff; border: 1px solid rgba(255,255,255,0.25); backdrop-filter: blur(8px);">
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 4px; vertical-align: middle;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                  Partager le profil
-                </button>
-              </div>
-            </div>
-
-            <!-- Profile Info Body -->
-            <div style="padding: 0 28px 32px; position: relative;">
-              <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px; margin-top: -60px; margin-bottom: 22px;">
-                <div style="display: flex; align-items: flex-end; gap: 18px; flex-wrap: wrap;">
-                  <img id="pageProfileAvatar" src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150" alt="Avatar" style="width: 110px; height: 110px; border-radius: 50%; border: 4px solid var(--bg-card); object-fit: cover; background: #000; box-shadow: 0 8px 24px rgba(0,0,0,0.45);">
-                  <div>
-                    <h2 id="pageProfileUsername" style="margin: 0 0 4px; font-size: 1.6rem; font-weight: 800; color: var(--text-main);">Pseudo</h2>
-                    <p id="pageProfileEmail" style="margin: 0 0 8px; font-size: 0.88rem; color: var(--text-muted); display: none;"></p>
-                    <div id="pageProfileBadges" style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;"></div>
-                  </div>
-                </div>
-
-                <div id="pageProfileActions" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;"></div>
-              </div>
-
-              <!-- Bio -->
-              <div id="pageProfileBio" style="background: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px 20px; font-size: 0.94rem; color: var(--text-main); line-height: 1.6; margin-bottom: 24px;">
-                Aucune description rédigée.
-              </div>
-
-              <!-- Stats KPI Grid -->
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px;">
-                <div style="background: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px 16px; text-align: center;">
-                  <div id="pageProfileVideosCount" style="font-size: 1.8rem; font-weight: 800; color: var(--primary);">0</div>
-                  <div style="font-size: 0.76rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-top: 4px;">Vidéos publiées</div>
-                </div>
-                <div style="background: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px 16px; text-align: center;">
-                  <div id="pageProfileViewsCount" style="font-size: 1.8rem; font-weight: 800; color: var(--text-main);">0</div>
-                  <div style="font-size: 0.76rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-top: 4px;">Vues cumulées</div>
-                </div>
-                <div style="background: var(--bg-subtle); border: 1px solid var(--border-color); border-radius: 12px; padding: 18px 16px; text-align: center;">
-                  <div id="pageProfileMemberSince" style="font-size: 1.25rem; font-weight: 800; color: var(--text-main); padding-top: 6px;">2026</div>
-                  <div style="font-size: 0.76rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-top: 4px;">Membre depuis</div>
-                </div>
-              </div>
-
-              <!-- Published Videos Section -->
-              <div style="border-top: 1px solid var(--border-color); padding-top: 24px;">
-                <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--text-main); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
-                  <span>Vidéos de ce créateur</span>
-                  <span id="pageProfileVideosHeaderBadge" style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);"></span>
-                </h3>
-                <div class="video-grid" id="pageProfileVideosList"></div>
-              </div>
             </div>
           </div>
         </div>

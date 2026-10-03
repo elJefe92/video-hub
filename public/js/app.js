@@ -327,7 +327,7 @@ function switchTab(tabName) {
 
   const tabs = [
     'accueil', 'explorer', 'upload', 'vip', 'faq', 'profil', 'admin', 'messages', 'watch',
-    'contact', 'mentions-legales', 'cgu', 'confidentialite', 'reclamations', 'signaler', 'protection-mineurs', 'proposer-categorie', 'profil-public'
+    'contact', 'mentions-legales', 'cgu', 'confidentialite', 'reclamations', 'signaler', 'protection-mineurs', 'proposer-categorie'
   ];
   tabs.forEach(t => {
     const el = document.getElementById(`tab-${t}`);
@@ -4084,19 +4084,10 @@ function filterAndRenderAdminUsers() {
   }).join('');
 }
 
-function copyCurrentProfileLink() {
-  const url = window.location.origin + window.location.pathname;
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(url).then(() => showToast('Lien du profil copié dans le presse-papiers !')).catch(() => {
-      prompt('Copiez ce lien :', url);
-    });
-  } else {
-    prompt('Copiez ce lien :', url);
-  }
-}
-
 async function openPublicUserProfile(userIdOrUsername) {
   if (!userIdOrUsername) return;
+  const modal = document.getElementById('userProfileModal');
+  if (!modal) return;
 
   try {
     const res = await fetch(`/api/users/${encodeURIComponent(userIdOrUsername)}/profile`);
@@ -4106,110 +4097,104 @@ async function openPublicUserProfile(userIdOrUsername) {
     }
     const profile = await res.json();
 
-    // Populate dedicated profile page elements
-    const pageAvatar = document.getElementById('pageProfileAvatar');
-    const pageUsername = document.getElementById('pageProfileUsername');
-    const pageEmail = document.getElementById('pageProfileEmail');
-    const pageBio = document.getElementById('pageProfileBio');
-    const pageBadges = document.getElementById('pageProfileBadges');
-    const pageVideosCount = document.getElementById('pageProfileVideosCount');
-    const pageViewsCount = document.getElementById('pageProfileViewsCount');
-    const pageMemberSince = document.getElementById('pageProfileMemberSince');
-    const pageVideosList = document.getElementById('pageProfileVideosList');
-    const pageActions = document.getElementById('pageProfileActions');
-    const pageBreadcrumb = document.getElementById('pageProfileBreadcrumb');
-    const pageVideosHeaderBadge = document.getElementById('pageProfileVideosHeaderBadge');
+    const avatarEl = document.getElementById('publicProfileAvatar');
+    const usernameEl = document.getElementById('publicProfileUsername');
+    const emailEl = document.getElementById('publicProfileEmail');
+    const bioEl = document.getElementById('publicProfileBio');
+    const badgesContainer = document.getElementById('publicProfileBadges');
+    const videosCountEl = document.getElementById('publicProfileVideosCount');
+    const viewsCountEl = document.getElementById('publicProfileViewsCount');
+    const memberSinceEl = document.getElementById('publicProfileMemberSince');
+    const videosListEl = document.getElementById('publicProfileVideosList');
+    const actionsEl = document.getElementById('publicProfileActions');
 
-    if (pageBreadcrumb) pageBreadcrumb.textContent = profile.username;
-    if (pageAvatar) pageAvatar.src = profile.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150';
-    if (pageUsername) pageUsername.textContent = profile.username;
-
-    // Privacy email check
+    if (avatarEl) avatarEl.src = profile.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150';
+    if (usernameEl) usernameEl.textContent = profile.username;
+    
+    // N'afficher l'email que pour l'admin ou le propriétaire du compte
     const canSeeEmail = AUTH.isAdmin() || (AUTH.user && AUTH.user.id === profile.id);
-    if (pageEmail) {
+    if (emailEl) {
       if (canSeeEmail) {
-        pageEmail.textContent = profile.email;
-        pageEmail.style.display = 'block';
+        emailEl.textContent = profile.email;
+        emailEl.style.display = 'block';
       } else {
-        pageEmail.style.display = 'none';
+        emailEl.style.display = 'none';
       }
     }
 
-    if (pageBio) {
-      pageBio.textContent = profile.bio ? `"${profile.bio}"` : 'Aucune description rédigée.';
+    if (bioEl) {
+      bioEl.textContent = profile.bio ? `"${profile.bio}"` : 'Aucune description rédigée.';
     }
 
-    // Badges
-    let badgesHtml = '';
-    if (profile.role === 'admin' || profile.email === 'ia.project.pro2k26@gmail.com') {
-      badgesHtml += '<span class="admin-badge-pill">Admin</span>';
+    if (badgesContainer) {
+      let badgesHtml = '';
+      if (profile.role === 'admin' || profile.email === 'ia.project.pro2k26@gmail.com') {
+        badgesHtml += '<span class="admin-badge-pill">Admin</span>';
+      }
+      if (profile.isVip) {
+        badgesHtml += '<span class="badge-vip-pill">MEMBRE VIP</span>';
+      } else {
+        badgesHtml += '<span class="badge-free-pill">MEMBRE GRATUIT</span>';
+      }
+      // Creator badge
+      if (profile.creatorBadge) {
+        const badgeColors = { 'Bronze': '#cd7f32', 'Argent': '#a8a9ad', 'Or': '#ffd700', 'Platine': '#e5e4e2' };
+        const color = badgeColors[profile.creatorBadge] || '#94a3b8';
+        badgesHtml += `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,0,0,0.3);border:1px solid ${color};color:${color};font-size:0.72rem;font-weight:700;padding:3px 10px;border-radius:20px;letter-spacing:0.5px;">Createur ${profile.creatorBadge}</span>`;
+      }
+      badgesContainer.innerHTML = badgesHtml;
     }
-    if (profile.isVip) {
-      badgesHtml += '<span class="badge-vip-pill">MEMBRE VIP</span>';
-    } else {
-      badgesHtml += '<span class="badge-free-pill">MEMBRE GRATUIT</span>';
-    }
-    if (profile.creatorBadge) {
-      const badgeColors = { 'Bronze': '#cd7f32', 'Argent': '#a8a9ad', 'Or': '#ffd700', 'Platine': '#e5e4e2' };
-      const color = badgeColors[profile.creatorBadge] || '#94a3b8';
-      badgesHtml += `<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,0,0,0.3);border:1px solid ${color};color:${color};font-size:0.75rem;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:0.5px;">Créateur ${profile.creatorBadge}</span>`;
-    }
-    if (pageBadges) pageBadges.innerHTML = badgesHtml;
 
-    if (pageVideosCount) pageVideosCount.textContent = profile.videosCount || (profile.videos ? profile.videos.length : 0);
-    if (pageViewsCount) pageViewsCount.textContent = (profile.totalViews || 0).toLocaleString();
-    if (pageMemberSince) {
+
+    if (videosCountEl) videosCountEl.textContent = profile.videosCount || 0;
+    if (viewsCountEl) viewsCountEl.textContent = (profile.totalViews || 0).toLocaleString();
+    if (memberSinceEl) {
       const d = new Date(profile.createdAt || Date.now());
-      pageMemberSince.textContent = d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      memberSinceEl.textContent = d.toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
     }
 
-    if (pageVideosHeaderBadge) {
-      const count = profile.videos ? profile.videos.length : 0;
-      pageVideosHeaderBadge.textContent = `${count} vidéo${count > 1 ? 's' : ''}`;
-    }
-
-    if (pageVideosList) {
+    if (videosListEl) {
       if (!profile.videos || profile.videos.length === 0) {
-        pageVideosList.innerHTML = '<p style="color:var(--text-muted);font-size:0.9rem;padding:32px 0;grid-column:1/-1;text-align:center;">Aucune vidéo publiée pour le moment par cet utilisateur.</p>';
+        videosListEl.innerHTML = '<p style="color:var(--text-muted);font-size:0.82rem;margin:0;grid-column:1/-1;">Aucune vidéo publiée pour le moment.</p>';
       } else {
-        pageVideosList.innerHTML = profile.videos.map(v => renderVideoCard(v)).join('');
+        videosListEl.innerHTML = profile.videos.map(v => `
+          <div style="cursor:pointer; border-radius:8px; overflow:hidden; background:var(--bg-subtle); border:1px solid var(--border-color);" onclick="closeUserProfileModal(); openVideoPlayerModal('${v.id}')">
+            <img src="${v.thumbnail || 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300'}" style="width:100%; height:75px; object-fit:cover; display:block;">
+            <div style="padding:6px 8px;">
+              <div style="font-size:0.76rem; font-weight:700; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${v.title}</div>
+              <div style="font-size:0.68rem; color:var(--text-muted);">${v.views || 0} vues</div>
+            </div>
+          </div>
+        `).join('');
       }
     }
 
-    if (pageActions) {
+    if (actionsEl) {
       let actionsHtml = '';
       if (AUTH.isAdmin() && profile.email !== 'ia.project.pro2k26@gmail.com') {
         actionsHtml += `
-          <button type="button" class="btn btn-sm ${profile.isVip ? 'btn-secondary' : 'btn-vip-pill'}" onclick="toggleUserVip('${profile.id}')">
+          <button type="button" class="btn btn-sm ${profile.isVip ? 'btn-secondary' : 'btn-vip-pill'}" onclick="toggleUserVip('${profile.id}'); closeUserProfileModal();">
             ${profile.isVip ? 'Retirer VIP' : 'Passer VIP'}
           </button>
         `;
       }
       if (AUTH.isLoggedIn() && (!AUTH.user || AUTH.user.id !== profile.id)) {
         actionsHtml += `
-          <button type="button" class="btn btn-sm btn-primary" onclick="openDedicatedChatWith({ username: '${profile.username}', avatar: '${profile.avatar}' })">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <button type="button" class="btn btn-sm btn-primary" onclick="closeUserProfileModal(); openDirectMessageModal({ username: '${profile.username}', avatar: '${profile.avatar}' })">
             Envoyer un message
           </button>
         `;
       }
-      pageActions.innerHTML = actionsHtml;
+      actionsHtml += `<button type="button" class="btn btn-secondary btn-sm" onclick="closeUserProfileModal()">Fermer</button>`;
+      actionsEl.innerHTML = actionsHtml;
     }
 
-    // Close any floating modal if open
-    const modal = document.getElementById('userProfileModal');
-    if (modal) modal.classList.add('hidden');
-    document.body.style.overflow = '';
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
 
-    // Switch to dedicated public profile page tab
-    switchTab('profil-public');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    // Update URL to /profil/:username for shareability & dedicated page
+    // Update URL to /profil/:username for shareability
     window.history.pushState(null, '', `/profil/${encodeURIComponent(profile.username)}`);
-    document.title = `${profile.username} - Profil VidéoHub`;
   } catch (err) {
-    console.error(err);
     showToast('Erreur lors du chargement du profil.');
   }
 }
