@@ -134,7 +134,7 @@ async function sendRobustEmail({ to, subject, html, text, replyTo, category }) {
   const cleanId = `vh-${Date.now()}-${Math.random().toString(36).substring(2, 7)}@gmail.com`;
 
   const mailOptions = {
-    from: `"VideoHub Support" <${senderAddress}>`,
+    from: `"Rêve de Q Support" <${senderAddress}>`,
     to: to.trim(),
     replyTo: replyTo || senderAddress,
     subject: subject,
@@ -225,7 +225,7 @@ async function sendPasswordResetEmail(toEmail, username, resetCode) {
   });
 }
 
-// Unified Email Templates Generator for VideoHub
+// Unified Email Templates Generator for Rêve de Q
 function generateEmailTemplate(type, data = {}) {
   const siteUrl = 'https://video-hub-mu-nine.vercel.app';
   const username = data.username || 'Cher Membre';
@@ -243,12 +243,12 @@ function generateEmailTemplate(type, data = {}) {
   const baseFooter = `
         <div style="margin-top: 30px; text-align: center;">
           <a href="${siteUrl}" style="background-color: #f97316; color: #ffffff; text-decoration: none; padding: 13px 26px; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block;">
-            Accéder à VideoHub
+            Accéder à Rêve de Q
           </a>
         </div>
         <p style="color: #94a3b8; font-size: 12px; border-top: 1px solid #334155; padding-top: 18px; margin-top: 25px; margin-bottom: 0;">
           E-mail de notification officiel • Destinataire : <strong>${toEmail}</strong><br>
-          VideoHub - Tous droits réservés.
+          Rêve de Q - Tous droits réservés.
         </p>
       </div>
     </div>
@@ -259,11 +259,11 @@ function generateEmailTemplate(type, data = {}) {
       const verifyCode = data.code || '123456';
       return {
         name: 'Vérification d\'inscription (Code 6 chiffres)',
-        subject: 'Confirmation de votre adresse e-mail - VideoHub',
+        subject: 'Confirmation de votre adresse e-mail - Rêve de Q',
         html: baseHeader + `
           <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bonjour ${username},</h2>
           <p style="color: #cbd5e1; font-size: 15px;">
-            Merci de rejoindre <strong>VideoHub</strong>. Pour valider votre adresse e-mail et finaliser la création de votre compte, veuillez saisir le code de vérification ci-dessous :
+            Merci de rejoindre <strong>Rêve de Q</strong>. Pour valider votre adresse e-mail et finaliser la création de votre compte, veuillez saisir le code de vérification ci-dessous :
           </p>
           <div style="background: #1e293b; border-radius: 8px; padding: 22px; text-align: center; margin: 24px 0; border: 1px dashed #f97316;">
             <span style="font-size: 34px; font-weight: 900; letter-spacing: 8px; color: #f97316; font-family: monospace;">${verifyCode}</span>
@@ -273,15 +273,15 @@ function generateEmailTemplate(type, data = {}) {
             Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail en toute sécurité. Aucun compte ne sera créé.
           </p>
         ` + baseFooter,
-        text: `Bonjour ${username},\n\nVotre code de confirmation VideoHub est : ${verifyCode}\nCe code expire dans 15 minutes.\n\nAccéder à VideoHub : ${siteUrl}`
+        text: `Bonjour ${username},\n\nVotre code de confirmation Rêve de Q est : ${verifyCode}\nCe code expire dans 15 minutes.\n\nAccéder à Rêve de Q : ${siteUrl}`
       };
 
     case 'welcome':
       return {
         name: 'Bienvenue & Inscription',
-        subject: 'Bienvenue sur VideoHub - Votre compte a été créé avec succès',
+        subject: 'Bienvenue sur Rêve de Q - Votre compte a été créé avec succès',
         html: baseHeader + `
-          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bienvenue sur VideoHub, ${username} !</h2>
+          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bienvenue sur Rêve de Q, ${username} !</h2>
           <p style="color: #cbd5e1; font-size: 15px;">
             Votre compte a bien été créé avec succès. Vous pouvez dès à présent vous connecter et profiter de tous nos services :
           </p>
@@ -293,18 +293,18 @@ function generateEmailTemplate(type, data = {}) {
             </ul>
           </div>
         ` + baseFooter,
-        text: `Bienvenue sur VideoHub, ${username} !\n\nVotre compte a bien été créé avec succès. Vous pouvez dès à présent vous connecter et partager vos vidéos avec la communauté.\n\nAccéder au site : ${siteUrl}\nDestinataire : ${toEmail}`
+        text: `Bienvenue sur Rêve de Q, ${username} !\n\nVotre compte a bien été créé avec succès. Vous pouvez dès à présent vous connecter et partager vos vidéos avec la communauté.\n\nAccéder au site : ${siteUrl}\nDestinataire : ${toEmail}`
       };
 
     case 'reset_pwd':
       const code = data.code || '849201';
       return {
         name: 'Mot de passe oublié (Code 6 chiffres)',
-        subject: 'Réinitialisation de votre mot de passe VideoHub',
+        subject: 'Réinitialisation de votre mot de passe Rêve de Q',
         html: baseHeader + `
           <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bonjour ${username},</h2>
           <p style="color: #cbd5e1; font-size: 15px;">
-            Vous avez demandé la réinitialisation de votre mot de passe sur <strong>VideoHub</strong>.
+            Vous avez demandé la réinitialisation de votre mot de passe sur <strong>Rêve de Q</strong>.
           </p>
           <p style="color: #cbd5e1; font-size: 15px;">
             Voici votre code de sécurité temporaire (valable 15 minutes) :
@@ -316,13 +316,13 @@ function generateEmailTemplate(type, data = {}) {
             Entrez ce code sur le site pour définir votre nouveau mot de passe.
           </p>
         ` + baseFooter,
-        text: `Bonjour ${username},\n\nVotre code de réinitialisation temporaire VideoHub est : ${code}\n(Valable 15 minutes)\n\nEntrez ce code sur le site pour définir votre nouveau mot de passe : ${siteUrl}`
+        text: `Bonjour ${username},\n\nVotre code de réinitialisation temporaire Rêve de Q est : ${code}\n(Valable 15 minutes)\n\nEntrez ce code sur le site pour définir votre nouveau mot de passe : ${siteUrl}`
       };
 
     case 'video_approved':
       return {
         name: 'Vidéo validée & publiée',
-        subject: 'Votre vidéo a été validée et publiée sur VideoHub',
+        subject: 'Votre vidéo a été validée et publiée sur Rêve de Q',
         html: baseHeader + `
           <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Félicitations ${username} !</h2>
           <p style="color: #cbd5e1; font-size: 15px;">
@@ -336,13 +336,13 @@ function generateEmailTemplate(type, data = {}) {
             Votre vidéo est désormais visible par tous les utilisateurs de la plateforme et commence à accumuler des vues !
           </p>
         ` + baseFooter,
-        text: `Félicitations ${username} !\n\nVotre vidéo "${data.videoTitle || 'Ma Nouvelle Vidéo HD'}" a été validée par la modération et est désormais publiée en ligne sur VideoHub : ${siteUrl}`
+        text: `Félicitations ${username} !\n\nVotre vidéo "${data.videoTitle || 'Ma Nouvelle Vidéo HD'}" a été validée par la modération et est désormais publiée en ligne sur Rêve de Q : ${siteUrl}`
       };
 
     case 'video_rejected':
       return {
         name: 'Vidéo refusée (motif modération)',
-        subject: 'Notification de modération - Votre vidéo sur VideoHub',
+        subject: 'Notification de modération - Votre vidéo sur Rêve de Q',
         html: baseHeader + `
           <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bonjour ${username},</h2>
           <p style="color: #cbd5e1; font-size: 15px;">
@@ -362,7 +362,7 @@ function generateEmailTemplate(type, data = {}) {
     case 'vip_activated':
       return {
         name: 'Abonnement VIP activé (9,99€)',
-        subject: 'Confirmation d\'adhésion - Votre Pass VIP VideoHub est actif',
+        subject: 'Confirmation d\'adhésion - Votre Pass VIP Rêve de Q est actif',
         html: baseHeader + `
           <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bienvenue dans le Club VIP, ${username} !</h2>
           <p style="color: #cbd5e1; font-size: 15px;">
@@ -378,17 +378,17 @@ function generateEmailTemplate(type, data = {}) {
             </ul>
           </div>
         ` + baseFooter,
-        text: `Bienvenue dans le Club VIP, ${username} !\n\nVotre abonnement VIP VideoHub (9,99€ / mois) est actif avec succès.\nProfitez dès maintenant de vos avantages exclusifs sur : ${siteUrl}`
+        text: `Bienvenue dans le Club VIP, ${username} !\n\nVotre abonnement VIP Rêve de Q (9,99€ / mois) est actif avec succès.\nProfitez dès maintenant de vos avantages exclusifs sur : ${siteUrl}`
       };
 
     case 'new_message':
       return {
         name: 'Nouveau message privé reçu',
-        subject: 'Nouveau message privé reçu sur VideoHub',
+        subject: 'Nouveau message privé reçu sur Rêve de Q',
         html: baseHeader + `
           <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bonjour ${username},</h2>
           <p style="color: #cbd5e1; font-size: 15px;">
-            Vous avez reçu un nouveau message privé sur <strong>VideoHub</strong> de la part de <strong>${data.senderName || 'Alex'}</strong>.
+            Vous avez reçu un nouveau message privé sur <strong>Rêve de Q</strong> de la part de <strong>${data.senderName || 'Alex'}</strong>.
           </p>
           <div style="background: #1e293b; border-radius: 8px; padding: 18px; margin: 20px 0; border: 1px solid #334155; font-style: italic; color: #cbd5e1;">
             "${data.messagePreview || 'Salut ! J\'ai adoré ta dernière vidéo, bravo !'}"
@@ -397,13 +397,13 @@ function generateEmailTemplate(type, data = {}) {
             Connectez-vous à votre espace messagerie pour lui répondre.
           </p>
         ` + baseFooter,
-        text: `Bonjour ${username},\n\nVous avez reçu un nouveau message privé de ${data.senderName || 'Alex'} sur VideoHub :\n"${data.messagePreview || 'Salut !'}"\n\nRépondez sur : ${siteUrl}`
+        text: `Bonjour ${username},\n\nVous avez reçu un nouveau message privé de ${data.senderName || 'Alex'} sur Rêve de Q :\n"${data.messagePreview || 'Salut !'}"\n\nRépondez sur : ${siteUrl}`
       };
 
     case 'report_received':
       return {
         name: 'Signalement pris en compte (Takedown)',
-        subject: 'Prise en charge de votre signalement VideoHub',
+        subject: 'Prise en charge de votre signalement Rêve de Q',
         html: baseHeader + `
           <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bonjour ${username},</h2>
           <p style="color: #cbd5e1; font-size: 15px;">
@@ -417,15 +417,15 @@ function generateEmailTemplate(type, data = {}) {
             Notre équipe de modération traite votre demande dans les plus brefs délais conformément à la législation.
           </p>
         ` + baseFooter,
-        text: `Bonjour ${username},\n\nNous vous confirmons la prise en charge de votre signalement réf #${data.reportId || 'SIG-12345'}.\nNotre équipe de modération traite votre demande dans les plus brefs délais.\n\nVideoHub Support : ${siteUrl}`
+        text: `Bonjour ${username},\n\nNous vous confirmons la prise en charge de votre signalement réf #${data.reportId || 'SIG-12345'}.\nNotre équipe de modération traite votre demande dans les plus brefs délais.\n\nRêve de Q Support : ${siteUrl}`
       };
 
     default:
       return {
         name: 'Notification générale',
-        subject: 'Notification VideoHub',
-        html: baseHeader + `<p>Notification VideoHub</p>` + baseFooter,
-        text: `Notification VideoHub\n\nAccéder au site : ${siteUrl}`
+        subject: 'Notification Rêve de Q',
+        html: baseHeader + `<p>Notification Rêve de Q</p>` + baseFooter,
+        text: `Notification Rêve de Q\n\nAccéder au site : ${siteUrl}`
       };
   }
 }
@@ -554,7 +554,7 @@ function computeCreatorBadge(userId, db) {
 // Reserved admin keywords protected for official administration only
 const RESERVED_ADMIN_TERMS = [
   'admin', 'administrateur', 'administrator', 'moderateur', 'modérateur',
-  'moderation', 'modération', 'staff', 'root', 'support', 'videohub', 'officiel'
+  'moderation', 'modération', 'staff', 'root', 'support', 'videohub', 'revedeq', 'rêvedeq', 'reve_de_q', 'officiel'
 ];
 
 function isReservedAdminUsername(username, userEmail) {
@@ -964,8 +964,8 @@ app.delete('/api/user/account', authenticate, async (req, res) => {
   try {
     await sendRobustEmail({
       to: user.email,
-      subject: 'VideoHub - Votre compte a ete supprime',
-      html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#f8fafc;border-radius:12px;overflow:hidden;border:1px solid #334155;"><div style="background:linear-gradient(135deg,#f97316,#ea580c);padding:30px 24px;text-align:center;"><h1 style="margin:0;color:#fff;font-size:28px;font-weight:800;">VideoHub</h1></div><div style="padding:30px 24px;"><h2>Votre compte a ete supprime</h2><p>Bonjour ${user.username},</p><p>Votre compte VideoHub (${user.email}) ainsi que l'ensemble de vos donnees ont ete definitvement supprimes de notre plateforme, conformement au RGPD.</p><p style="color:#94a3b8;font-size:12px;margin-top:30px;">Si vous n'avez pas fait cette demande, contactez-nous immediatement.</p></div></div>`,
+      subject: 'Rêve de Q - Votre compte a ete supprime',
+      html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#f8fafc;border-radius:12px;overflow:hidden;border:1px solid #334155;"><div style="background:linear-gradient(135deg,#f97316,#ea580c);padding:30px 24px;text-align:center;"><h1 style="margin:0;color:#fff;font-size:28px;font-weight:800;">Rêve de Q</h1></div><div style="padding:30px 24px;"><h2>Votre compte a ete supprime</h2><p>Bonjour ${user.username},</p><p>Votre compte Rêve de Q (${user.email}) ainsi que l'ensemble de vos donnees ont ete definitvement supprimes de notre plateforme, conformement au RGPD.</p><p style="color:#94a3b8;font-size:12px;margin-top:30px;">Si vous n'avez pas fait cette demande, contactez-nous immediatement.</p></div></div>`,
       category: 'ACCOUNT'
     });
   } catch (e) {}
@@ -1039,7 +1039,7 @@ app.get('/api/users/:id/profile', async (req, res) => {
     username: user.username,
     email: user.email,
     avatar: user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.username)}`,
-    bio: user.bio || 'Membre createur sur la plateforme VideoHub.',
+    bio: user.bio || 'Membre createur sur la plateforme Rêve de Q.',
     role: user.role || 'user',
     isVip: Boolean(user.isVip),
     vipExpiry: user.vipExpiry,
@@ -2198,7 +2198,7 @@ app.post('/api/messages/send', optionalAuthenticate, async (req, res) => {
           <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:580px;margin:0 auto;background:#0f172a;color:#f8fafc;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
             <div style="background:linear-gradient(135deg,#f97316,#ea580c);padding:28px 24px;text-align:center;">
               <p style="margin:0;color:rgba(255,255,255,0.85);font-size:0.82rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;">Messagerie Privée</p>
-              <h1 style="margin:8px 0 0;color:#fff;font-size:1.6rem;font-weight:900;">VideoHub</h1>
+              <h1 style="margin:8px 0 0;color:#fff;font-size:1.6rem;font-weight:900;">Rêve de Q</h1>
             </div>
             <div style="padding:28px 24px;">
               <p style="font-size:1rem;font-weight:700;color:#f8fafc;margin:0 0 6px;">${mySenderName} vous a écrit un message !</p>
@@ -2214,8 +2214,8 @@ app.post('/api/messages/send', optionalAuthenticate, async (req, res) => {
               ${vipBlock}
 
               <p style="font-size:0.72rem;color:#475569;margin-top:24px;text-align:center;">
-                Vous recevez cet email car vous êtes membre VideoHub.<br>
-                <a href="${siteUrl}" style="color:#f97316;">Accéder à VideoHub</a>
+                Vous recevez cet email car vous êtes membre Rêve de Q.<br>
+                <a href="${siteUrl}" style="color:#f97316;">Accéder à Rêve de Q</a>
               </p>
             </div>
           </div>
@@ -2476,7 +2476,7 @@ app.post('/api/reports/submit', async (req, res) => {
   try {
     await sendRobustEmail({
       to: 'ia.project.pro2k26@gmail.com',
-      subject: `Nouveau Signalement : ${newReport.reason} - VideoHub`,
+      subject: `Nouveau Signalement : ${newReport.reason} - Rêve de Q`,
       html: `
         <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#f8fafc;border-radius:12px;overflow:hidden;border:1px solid #334155;">
           <div style="background:linear-gradient(135deg,#ef4444,#b91c1c);padding:24px;text-align:center;">
@@ -2550,7 +2550,7 @@ app.post('/api/contact/submit', async (req, res) => {
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
       <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 24px; text-align: center;">
         <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800;">Nouveau Message de Contact</h1>
-        <p style="margin: 6px 0 0; color: rgba(255,255,255,0.95); font-size: 13px;">Formulaire Nous Contacter - VideoHub</p>
+        <p style="margin: 6px 0 0; color: rgba(255,255,255,0.95); font-size: 13px;">Formulaire Nous Contacter - Rêve de Q</p>
       </div>
       <div style="padding: 24px; line-height: 1.6;">
         <p style="margin: 0 0 12px 0;"><strong style="color:#f97316;">Expéditeur :</strong> ${newContact.name} (<a href="mailto:${newContact.email}" style="color:#38bdf8;">${newContact.email}</a>)</p>
@@ -2567,12 +2567,12 @@ app.post('/api/contact/submit', async (req, res) => {
       </div>
     </div>
   `;
-  const adminContactText = `Nouveau message de contact VideoHub\n\nDe : ${newContact.name} (${newContact.email})\nObjet : ${newContact.subject}\n\nMessage :\n${newContact.message}`;
+  const adminContactText = `Nouveau message de contact Rêve de Q\n\nDe : ${newContact.name} (${newContact.email})\nObjet : ${newContact.subject}\n\nMessage :\n${newContact.message}`;
 
   await sendRobustEmail({
     to: adminEmail,
     replyTo: newContact.email,
-    subject: `[VideoHub Contact] ${newContact.subject} (de ${newContact.name})`,
+    subject: `[Rêve de Q Contact] ${newContact.subject} (de ${newContact.name})`,
     html: adminContactHtml,
     text: adminContactText,
     category: 'CONTACT_ADMIN'
@@ -2583,7 +2583,7 @@ app.post('/api/contact/submit', async (req, res) => {
     const userConfirmationHtml = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
         <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 24px; text-align: center;">
-          <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800;">VideoHub</h1>
+          <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800;">Rêve de Q</h1>
           <p style="margin: 6px 0 0; color: rgba(255,255,255,0.95); font-size: 13px;">Accusé de réception - Support</p>
         </div>
         <div style="padding: 24px; line-height: 1.6;">
@@ -2600,11 +2600,11 @@ app.post('/api/contact/submit', async (req, res) => {
         </div>
       </div>
     `;
-    const userConfirmationText = `Bonjour ${newContact.name},\n\nNous avons bien reçu votre message concernant "${newContact.subject}".\nNotre équipe vous répondra dans les plus brefs délais.\n\nVideoHub Support`;
+    const userConfirmationText = `Bonjour ${newContact.name},\n\nNous avons bien reçu votre message concernant "${newContact.subject}".\nNotre équipe vous répondra dans les plus brefs délais.\n\nRêve de Q Support`;
 
     await sendRobustEmail({
       to: newContact.email,
-      subject: `Confirmation de réception de votre message - VideoHub`,
+      subject: `Confirmation de réception de votre message - Rêve de Q`,
       html: userConfirmationHtml,
       text: userConfirmationText,
       category: 'CONTACT_CONFIRM'
@@ -2741,7 +2741,7 @@ app.post('/api/admin/messages/:id/reply', requireAdmin, async (req, res) => {
   const msg = db.contactMessages.find(m => m.id === req.params.id);
   if (!msg) return res.status(404).json({ error: 'Message introuvable.' });
 
-  const subject = (replySubject && replySubject.trim()) || `Re: ${msg.subject || 'Votre message sur VideoHub'}`;
+  const subject = (replySubject && replySubject.trim()) || `Re: ${msg.subject || 'Votre message sur Rêve de Q'}`;
 
   // Send real email to the user
   try {
@@ -2753,7 +2753,7 @@ app.post('/api/admin/messages/:id/reply', requireAdmin, async (req, res) => {
       html: `
         <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#f8fafc;border-radius:12px;overflow:hidden;border:1px solid #334155;">
           <div style="background:linear-gradient(135deg,#f97316,#ea580c);padding:24px;text-align:center;">
-            <h1 style="margin:0;color:#fff;font-size:22px;font-weight:800;">VideoHub Support</h1>
+            <h1 style="margin:0;color:#fff;font-size:22px;font-weight:800;">Rêve de Q Support</h1>
           </div>
           <div style="padding:24px;">
             <p>Bonjour <strong>${msg.name || 'Membre'}</strong>,</p>
@@ -2762,7 +2762,7 @@ app.post('/api/admin/messages/:id/reply', requireAdmin, async (req, res) => {
               <p style="margin:0 0 6px;font-weight:700;color:#cbd5e1;">Rappel de votre message :</p>
               <p style="margin:0;white-space:pre-wrap;">${msg.message}</p>
             </div>
-            <p style="margin-top:24px;font-size:12px;color:#64748b;">Support officiel VideoHub • Contact : ia.project.pro2k26@gmail.com</p>
+            <p style="margin-top:24px;font-size:12px;color:#64748b;">Support officiel Rêve de Q • Contact : ia.project.pro2k26@gmail.com</p>
           </div>
         </div>
       `,
@@ -2948,43 +2948,43 @@ app.get('/api/admin/email-templates', requireAdmin, (req, res) => {
       key: 'welcome',
       title: 'Bienvenue & Inscription',
       description: 'Envoyé automatiquement à chaque nouvel utilisateur dès la création de son compte.',
-      subject: 'Bienvenue sur VideoHub - Votre compte a été créé avec succès'
+      subject: 'Bienvenue sur Rêve de Q - Votre compte a été créé avec succès'
     },
     {
       key: 'reset_pwd',
       title: 'Mot de passe oublié (Code 6 chiffres)',
       description: 'Envoyé lorsqu\'un utilisateur demande la réinitialisation de son mot de passe.',
-      subject: 'Réinitialisation de votre mot de passe VideoHub'
+      subject: 'Réinitialisation de votre mot de passe Rêve de Q'
     },
     {
       key: 'video_approved',
       title: 'Vidéo validée & publiée',
       description: 'Notification au créateur confirmant que sa vidéo a été approuvée par la modération.',
-      subject: 'Votre vidéo a été validée et publiée sur VideoHub'
+      subject: 'Votre vidéo a été validée et publiée sur Rêve de Q'
     },
     {
       key: 'video_rejected',
       title: 'Vidéo refusée (motif modération)',
       description: 'Notification au créateur expliquant le motif de rejet de sa vidéo.',
-      subject: 'Notification de modération - Votre vidéo sur VideoHub'
+      subject: 'Notification de modération - Votre vidéo sur Rêve de Q'
     },
     {
       key: 'vip_activated',
       title: 'Abonnement VIP activé (9,99€)',
       description: 'Confirmation officielle de l\'activation du Pass VIP après paiement Stripe.',
-      subject: 'Confirmation d\'adhésion - Votre Pass VIP VideoHub est actif'
+      subject: 'Confirmation d\'adhésion - Votre Pass VIP Rêve de Q est actif'
     },
     {
       key: 'new_message',
       title: 'Nouveau message privé reçu',
       description: 'Notification par e-mail lors de la réception d\'un message dans la boîte privée.',
-      subject: 'Nouveau message privé reçu sur VideoHub'
+      subject: 'Nouveau message privé reçu sur Rêve de Q'
     },
     {
       key: 'report_received',
       title: 'Signalement pris en compte (Takedown)',
       description: 'Accusé de réception officiel suite à un signalement de contenu par un utilisateur.',
-      subject: 'Prise en charge de votre signalement VideoHub'
+      subject: 'Prise en charge de votre signalement Rêve de Q'
     }
   ];
 
@@ -3059,7 +3059,7 @@ app.post('/api/vip/create-checkout-session', authenticate, async (req, res) => {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: 'Abonnement VIP VideoHub (9,99€ / mois)',
+              name: 'Abonnement VIP Rêve de Q (9,99€ / mois)',
               description: 'Accès illimité aux vidéos exclusives VIP, badge certifié, suppression des pubs et priorité',
             },
             unit_amount: 999, // 9.99 EUR

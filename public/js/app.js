@@ -305,21 +305,21 @@ function switchTab(tabName) {
   }
 
   const pageTitles = {
-    contact: 'Nous contacter - VideoHub',
-    'mentions-legales': 'Mentions Légales - VideoHub',
-    cgu: 'Conditions Générales d\'Utilisation - VideoHub',
-    confidentialite: 'Politique de Confidentialité (RGPD) - VideoHub',
-    reclamations: 'Politique de Plaintes & Modération - VideoHub',
-    signaler: 'Signaler un Contenu - VideoHub',
-    'protection-mineurs': 'Protection des Mineurs (CSAM) - VideoHub',
-    'proposer-categorie': 'Proposer une Catégorie - VideoHub',
-    accueil: 'VideoHub - Plateforme Vidéo Communautaire Sans Doublons',
-    explorer: 'Explorer les Vidéos - VideoHub',
-    vip: 'Espace VIP Club Privilège - VideoHub',
-    faq: 'Foire Aux Questions - VideoHub',
-    profil: 'Mon Profil Membre - VideoHub',
-    admin: 'Administration - VideoHub',
-    messages: 'Messagerie Privée - VideoHub'
+    contact: 'Nous contacter - Rêve de Q',
+    'mentions-legales': 'Mentions Légales - Rêve de Q',
+    cgu: 'Conditions Générales d\'Utilisation - Rêve de Q',
+    confidentialite: 'Politique de Confidentialité (RGPD) - Rêve de Q',
+    reclamations: 'Politique de Plaintes & Modération - Rêve de Q',
+    signaler: 'Signaler un Contenu - Rêve de Q',
+    'protection-mineurs': 'Protection des Mineurs (CSAM) - Rêve de Q',
+    'proposer-categorie': 'Proposer une Catégorie - Rêve de Q',
+    accueil: 'Rêve de Q - Tes rêves, tes délires',
+    explorer: 'Explorer les Vidéos - Rêve de Q',
+    vip: 'Espace VIP Club Privilège - Rêve de Q',
+    faq: 'Foire Aux Questions - Rêve de Q',
+    profil: 'Mon Profil Membre - Rêve de Q',
+    admin: 'Administration - Rêve de Q',
+    messages: 'Messagerie Privée - Rêve de Q'
   };
   if (pageTitles[tabName]) {
     document.title = pageTitles[tabName];
@@ -1514,7 +1514,7 @@ async function openVideoPlayerModal(videoId) {
   if (window.location.pathname !== targetPath) {
     window.history.pushState({ videoId: video.id }, '', targetPath);
   }
-  document.title = `${video.title || 'Vidéo'} - VideoHub`;
+  document.title = `${video.title || 'Vidéo'} - Rêve de Q`;
 
   const breadcrumbEl = document.getElementById('watchBreadcrumbTitle');
   if (breadcrumbEl) breadcrumbEl.textContent = video.title || 'Vidéo';
@@ -1536,14 +1536,14 @@ async function openVideoPlayerModal(videoId) {
   if (title) title.textContent = video.title || 'Vidéo sans titre';
   if (desc) desc.textContent = video.description || 'Aucune description fournie.';
   if (authorName) {
-    authorName.textContent = video.authorName || 'Membre VideoHub';
+    authorName.textContent = video.authorName || 'Membre Rêve de Q';
     authorName.style.cursor = 'pointer';
     authorName.title = `Voir le profil de ${video.authorName}`;
     authorName.onclick = () => openPublicUserProfile(video.authorId || video.authorName);
   }
 
   if (authorAvatar) {
-    authorAvatar.src = video.authorAvatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(video.authorName || 'VideoHub'));
+    authorAvatar.src = video.authorAvatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(video.authorName || 'Rêve de Q'));
     authorAvatar.style.cursor = 'pointer';
     authorAvatar.title = `Voir le profil de ${video.authorName}`;
     authorAvatar.onclick = () => openPublicUserProfile(video.authorId || video.authorName);
@@ -2632,7 +2632,7 @@ function closeWatchPage() {
   if (modal) modal.classList.add('hidden');
   document.body.style.overflow = '';
   currentPlayingVideo = null;
-  document.title = 'VideoHub - Plateforme Vidéo Communautaire Sans Doublons';
+  document.title = 'Rêve de Q - Plateforme Vidéo Communautaire Sans Doublons';
 
   // Navigate back to previous tab
   const backTab = (lastActiveTab && lastActiveTab !== 'watch') ? lastActiveTab : 'accueil';
@@ -2665,8 +2665,8 @@ async function shareCurrentVideo() {
   if (navigator.share) {
     try {
       await navigator.share({
-        title: currentPlayingVideo.title || 'Vidéo sur VideoHub',
-        text: `Regardez "${currentPlayingVideo.title || 'cette vidéo'}" sur VideoHub`,
+        title: currentPlayingVideo.title || 'Vidéo sur Rêve de Q',
+        text: `Regardez "${currentPlayingVideo.title || 'cette vidéo'}" sur Rêve de Q`,
         url: url
       });
       return;
@@ -2916,7 +2916,7 @@ function renderAdminReports() {
             <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Signaleur</div>
             <div style="font-size:0.88rem;font-weight:700;color:var(--text-main);margin-top:2px;">${r.fullName}</div>
             <div style="font-size:0.8rem;margin-top:2px;">
-              <a href="mailto:${r.email}?subject=Concernant votre signalement sur VideoHub" style="color:var(--primary);text-decoration:none;">
+              <a href="mailto:${r.email}?subject=Concernant votre signalement sur Rêve de Q" style="color:var(--primary);text-decoration:none;">
                 ${r.email}
               </a>
             </div>
@@ -3094,7 +3094,7 @@ function openAdminReplyMessageModal(msgId) {
   if (recipientEl) recipientEl.textContent = `${msg.name} <${msg.email}>`;
   if (subjectEl) subjectEl.textContent = msg.subject || 'Sans objet';
   if (originalEl) originalEl.textContent = msg.message || '';
-  if (subjectInput) subjectInput.value = `Re: ${msg.subject || 'Votre message sur VideoHub'}`;
+  if (subjectInput) subjectInput.value = `Re: ${msg.subject || 'Votre message sur Rêve de Q'}`;
   if (textInput) textInput.value = '';
 
   if (modal) {
