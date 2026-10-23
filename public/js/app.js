@@ -391,6 +391,11 @@ function switchTab(tabName) {
     renderAdminCategoriesManager();
   }
 
+  // Auto-fill user credentials across forms when navigating
+  if (typeof autoFillUserCredentials === 'function') {
+    autoFillUserCredentials();
+  }
+
   // Scroll to top
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -4973,6 +4978,7 @@ async function handleSendReport(e) {
 
     showToast('Signalement enregistré. Traitement d\'urgence sous 24h à 48h.');
     document.getElementById('reportAbuseForm').reset();
+    if (typeof autoFillUserCredentials === 'function') autoFillUserCredentials();
     closeReportModal();
   } catch (err) {
     showToast('Erreur de communication.');
@@ -5150,6 +5156,7 @@ async function handleSendContact(e) {
     showToast(data.message || 'Votre message a été envoyé avec succès !');
     const form = document.getElementById('contactForm');
     if (form) form.reset();
+    if (typeof autoFillUserCredentials === 'function') autoFillUserCredentials();
     closeContactModal();
   } catch (err) {
     showToast('Erreur de communication avec le serveur.');

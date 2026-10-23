@@ -92,11 +92,10 @@ const AUTH = {
       if (authNotice) authNotice.classList.add('hidden');
       if (uploadForm) {
         uploadForm.classList.remove('hidden');
-        const emailInput = document.getElementById('uploaderEmail');
-        if (emailInput && this.user.email) {
-          emailInput.value = this.user.email;
-        }
       }
+
+      // Auto-fill user credentials across all forms (Nous contacter, Déposer une vidéo, Signalement...)
+      autoFillUserCredentials(this.user);
 
       // Admin button in sidebar & profile ONLY for ia.project.pro2k26@gmail.com
       if (this.isAdmin()) {
@@ -175,6 +174,9 @@ const AUTH = {
 
       if (authView) authView.classList.remove('hidden');
       if (profileView) profileView.classList.add('hidden');
+
+      // Clear auto-filled credentials when disconnected
+      clearAutoFilledCredentials();
     }
 
     // Sync sidebar logout/login buttons
@@ -183,6 +185,77 @@ const AUTH = {
     }
   }
 };
+
+// ==================== AUTO-FILL USER CREDENTIALS IN FORMS ====================
+function autoFillUserCredentials(customUser) {
+  const user = customUser || (typeof AUTH !== 'undefined' && AUTH.isLoggedIn() ? AUTH.user : null);
+  if (!user) return;
+
+  // 1. Formulaire Nous contacter (tab-contact)
+  const contactName = document.getElementById('contactName');
+  if (contactName && (!contactName.value || contactName.dataset.autofilled === 'true')) {
+    contactName.value = user.username || '';
+    contactName.dataset.autofilled = 'true';
+  }
+  const contactEmail = document.getElementById('contactEmail');
+  if (contactEmail && (!contactEmail.value || contactEmail.dataset.autofilled === 'true')) {
+    contactEmail.value = user.email || '';
+    contactEmail.dataset.autofilled = 'true';
+  }
+
+  // 2. Formulaire Déposer une vidéo (tab-upload)
+  const uploaderEmail = document.getElementById('uploaderEmail');
+  if (uploaderEmail && (!uploaderEmail.value || uploaderEmail.dataset.autofilled === 'true')) {
+    uploaderEmail.value = user.email || '';
+    uploaderEmail.dataset.autofilled = 'true';
+  }
+
+  // 3. Formulaire Signaler un abus (tab-signaler)
+  const reportFullName = document.getElementById('reportFullName');
+  if (reportFullName && (!reportFullName.value || reportFullName.dataset.autofilled === 'true')) {
+    reportFullName.value = user.username || '';
+    reportFullName.dataset.autofilled = 'true';
+  }
+  const reportEmail = document.getElementById('reportEmail');
+  if (reportEmail && (!reportEmail.value || reportEmail.dataset.autofilled === 'true')) {
+    reportEmail.value = user.email || '';
+    reportEmail.dataset.autofilled = 'true';
+  }
+  const reportSignature = document.getElementById('reportSignature');
+  if (reportSignature && (!reportSignature.value || reportSignature.dataset.autofilled === 'true')) {
+    reportSignature.value = user.username || '';
+    reportSignature.dataset.autofilled = 'true';
+  }
+}
+
+function clearAutoFilledCredentials() {
+  const fieldIds = ['contactName', 'contactEmail', 'uploaderEmail', 'reportFullName', 'reportEmail', 'reportSignature'];
+  fieldIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el && el.dataset.autofilled === 'true') {
+      el.value = '';
+      delete el.dataset.autofilled;
+    }
+  });
+}
+
+// Reset autofilled flag if user manually edits the input
+document.addEventListener('DOMContentLoaded', () => {
+  ['contactName', 'contactEmail', 'uploaderEmail', 'reportFullName', 'reportEmail', 'reportSignature'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', () => {
+        el.dataset.autofilled = 'false';
+      });
+    }
+  });
+  // Trigger autofill on DOM ready if user is already authenticated
+  setTimeout(() => {
+    if (typeof autoFillUserCredentials === 'function') {
+      autoFillUserCredentials();
+    }
+  }, 250);
+});
 
 let currentPendingRegistrationToken = null;
 let currentPendingEmail = '';

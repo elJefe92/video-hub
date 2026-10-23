@@ -284,6 +284,7 @@ async function handleVideoUpload(e) {
     
     // Reset form
     document.getElementById('uploadForm').reset();
+    if (typeof autoFillUserCredentials === 'function') autoFillUserCredentials();
     removeVideoFile(e);
 
     // Refresh video feed & explorer
