@@ -131,7 +131,7 @@ async function sendRobustEmail({ to, subject, html, text, replyTo, category }) {
   if (!to) return false;
   const senderAddress = process.env.SMTP_USER || 'ia.project.pro2k26@gmail.com';
   const transporter = getMailTransporter();
-  const cleanId = `vh-${Date.now()}-${Math.random().toString(36).substring(2, 7)}@gmail.com`;
+  const cleanId = `rdq-${Date.now()}-${Math.random().toString(36).substring(2, 7)}@gmail.com`;
 
   const mailOptions = {
     from: `"Rêve de Q Support" <${senderAddress}>`,
@@ -145,10 +145,10 @@ async function sendRobustEmail({ to, subject, html, text, replyTo, category }) {
     headers: {
       'List-Unsubscribe': `<mailto:${senderAddress}?subject=Desinscription>`,
       'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-      'X-Entity-Ref-ID': `VH-${Date.now()}`,
+      'X-Entity-Ref-ID': `RDQ-${Date.now()}`,
       'X-Auto-Response-Suppress': 'OOF, AutoReply',
       'Auto-Submitted': 'auto-generated',
-      'Feedback-ID': `VID_HUB:${category || 'TRANSACTIONAL'}:1:GMAIL`
+      'Feedback-ID': `REVE_DE_Q:${category || 'TRANSACTIONAL'}:1:GMAIL`
     }
   };
 
@@ -234,8 +234,8 @@ function generateEmailTemplate(type, data = {}) {
   const baseHeader = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
       <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 30px 24px; text-align: center;">
-        <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Video<span style="color: #0f172a; background: #ffffff; padding: 2px 8px; border-radius: 6px; margin-left: 4px;">Hub</span></h1>
-        <p style="margin: 8px 0 0; color: rgba(255,255,255,0.95); font-size: 14px; font-weight: 600;">Plateforme & Hub Vidéo Communautaire</p>
+        <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Rêve de <span style="color: #0f172a; background: #ffffff; padding: 2px 8px; border-radius: 6px; margin-left: 4px;">Q</span></h1>
+        <p style="margin: 8px 0 0; color: rgba(255,255,255,0.95); font-size: 14px; font-weight: 600;">Tes rêves, tes délires.</p>
       </div>
       <div style="padding: 30px 24px; line-height: 1.6;">
   `;
