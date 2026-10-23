@@ -77,6 +77,9 @@ function applyTheme(theme) {
     }
   }
   localStorage.setItem('francevideo_theme', theme);
+  if (typeof renderActiveStars === 'function') {
+    renderActiveStars(myActiveRating);
+  }
 }
 
 
@@ -1750,7 +1753,7 @@ function updateRatingUI(rating, count, videoId, ratingsMap = null, directUserRat
     }
   }
 
-  myActiveRating = userVote !== null ? Math.round(userVote) : Math.round(numRating);
+  myActiveRating = userVote !== null ? Math.round(userVote) : 0;
   renderActiveStars(myActiveRating);
 
   const feedbackEl = document.getElementById('modalRatingFeedback');
@@ -1766,6 +1769,10 @@ function updateRatingUI(rating, count, videoId, ratingsMap = null, directUserRat
 }
 
 function renderActiveStars(val) {
+  const isLight = document.body.classList.contains('theme-light');
+  const emptyFill = isLight ? '#cbd5e1' : '#334155';
+  const emptyStroke = isLight ? '#94a3b8' : '#475569';
+
   const stars = document.querySelectorAll('#modalRatingStars .star-btn');
   stars.forEach(star => {
     const starVal = parseInt(star.getAttribute('data-val'), 10);
@@ -1779,14 +1786,18 @@ function renderActiveStars(val) {
     } else {
       star.classList.remove('active-star');
       if (svg) {
-        svg.setAttribute('fill', 'rgba(255, 255, 255, 0.08)');
-        svg.setAttribute('stroke', '#64748b');
+        svg.setAttribute('fill', emptyFill);
+        svg.setAttribute('stroke', emptyStroke);
       }
     }
   });
 }
 
 function hoverStar(val) {
+  const isLight = document.body.classList.contains('theme-light');
+  const emptyFill = isLight ? '#cbd5e1' : '#334155';
+  const emptyStroke = isLight ? '#94a3b8' : '#475569';
+
   const stars = document.querySelectorAll('#modalRatingStars .star-btn');
   stars.forEach(star => {
     const starVal = parseInt(star.getAttribute('data-val'), 10);
@@ -1800,8 +1811,8 @@ function hoverStar(val) {
     } else {
       star.classList.remove('hovered');
       if (svg) {
-        svg.setAttribute('fill', 'rgba(255, 255, 255, 0.08)');
-        svg.setAttribute('stroke', '#64748b');
+        svg.setAttribute('fill', emptyFill);
+        svg.setAttribute('stroke', emptyStroke);
       }
     }
   });

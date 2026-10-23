@@ -3926,9 +3926,14 @@ body.theme-light #videoModal .modal-rating-score-badge {
 
 .star-btn svg {
   transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  fill: rgba(255, 255, 255, 0.08);
-  stroke: #64748b;
+  fill: #334155;
+  stroke: #475569;
   transform-origin: center;
+}
+
+body.theme-light .star-btn svg {
+  fill: #cbd5e1;
+  stroke: #94a3b8;
 }
 
 .star-btn:hover,
