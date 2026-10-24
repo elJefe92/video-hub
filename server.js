@@ -462,6 +462,50 @@ function generateEmailTemplate(type, data = {}) {
         text: `Bonjour ${username},\n\nNous vous confirmons la prise en charge de votre signalement réf #${data.reportId || 'SIG-12345'}.\nNotre équipe de modération traite votre demande dans les plus brefs délais.\n\nRêve de Q Support : ${siteUrl}`
       };
 
+    case 'contact_reply':
+      return {
+        name: 'Réponse officielle du Support Contact',
+        subject: data.subject || 'Réponse de Rêve de Q Support',
+        html: baseHeader + `
+          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bonjour ${username},</h2>
+          <p style="color: #cbd5e1; font-size: 15px; margin-bottom: 20px;">
+            L'équipe d'administration de <strong>Rêve de Q</strong> fait suite à votre message :
+          </p>
+          <div style="background: #1e293b; border-radius: 10px; padding: 20px; border: 1px solid #334155; margin-bottom: 22px; color: #f8fafc; font-size: 15px; line-height: 1.7; white-space: pre-wrap;">
+${(data.replyText || '').trim()}
+          </div>
+          ${data.originalMessage ? `
+            <div style="background: rgba(15, 23, 42, 0.75); border-radius: 8px; padding: 14px 16px; border-left: 3px solid #f97316; margin-bottom: 20px;">
+              <span style="display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #f97316; margin-bottom: 6px;">Rappel de votre message :</span>
+              <p style="margin: 0; color: #94a3b8; font-size: 13px; font-style: italic; white-space: pre-wrap;">${data.originalMessage}</p>
+            </div>
+          ` : ''}
+          <p style="color: #cbd5e1; font-size: 14px; margin-top: 15px;">
+            Pour toute question complémentaire, vous pouvez répondre directement à cet e-mail.
+          </p>
+        ` + baseFooter,
+        text: `Bonjour ${username},\n\nRéponse du Support Rêve de Q :\n\n${(data.replyText || '').trim()}\n\n--- Rappel de votre message initial ---\n${data.originalMessage || ''}\n\nRêve de Q Support : ${siteUrl}`
+      };
+
+    case 'contact_confirmation':
+      return {
+        name: 'Accusé de réception - Formulaire Contact',
+        subject: 'Confirmation de réception de votre message - Rêve de Q',
+        html: baseHeader + `
+          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Bonjour ${username},</h2>
+          <p style="color: #cbd5e1; font-size: 15px;">
+            Nous vous confirmons la bonne réception de votre message concernant : <strong>"${data.contactSubject || 'Demande de support'}"</strong>.
+          </p>
+          <div style="background: #1e293b; border-radius: 8px; padding: 16px 18px; border: 1px solid #334155; margin: 18px 0; color: #94a3b8; font-size: 13px; font-style: italic; white-space: pre-wrap;">
+            "${data.originalMessage || ''}"
+          </div>
+          <p style="color: #cbd5e1; font-size: 14px;">
+            Votre demande est enregistrée dans notre espace support. Notre équipe administrative vous répondra dans les plus brefs délais directement sur cette adresse e-mail.
+          </p>
+        ` + baseFooter,
+        text: `Bonjour ${username},\n\nNous confirmons la bonne réception de votre message ("${data.contactSubject || 'Demande de contact'}").\nNotre équipe administrative vous répondra dans les plus brefs délais.\n\nRêve de Q Support : ${siteUrl}`
+      };
+
     default:
       return {
         name: 'Notification générale',
@@ -2585,73 +2629,71 @@ app.post('/api/contact/submit', async (req, res) => {
 
   addLog('Contact', `Nouveau message de ${newContact.name} (${newContact.email}) - Objet: ${newContact.subject}`);
 
-  const adminEmail = process.env.SMTP_USER || 'ia.project.pro2k26@gmail.com';
+  const adminRecipients = ['ia.project.pro2k26@gmail.com'];
+  const officialSender = process.env.SMTP_FROM || process.env.SMTP_USER || 'support@revedeq.fr';
+  if (!adminRecipients.includes(officialSender)) {
+    adminRecipients.push(officialSender);
+  }
 
-  // 1. Send direct notification email to Admin (ia.project.pro2k26@gmail.com)
+  // 1. Send direct notification email to Admin
   const adminContactHtml = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
-      <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 24px; text-align: center;">
-        <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800;">Nouveau Message de Contact</h1>
-        <p style="margin: 6px 0 0; color: rgba(255,255,255,0.95); font-size: 13px;">Formulaire Nous Contacter - Rêve de Q</p>
+      <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 30px 24px; text-align: center;">
+        <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Rêve de <span style="color: #0f172a; background: #ffffff; padding: 2px 8px; border-radius: 6px; margin-left: 4px;">Q</span></h1>
+        <p style="margin: 8px 0 0; color: rgba(255,255,255,0.95); font-size: 14px; font-weight: 600;">Tes rêves, tes délires.</p>
+        <div style="display: inline-block; margin-top: 12px; background: rgba(15, 23, 42, 0.4); padding: 4px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #ffffff; text-transform: uppercase;">
+          Nouveau message de contact reçu
+        </div>
       </div>
-      <div style="padding: 24px; line-height: 1.6;">
-        <p style="margin: 0 0 12px 0;"><strong style="color:#f97316;">Expéditeur :</strong> ${newContact.name} (<a href="mailto:${newContact.email}" style="color:#38bdf8;">${newContact.email}</a>)</p>
+      <div style="padding: 28px 24px; line-height: 1.6;">
+        <p style="margin: 0 0 10px 0;"><strong style="color:#f97316;">Expéditeur :</strong> ${newContact.name} (<a href="mailto:${newContact.email}" style="color:#38bdf8;">${newContact.email}</a>)</p>
         <p style="margin: 0 0 16px 0;"><strong style="color:#f97316;">Objet :</strong> ${newContact.subject}</p>
-        <div style="background: #1e293b; border-radius: 8px; padding: 18px; border: 1px solid #334155; margin-bottom: 20px;">
-          <strong style="color:#cbd5e1; font-size:13px; display:block; margin-bottom:8px;">Message :</strong>
+        <div style="background: #1e293b; border-radius: 8px; padding: 18px; border: 1px solid #334155; margin-bottom: 22px;">
+          <strong style="color:#cbd5e1; font-size:13px; display:block; margin-bottom:8px;">Message du visiteur :</strong>
           <p style="color: #f8fafc; font-size: 14px; margin: 0; white-space: pre-wrap;">${newContact.message}</p>
         </div>
-        <div style="text-align: center;">
-          <a href="mailto:${newContact.email}?subject=Re: ${encodeURIComponent(newContact.subject)}" style="background-color: #f97316; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 700; font-size: 14px; display: inline-block;">
-            Répondre directement à ${newContact.name}
+        <div style="text-align: center; margin-top: 25px;">
+          <a href="${SITE_URL}/#admin" style="background-color: #f97316; color: #ffffff; text-decoration: none; padding: 13px 26px; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block;">
+            Accéder à l'Espace Admin pour Répondre
           </a>
         </div>
+        <p style="color: #94a3b8; font-size: 12px; border-top: 1px solid #334155; padding-top: 18px; margin-top: 25px; margin-bottom: 0;">
+          Ce message est également archivé dans votre onglet <strong>Administration &gt; Messages</strong> sur le site.
+        </p>
       </div>
     </div>
   `;
-  const adminContactText = `Nouveau message de contact Rêve de Q\n\nDe : ${newContact.name} (${newContact.email})\nObjet : ${newContact.subject}\n\nMessage :\n${newContact.message}`;
+  const adminContactText = `Nouveau message de contact Rêve de Q\n\nDe : ${newContact.name} (${newContact.email})\nObjet : ${newContact.subject}\n\nMessage :\n${newContact.message}\n\nRépondre dans l'administration : ${SITE_URL}/#admin`;
 
-  await sendRobustEmail({
-    to: adminEmail,
-    replyTo: newContact.email,
-    subject: `[Rêve de Q Contact] ${newContact.subject} (de ${newContact.name})`,
-    html: adminContactHtml,
-    text: adminContactText,
-    category: 'CONTACT_ADMIN'
-  });
+  for (const adminTo of adminRecipients) {
+    try {
+      await sendRobustEmail({
+        to: adminTo,
+        replyTo: newContact.email,
+        subject: `[Rêve de Q Contact] ${newContact.subject} (de ${newContact.name})`,
+        html: adminContactHtml,
+        text: adminContactText,
+        category: 'CONTACT_ADMIN'
+      });
+    } catch (e) {}
+  }
 
-  // 2. Send automatic confirmation email to the user who submitted the form
-  if (newContact.email.toLowerCase() !== adminEmail.toLowerCase()) {
-    const userConfirmationHtml = `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
-        <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 24px; text-align: center;">
-          <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800;">Rêve de Q</h1>
-          <p style="margin: 6px 0 0; color: rgba(255,255,255,0.95); font-size: 13px;">Accusé de réception - Support</p>
-        </div>
-        <div style="padding: 24px; line-height: 1.6;">
-          <h2 style="color: #ffffff; font-size: 18px; margin-top: 0;">Bonjour ${newContact.name},</h2>
-          <p style="color: #cbd5e1; font-size: 14px;">
-            Nous vous confirmons la bonne réception de votre message concernant : <strong>"${newContact.subject}"</strong>.
-          </p>
-          <div style="background: #1e293b; border-radius: 8px; padding: 16px; border: 1px solid #334155; margin: 18px 0; color: #94a3b8; font-size: 13px; font-style: italic;">
-            "${newContact.message}"
-          </div>
-          <p style="color: #cbd5e1; font-size: 14px;">
-            Notre équipe de support traite votre demande et vous répondra dans les plus brefs délais.
-          </p>
-        </div>
-      </div>
-    `;
-    const userConfirmationText = `Bonjour ${newContact.name},\n\nNous avons bien reçu votre message concernant "${newContact.subject}".\nNotre équipe vous répondra dans les plus brefs délais.\n\nRêve de Q Support`;
-
+  // 2. Send automatic confirmation email to the user with full Rêve de Q branding
+  try {
+    const confirmationTpl = generateEmailTemplate('contact_confirmation', {
+      username: newContact.name,
+      toEmail: newContact.email,
+      contactSubject: newContact.subject,
+      originalMessage: newContact.message
+    });
     await sendRobustEmail({
       to: newContact.email,
-      subject: `Confirmation de réception de votre message - Rêve de Q`,
-      html: userConfirmationHtml,
-      text: userConfirmationText,
+      subject: confirmationTpl.subject,
+      html: confirmationTpl.html,
+      text: confirmationTpl.text,
       category: 'CONTACT_CONFIRM'
     });
-  }
+  } catch (e) {}
 
   res.status(201).json({
     message: 'Votre message a été envoyé avec succès ! Notre équipe a été notifiée par e-mail.',
@@ -2785,30 +2827,26 @@ app.post('/api/admin/messages/:id/reply', requireAdmin, async (req, res) => {
 
   const subject = (replySubject && replySubject.trim()) || `Re: ${msg.subject || 'Votre message sur Rêve de Q'}`;
 
-  // Send real email to the user
+  const template = generateEmailTemplate('contact_reply', {
+    username: msg.name || 'Membre',
+    toEmail: msg.email,
+    subject: subject,
+    replyText: replyText.trim(),
+    originalMessage: msg.message
+  });
+
+  const officialSender = process.env.SMTP_FROM || process.env.SMTP_USER || 'support@revedeq.fr';
+
+  // Send real email to the user with full official brand codes
   try {
     await sendRobustEmail({
       to: msg.email,
-      from: 'ia.project.pro2k26@gmail.com',
-      replyTo: 'ia.project.pro2k26@gmail.com',
-      subject: subject,
-      html: `
-        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#f8fafc;border-radius:12px;overflow:hidden;border:1px solid #334155;">
-          <div style="background:linear-gradient(135deg,#f97316,#ea580c);padding:24px;text-align:center;">
-            <h1 style="margin:0;color:#fff;font-size:22px;font-weight:800;">Rêve de Q Support</h1>
-          </div>
-          <div style="padding:24px;">
-            <p>Bonjour <strong>${msg.name || 'Membre'}</strong>,</p>
-            <p style="margin-top:14px;white-space:pre-wrap;line-height:1.6;color:#e2e8f0;">${replyText.trim()}</p>
-            <div style="margin-top:24px;padding:14px;background:#1e293b;border-radius:8px;border-left:3px solid #f97316;font-size:13px;color:#94a3b8;">
-              <p style="margin:0 0 6px;font-weight:700;color:#cbd5e1;">Rappel de votre message :</p>
-              <p style="margin:0;white-space:pre-wrap;">${msg.message}</p>
-            </div>
-            <p style="margin-top:24px;font-size:12px;color:#64748b;">Support officiel Rêve de Q • Contact : ia.project.pro2k26@gmail.com</p>
-          </div>
-        </div>
-      `,
-      category: 'CONTACT'
+      from: `"Rêve de Q Support" <${officialSender}>`,
+      replyTo: officialSender,
+      subject: template.subject,
+      html: template.html,
+      text: template.text,
+      category: 'CONTACT_REPLY'
     });
   } catch (err) {
     console.error('Error sending contact reply email', err);

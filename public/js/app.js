@@ -3106,7 +3106,7 @@ function openAdminReplyMessageModal(msgId) {
   if (subjectEl) subjectEl.textContent = msg.subject || 'Sans objet';
   if (originalEl) originalEl.textContent = msg.message || '';
   if (subjectInput) subjectInput.value = `Re: ${msg.subject || 'Votre message sur Rêve de Q'}`;
-  if (textInput) textInput.value = '';
+  if (textInput) textInput.value = `Bonjour ${msg.name || ''},\n\n`;
 
   if (modal) {
     modal.classList.remove('hidden');

@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=4.1">
+  <link rel="stylesheet" href="/css/style.css?v=4.2">
   <script>
     // Vérification immédiate anti-clignotement (1h de validité)
     (function() {
@@ -2770,10 +2770,10 @@
   <div id="toastNotification" class="toast hidden"></div>
 
   <!-- SCRIPTS -->
-  <script src="/js/auth.js?v=4.1"></script>
-  <script src="/js/upload.js?v=4.1"></script>
-  <script src="/js/vip.js?v=4.1"></script>
-  <script src="/js/app.js?v=4.1"></script>
+  <script src="/js/auth.js?v=4.2"></script>
+  <script src="/js/upload.js?v=4.2"></script>
+  <script src="/js/vip.js?v=4.2"></script>
+  <script src="/js/app.js?v=4.2"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">
@@ -2799,14 +2799,14 @@
       <button class="modal-close-btn" onclick="closeAdminReplyModal()" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       <div class="modal-header-box">
         <h3 style="color:var(--primary);margin:0 0 6px;">Répondre au message de contact</h3>
-        <p style="font-size:0.85rem;color:var(--text-muted);margin:0;">L'e-mail de réponse sera envoyé directement au visiteur depuis votre adresse administrateur.</p>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin:0;">L'e-mail officiel avec le logo et les codes de Rêve de Q sera expédié au visiteur depuis support@revedeq.fr.</p>
       </div>
 
       <form id="adminReplyForm" onsubmit="handleSendAdminReply(event)">
         <input type="hidden" id="replyTargetMsgId">
         
         <div style="background:var(--bg-subtle);border:1px solid var(--border-color);border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:0.85rem;">
-          <div style="margin-bottom:4px;"><strong>Expéditeur :</strong> ia.project.pro2k26@gmail.com</div>
+          <div style="margin-bottom:4px;"><strong>Expéditeur officiel :</strong> <span style="color:#f97316;font-weight:700;">support@revedeq.fr</span> (Rêve de Q Support)</div>
           <div style="margin-bottom:4px;"><strong>Destinataire :</strong> <span id="replyTargetRecipientText"></span></div>
           <div style="margin-bottom:6px;"><strong>Sujet d'origine :</strong> <span id="replyTargetSubjectText"></span></div>
           <div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border-color);">
