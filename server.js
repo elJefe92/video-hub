@@ -179,6 +179,27 @@ async function sendRobustEmail({ to, subject, html, text, replyTo, category }) {
     return true;
   } catch (err) {
     console.error(`[Email Delivery Error] Failed sending to ${to}:`, err.message);
+    // Automatic fallback to backup transporter if primary SMTP fails
+    if (process.env.SMTP_HOST) {
+      console.log(`[Email Fallback] Retrying delivery via backup transporter...`);
+      try {
+        const fallbackTransporter = nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: 'ia.project.pro2k26@gmail.com',
+            pass: 'rxcqdfrtywmzzaym'
+          }
+        });
+        await fallbackTransporter.sendMail({
+          ...mailOptions,
+          from: `"Rêve de Q Support" <ia.project.pro2k26@gmail.com>`
+        });
+        console.log(`[Email Fallback Delivered] Sent to ${to} via backup transporter`);
+        return true;
+      } catch (fbErr) {
+        console.error(`[Email Fallback Error]:`, fbErr.message);
+      }
+    }
     return false;
   }
 }
