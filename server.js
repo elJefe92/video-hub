@@ -3325,8 +3325,8 @@ app.post('/api/vip/create-checkout-session', authenticate, async (req, res) => {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: 'Abonnement VIP Rêve de Q (9,99€ / mois)',
-              description: 'Accès illimité aux vidéos exclusives VIP, badge certifié, suppression des pubs et priorité',
+              name: 'Abonnement VIP RDQ Service (9,99€ / mois)',
+              description: 'Accès illimité au catalogue VIP exclusif, badge certifié, suppression des pubs et priorité',
             },
             unit_amount: 999, // 9.99 EUR
             recurring: {
