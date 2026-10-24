@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=4.3">
+  <link rel="stylesheet" href="/css/style.css?v=4.4">
   <script>
     // Vérification immédiate anti-clignotement (1h de validité)
     (function() {
@@ -129,6 +129,12 @@
           </svg>
         </button>
         <button class="btn-header-explore" onclick="navigateToTab('explorer')">Catégories</button>
+        <button class="btn-header-vip-top" onclick="navigateToTab('vip')" title="Accéder au Club VIP (9,99€)">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+          VIP (9,99€)
+        </button>
         <a href="/#messages" class="btn-header-messages" onclick="event.preventDefault(); navigateToTab('messages');" title="Messagerie privée & Tchat">
           Messages <span id="headerUnreadBadge" class="header-unread-badge hidden">0</span>
         </a>
@@ -232,7 +238,6 @@
                   </svg>
                 </span>
                 <span class="sidebar-item-label">VIP (9,99€)</span>
-                <span class="badge-vip-mini">PROMO</span>
               </button>
             </li>
             <li>
@@ -2913,10 +2918,10 @@
   <div id="toastNotification" class="toast hidden"></div>
 
   <!-- SCRIPTS -->
-  <script src="/js/auth.js?v=4.3"></script>
-  <script src="/js/upload.js?v=4.3"></script>
-  <script src="/js/vip.js?v=4.3"></script>
-  <script src="/js/app.js?v=4.3"></script>
+  <script src="/js/auth.js?v=4.4"></script>
+  <script src="/js/upload.js?v=4.4"></script>
+  <script src="/js/vip.js?v=4.4"></script>
+  <script src="/js/app.js?v=4.4"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">

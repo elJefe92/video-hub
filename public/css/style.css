@@ -323,6 +323,36 @@ body.theme-light .brand-emblem {
   border-color: var(--primary);
 }
 
+.btn-header-vip-top {
+  display: none;
+  align-items: center;
+  gap: 5px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(234, 88, 12, 0.22) 100%);
+  color: #fb923c;
+  border: 1px solid rgba(249, 115, 22, 0.55);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 10px rgba(249, 115, 22, 0.15);
+}
+
+@media (min-width: 768px) {
+  .btn-header-vip-top {
+    display: inline-flex;
+  }
+}
+
+.btn-header-vip-top:hover {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  color: #ffffff;
+  border-color: #f97316;
+  box-shadow: 0 0 16px rgba(249, 115, 22, 0.45);
+  transform: translateY(-1px);
+}
+
 .btn-header-contact {
   display: inline-flex;
   align-items: center;
@@ -5177,6 +5207,7 @@ body.theme-light #videoModal .similar-author {
   .btn-header-upload-top,
   .btn-header-contact,
   .btn-header-explore,
+  .btn-header-vip-top,
   .btn-header-messages,
   .btn-add-cat-top {
     display: none !important;
