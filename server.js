@@ -423,6 +423,51 @@ function generateEmailTemplate(type, data = {}) {
         text: `Bienvenue dans le Club VIP, ${username} !\n\nVotre abonnement VIP Rêve de Q (9,99€ / mois) est actif avec succès.\nProfitez dès maintenant de vos avantages exclusifs sur : ${siteUrl}`
       };
 
+    case 'account_deleted':
+      return {
+        name: 'Suppression définitive de compte (RGPD)',
+        subject: 'Confirmation de suppression définitive de votre compte - Rêve de Q',
+        html: baseHeader + `
+          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Compte supprimé définitivement</h2>
+          <p style="color: #cbd5e1; font-size: 15px;">
+            Bonjour ${username},
+          </p>
+          <p style="color: #cbd5e1; font-size: 15px;">
+            Votre compte <strong>Rêve de Q</strong> (${toEmail}) ainsi que l'ensemble de vos données personnelles, vidéos associées et préférences ont été <strong>définitivement supprimés</strong> de notre plateforme, conformément au Règlement Général sur la Protection des Données (RGPD).
+          </p>
+          <div style="background: #1e293b; border-radius: 8px; padding: 18px; margin: 20px 0; border: 1px solid #ef4444;">
+            <strong style="color: #ef4444; font-size: 14px;">Information importante de sécurité :</strong>
+            <p style="color: #cbd5e1; font-size: 13px; margin: 6px 0 0 0;">
+              Cette action est irréversible. Si vous n'êtes pas à l'origine de cette demande de suppression, contactez immédiatement l'équipe d'administration à support@revedeq.fr.
+            </p>
+          </div>
+          <p style="color: #cbd5e1; font-size: 14px;">
+            Nous vous remercions pour le temps passé au sein de la communauté Rêve de Q.
+          </p>
+        ` + baseFooter,
+        text: `Compte supprimé définitivement\n\nBonjour ${username},\n\nVotre compte Rêve de Q (${toEmail}) et toutes vos données ont été définitivement supprimés, conformément au RGPD.\n\nRêve de Q Support : ${siteUrl}`
+      };
+
+    case 'custom_announcement':
+      return {
+        name: 'Annonce officielle / Message personnalisé',
+        subject: data.subject || 'Communication officielle - Rêve de Q',
+        html: baseHeader + `
+          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">${data.heading || `Bonjour ${username},`}</h2>
+          <div style="color: #cbd5e1; font-size: 15px; line-height: 1.7; margin: 18px 0; white-space: pre-wrap;">
+${(data.customMessage || 'Nous avons le plaisir de vous informer des dernières nouveautés disponibles sur la plateforme Rêve de Q.').trim()}
+          </div>
+          ${data.callToActionText ? `
+            <div style="text-align: center; margin: 26px 0;">
+              <a href="${data.callToActionUrl || siteUrl}" style="background-color: #f97316; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block;">
+                ${data.callToActionText}
+              </a>
+            </div>
+          ` : ''}
+        ` + baseFooter,
+        text: `${data.subject || 'Communication officielle - Rêve de Q'}\n\nBonjour ${username},\n\n${(data.customMessage || '').trim()}\n\nAccéder à Rêve de Q : ${siteUrl}`
+      };
+
     case 'new_message':
       return {
         name: 'Nouveau message privé reçu',
@@ -1048,10 +1093,15 @@ app.delete('/api/user/account', authenticate, async (req, res) => {
 
   // Send farewell email
   try {
+    const farewellTpl = generateEmailTemplate('account_deleted', {
+      username: user.username,
+      toEmail: user.email
+    });
     await sendRobustEmail({
       to: user.email,
-      subject: 'Rêve de Q - Votre compte a ete supprime',
-      html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#0f172a;color:#f8fafc;border-radius:12px;overflow:hidden;border:1px solid #334155;"><div style="background:linear-gradient(135deg,#f97316,#ea580c);padding:30px 24px;text-align:center;"><h1 style="margin:0;color:#fff;font-size:28px;font-weight:800;">Rêve de Q</h1></div><div style="padding:30px 24px;"><h2>Votre compte a ete supprime</h2><p>Bonjour ${user.username},</p><p>Votre compte Rêve de Q (${user.email}) ainsi que l'ensemble de vos donnees ont ete definitvement supprimes de notre plateforme, conformement au RGPD.</p><p style="color:#94a3b8;font-size:12px;margin-top:30px;">Si vous n'avez pas fait cette demande, contactez-nous immediatement.</p></div></div>`,
+      subject: farewellTpl.subject,
+      html: farewellTpl.html,
+      text: farewellTpl.text,
       category: 'ACCOUNT'
     });
   } catch (e) {}
@@ -3051,8 +3101,14 @@ app.get('/api/admin/email-templates', requireAdmin, (req, res) => {
     {
       key: 'vip_activated',
       title: 'Abonnement VIP activé (9,99€)',
-      description: 'Confirmation officielle de l\'activation du Pass VIP après paiement Stripe.',
+      description: 'Confirmation officielle de l\'activation du Pass VIP après paiement.',
       subject: 'Confirmation d\'adhésion - Votre Pass VIP Rêve de Q est actif'
+    },
+    {
+      key: 'account_deleted',
+      title: 'Suppression définitive de compte (RGPD)',
+      description: 'Confirmation officielle de suppression de compte et de l\'ensemble des données.',
+      subject: 'Confirmation de suppression définitive de votre compte - Rêve de Q'
     },
     {
       key: 'new_message',
@@ -3065,10 +3121,140 @@ app.get('/api/admin/email-templates', requireAdmin, (req, res) => {
       title: 'Signalement pris en compte (Takedown)',
       description: 'Accusé de réception officiel suite à un signalement de contenu par un utilisateur.',
       subject: 'Prise en charge de votre signalement Rêve de Q'
+    },
+    {
+      key: 'contact_reply',
+      title: 'Réponse officielle du Support',
+      description: 'Réponse administrative directe avec mise en page Rêve de Q et citation.',
+      subject: 'Réponse de Rêve de Q Support'
+    },
+    {
+      key: 'custom_announcement',
+      title: 'Annonce officielle / Message personnalisé',
+      description: 'Communication officielle avec objet, contenu et bouton d\'action libres.',
+      subject: 'Communication officielle - Rêve de Q'
     }
   ];
 
   res.json({ templates });
+});
+
+// Endpoint: Live preview of an email template
+app.post('/api/admin/email-preview', requireAdmin, (req, res) => {
+  const {
+    templateKey = 'welcome',
+    toEmail = 'ia.project.pro2k26@gmail.com',
+    username = 'Alexandre',
+    customSubject,
+    customMessage,
+    heading,
+    videoTitle = 'Vortex Électronique (Exemple)',
+    videoCategory = 'Electronique',
+    reason = 'Qualité audio insuffisante ou doublon dans la thématique.',
+    callToActionText = 'Découvrir les nouveautés',
+    callToActionUrl
+  } = req.body;
+
+  try {
+    const template = generateEmailTemplate(templateKey, {
+      username: username || 'Alexandre',
+      toEmail: toEmail || 'contact@revedeq.fr',
+      subject: customSubject,
+      customMessage: customMessage,
+      heading: heading,
+      videoTitle: videoTitle,
+      videoCategory: videoCategory,
+      reason: reason,
+      senderName: 'Alex Créateur',
+      messagePreview: customMessage || 'Bonjour, voici un aperçu de message officiel.',
+      replyText: customMessage || 'Bonjour, nous faisons suite à votre demande.',
+      originalMessage: 'Ceci est un exemple de message reçu de la part du visiteur.',
+      code: '849201',
+      reportId: 'SIG-48201',
+      reportReason: 'Demande de vérification',
+      callToActionText: callToActionText,
+      callToActionUrl: callToActionUrl
+    });
+
+    res.json({
+      success: true,
+      template: {
+        key: templateKey,
+        name: template.name,
+        subject: customSubject || template.subject,
+        html: template.html,
+        text: template.text
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur lors de la génération de l\'aperçu.' });
+  }
+});
+
+// Endpoint: Send a single custom or suggested email from support@revedeq.fr
+app.post('/api/admin/send-single-email', requireAdmin, async (req, res) => {
+  const {
+    templateKey = 'welcome',
+    toEmail,
+    username = 'Membre',
+    customSubject,
+    customMessage,
+    heading,
+    videoTitle,
+    videoCategory,
+    reason,
+    callToActionText,
+    callToActionUrl
+  } = req.body;
+
+  if (!toEmail || !toEmail.trim() || !toEmail.includes('@')) {
+    return res.status(400).json({ error: 'Veuillez saisir une adresse e-mail de destination valide.' });
+  }
+
+  try {
+    const template = generateEmailTemplate(templateKey, {
+      username: username.trim(),
+      toEmail: toEmail.trim(),
+      subject: customSubject ? customSubject.trim() : undefined,
+      customMessage: customMessage,
+      heading: heading,
+      videoTitle: videoTitle || 'Vortex Électronique (Exemple)',
+      videoCategory: videoCategory || 'Général',
+      reason: reason || 'Non-respect des critères de qualité.',
+      senderName: 'Rêve de Q Support',
+      messagePreview: customMessage,
+      replyText: customMessage,
+      originalMessage: 'Demande soumise à l\'administration.',
+      code: Math.floor(100000 + Math.random() * 900000).toString(),
+      reportId: 'SIG-' + Math.floor(10000 + Math.random() * 90000),
+      reportReason: reason || 'Vérification administrative',
+      callToActionText: callToActionText,
+      callToActionUrl: callToActionUrl
+    });
+
+    const finalSubject = (customSubject && customSubject.trim()) ? customSubject.trim() : template.subject;
+
+    const sent = await sendRobustEmail({
+      to: toEmail.trim(),
+      subject: finalSubject,
+      html: template.html,
+      text: template.text,
+      category: 'ADMIN_DIRECT'
+    });
+
+    if (!sent) {
+      return res.status(500).json({ error: 'Échec de l\'expédition SMTP de l\'e-mail.' });
+    }
+
+    addLog('Envoi E-mail Admin', `Modèle "${template.name}" expédié à ${toEmail.trim()} par ${req.user.username}`);
+
+    res.json({
+      success: true,
+      message: `L'e-mail officiel "${template.name}" a été expédié avec succès à ${toEmail.trim()} !`
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur technique lors de l\'envoi de l\'e-mail.' });
+  }
 });
 
 app.post('/api/admin/test-emails', requireAdmin, async (req, res) => {

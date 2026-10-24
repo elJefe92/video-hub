@@ -8729,3 +8729,49 @@ body.theme-light .watch-video-title {
   margin: 0;
 }
 
+/* ==================== ADMIN EMAIL HUB & SUGGESTIONS ==================== */
+.email-suggestion-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+.email-suggestion-card:hover {
+  border-color: #f97316;
+  background: rgba(249, 115, 22, 0.05);
+  transform: translateY(-1px);
+}
+.email-suggestion-card.active {
+  border-color: #f97316 !important;
+  background: rgba(249, 115, 22, 0.12) !important;
+  box-shadow: 0 0 0 2px rgba(249, 115, 22, 0.3);
+}
+.email-suggestion-card .suggestion-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.3;
+}
+.email-suggestion-card .suggestion-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+}
+@media (max-width: 900px) {
+  #adminEmailWorkspaceGrid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+

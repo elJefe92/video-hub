@@ -3336,15 +3336,255 @@ function renderAdminOnlineVideos(videos) {
 }
 
 
-function initAdminEmailTester() {
-  const input = document.getElementById('adminTestEmailTargetInput');
-  if (input && (!input.value || !input.value.trim())) {
-    if (AUTH.user && AUTH.user.email) {
-      input.value = AUTH.user.email;
+function applyQuickReplySuggestion(type) {
+  const textInput = document.getElementById('replyTextInput');
+  if (!textInput) return;
+  const currentVal = textInput.value;
+  const firstLine = currentVal.split('\n')[0] || 'Bonjour,';
+  const greeting = firstLine.startsWith('Bonjour') ? firstLine : 'Bonjour,';
+
+  let body = '';
+  switch (type) {
+    case 'bienvenue':
+      body = `Nous avons bien reçu votre demande et vous remercions de votre intérêt pour Rêve de Q. Notre équipe est ravie de vous compter parmi nos membres et reste à votre écoute pour vous accompagner.\n\nRestant à votre entière disposition,\nL'équipe Rêve de Q Support`;
+      break;
+    case 'vip':
+      body = `Concernant votre demande sur l'abonnement Membre VIP (9,99€ / mois) : cet abonnement vous permet de débloquer l'intégralité du catalogue exclusif, de supprimer toutes les publicités et d'arborer le badge VIP certifié sur votre profil et vos vidéos. Vous pouvez activer votre Pass VIP à tout moment depuis la rubrique VIP du site.\n\nRestant à votre entière disposition,\nL'équipe Rêve de Q Support`;
+      break;
+    case 'video':
+      body = `Concernant la vérification de vos vidéos : chaque vidéo déposée sur la plateforme est examinée par notre équipe de modération sous 24h ouvrées afin de garantir la qualité et la conformité des contenus. Dès validation, vous recevez une confirmation par e-mail et votre vidéo est immédiatement publiée en ligne.\n\nRestant à votre entière disposition,\nL'équipe Rêve de Q Support`;
+      break;
+    case 'resolu':
+      body = `Nous vous confirmons que la situation signalée dans votre message a été vérifiée et résolue avec succès par notre équipe technique. Tout est désormais parfaitement opérationnel sur votre compte et sur le site.\n\nN'hésitez pas à revenir vers nous si besoin,\nL'équipe Rêve de Q Support`;
+      break;
+  }
+
+  textInput.value = `${greeting}\n\n${body}`;
+  textInput.focus();
+}
+
+window.currentSelectedEmailTpl = 'welcome';
+
+const EMAIL_TPL_PRESETS = {
+  welcome: {
+    name: 'Mail de Bienvenue',
+    subject: 'Bienvenue sur Rêve de Q - Votre compte a été créé avec succès',
+    badge: 'Inscription',
+    customLabel: 'Message complémentaire de bienvenue',
+    customPlaceholder: 'Profitez de tous nos services pour partager vos vidéos en haute définition...'
+  },
+  vip_activated: {
+    name: 'Abonnement VIP activé (9,99€)',
+    subject: 'Confirmation d\'adhésion - Votre Pass VIP Rêve de Q est actif',
+    badge: 'VIP (9,99€)',
+    customLabel: 'Avantages et remerciements',
+    customPlaceholder: 'Votre Pass VIP est désormais pleinement actif avec accès illimité et 0 publicité.'
+  },
+  account_deleted: {
+    name: 'Suppression définitive de compte (RGPD)',
+    subject: 'Confirmation de suppression définitive de votre compte - Rêve de Q',
+    badge: 'RGPD Légal',
+    customLabel: 'Motif ou information de sécurité',
+    customPlaceholder: 'Votre compte ainsi que l\'ensemble de vos données ont été définitivement supprimés.'
+  },
+  reset_pwd: {
+    name: 'Mot de passe oublié (Code 6 chiffres)',
+    subject: 'Réinitialisation de votre mot de passe Rêve de Q',
+    badge: 'Sécurité Auth',
+    customLabel: 'Instructions de sécurité',
+    customPlaceholder: 'Saisissez ce code à 6 chiffres temporaire sur le site pour définir votre nouveau mot de passe.'
+  },
+  video_approved: {
+    name: 'Vidéo validée & publiée',
+    subject: 'Votre vidéo a été validée et publiée sur Rêve de Q',
+    badge: 'Modération',
+    customLabel: 'Titre de la vidéo validée',
+    customPlaceholder: 'Ex: Vortex Électronique (Exemple)'
+  },
+  video_rejected: {
+    name: 'Vidéo refusée (motif de modération)',
+    subject: 'Notification de modération - Votre vidéo sur Rêve de Q',
+    badge: 'Modération',
+    customLabel: 'Motif précis du refus',
+    customPlaceholder: 'Ex: Qualité audio/vidéo insuffisante ou doublon détecté dans la catégorie.'
+  },
+  contact_reply: {
+    name: 'Réponse officielle du Support',
+    subject: 'Réponse de Rêve de Q Support',
+    badge: 'Support Contact',
+    customLabel: 'Contenu de la réponse officielle',
+    customPlaceholder: 'Bonjour, nous faisons suite à votre message transmis à notre équipe support...'
+  },
+  custom_announcement: {
+    name: 'Annonce officielle / Message personnalisé',
+    subject: 'Communication officielle - Rêve de Q',
+    badge: 'Communication',
+    customLabel: 'Contenu du message officiel',
+    customPlaceholder: 'Chers membres, nous avons le plaisir de vous annoncer les nouvelles fonctionnalités disponibles sur la plateforme...'
+  }
+};
+
+function selectEmailSuggestion(tplKey) {
+  window.currentSelectedEmailTpl = tplKey;
+
+  document.querySelectorAll('.email-suggestion-card').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-tpl-key') === tplKey);
+  });
+
+  const preset = EMAIL_TPL_PRESETS[tplKey] || EMAIL_TPL_PRESETS.welcome;
+
+  const subjectInput = document.getElementById('emailHubSubjectInput');
+  const labelCustom = document.getElementById('labelEmailHubCustomText');
+  const textCustom = document.getElementById('emailHubCustomTextInput');
+  const badgeName = document.getElementById('previewEmailBadgeName');
+
+  if (subjectInput) subjectInput.value = preset.subject;
+  if (labelCustom) labelCustom.textContent = preset.customLabel;
+  if (textCustom) {
+    textCustom.placeholder = preset.customPlaceholder;
+    if (tplKey === 'video_rejected') {
+      textCustom.value = 'Qualité audio/vidéo insuffisante ou doublon détecté dans la catégorie.';
+    } else if (tplKey === 'video_approved') {
+      textCustom.value = 'Vortex Électronique (Exemple)';
+    } else if (tplKey === 'custom_announcement') {
+      textCustom.value = 'Nous avons le plaisir de vous informer des dernières nouveautés disponibles sur la plateforme Rêve de Q.';
     } else {
-      input.value = 'ia.project.pro2k26@gmail.com';
+      textCustom.value = '';
     }
   }
+  if (badgeName) badgeName.textContent = preset.name;
+
+  previewCurrentEmailTemplate();
+}
+
+let emailPreviewDebounce = null;
+async function previewCurrentEmailTemplate() {
+  clearTimeout(emailPreviewDebounce);
+  emailPreviewDebounce = setTimeout(async () => {
+    if (!AUTH.isAdmin()) return;
+    const tplKey = window.currentSelectedEmailTpl || 'welcome';
+    const toEmail = (document.getElementById('emailHubTargetInput')?.value || 'ia.project.pro2k26@gmail.com').trim();
+    const username = (document.getElementById('emailHubNameInput')?.value || 'Alexandre').trim();
+    const subject = (document.getElementById('emailHubSubjectInput')?.value || '').trim();
+    const customText = (document.getElementById('emailHubCustomTextInput')?.value || '').trim();
+
+    const subjectPreviewEl = document.getElementById('previewEmailSubjectText');
+    const previewBox = document.getElementById('adminEmailPreviewBox');
+
+    try {
+      const res = await fetch('/api/admin/email-preview', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${AUTH.token}`
+        },
+        body: JSON.stringify({
+          templateKey: tplKey,
+          toEmail,
+          username,
+          customSubject: subject || undefined,
+          customMessage: customText,
+          videoTitle: tplKey === 'video_approved' ? (customText || undefined) : undefined,
+          reason: tplKey === 'video_rejected' ? (customText || undefined) : undefined
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.template) {
+        if (subjectPreviewEl) subjectPreviewEl.textContent = data.template.subject;
+        if (previewBox) previewBox.innerHTML = data.template.html;
+      }
+    } catch (e) {
+      if (previewBox) previewBox.innerHTML = '<p style="color:#ef4444;text-align:center;padding:20px;">Erreur lors du chargement de l\'aperçu.</p>';
+    }
+  }, 250);
+}
+
+function useAdminEmailForTarget() {
+  const target = document.getElementById('emailHubTargetInput');
+  if (target) {
+    target.value = (AUTH.user && AUTH.user.email) ? AUTH.user.email : 'ia.project.pro2k26@gmail.com';
+    previewCurrentEmailTemplate();
+    showToast('Adresse e-mail administrateur appliquée.');
+  }
+}
+
+async function sendCurrentEmailTemplate() {
+  if (!AUTH.isAdmin()) {
+    showToast('Action réservée aux administrateurs.');
+    return;
+  }
+
+  const tplKey = window.currentSelectedEmailTpl || 'welcome';
+  const toEmail = (document.getElementById('emailHubTargetInput')?.value || '').trim();
+  const username = (document.getElementById('emailHubNameInput')?.value || 'Membre').trim();
+  const subject = (document.getElementById('emailHubSubjectInput')?.value || '').trim();
+  const customText = (document.getElementById('emailHubCustomTextInput')?.value || '').trim();
+
+  if (!toEmail || !toEmail.includes('@')) {
+    showToast('Veuillez renseigner une adresse e-mail valide.');
+    return;
+  }
+
+  const btnTop = document.getElementById('btnSendSingleEmailAction');
+  const btnBtm = document.getElementById('btnSendSingleEmailActionBottom');
+
+  const setButtonsLoading = (isLoading) => {
+    [btnTop, btnBtm].forEach(b => {
+      if (b) {
+        b.disabled = isLoading;
+        b.textContent = isLoading ? 'Expédition en cours...' : 'Envoyer cet e-mail';
+      }
+    });
+  };
+
+  setButtonsLoading(true);
+
+  try {
+    const res = await fetch('/api/admin/send-single-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${AUTH.token}`
+      },
+      body: JSON.stringify({
+        templateKey: tplKey,
+        toEmail,
+        username,
+        customSubject: subject || undefined,
+        customMessage: customText,
+        videoTitle: tplKey === 'video_approved' ? (customText || undefined) : undefined,
+        reason: tplKey === 'video_rejected' ? (customText || undefined) : undefined
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'Erreur lors de l\'envoi de l\'e-mail.');
+      return;
+    }
+
+    showToast(data.message || `E-mail envoyé avec succès à ${toEmail} !`);
+  } catch (err) {
+    showToast('Erreur de communication avec le serveur.');
+  } finally {
+    setButtonsLoading(false);
+  }
+}
+
+function initAdminEmailTester() {
+  const input = document.getElementById('adminTestEmailTargetInput');
+  const hubTarget = document.getElementById('emailHubTargetInput');
+  const adminEmail = (AUTH.user && AUTH.user.email) ? AUTH.user.email : 'ia.project.pro2k26@gmail.com';
+
+  if (input && (!input.value || !input.value.trim())) {
+    input.value = adminEmail;
+  }
+  if (hubTarget && (!hubTarget.value || !hubTarget.value.trim())) {
+    hubTarget.value = adminEmail;
+  }
+
+  selectEmailSuggestion(window.currentSelectedEmailTpl || 'welcome');
 }
 
 function checkAllTestEmails() {
