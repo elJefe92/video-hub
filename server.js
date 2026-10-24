@@ -16,6 +16,7 @@ const stripe = stripeSecret ? require('stripe')(stripeSecret) : null;
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'ia_project_video_hub_secret_2026';
+const SITE_URL = process.env.SITE_URL || 'https://revedeq.fr';
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -181,7 +182,7 @@ function addNotificationToUser(db, userId, { type, message, link }) {
 
 async function sendWelcomeEmail(toEmail, username) {
   if (!toEmail) return false;
-  const siteUrl = 'https://video-hub-mu-nine.vercel.app';
+  const siteUrl = SITE_URL;
   const tpl = generateEmailTemplate('welcome', { username, toEmail });
   return await sendRobustEmail({
     to: toEmail,
@@ -227,7 +228,7 @@ async function sendPasswordResetEmail(toEmail, username, resetCode) {
 
 // Unified Email Templates Generator for Rêve de Q
 function generateEmailTemplate(type, data = {}) {
-  const siteUrl = 'https://video-hub-mu-nine.vercel.app';
+  const siteUrl = SITE_URL;
   const username = data.username || 'Cher Membre';
   const toEmail = data.toEmail || 'contact@exemple.fr';
 
@@ -2172,7 +2173,7 @@ app.post('/api/messages/send', optionalAuthenticate, async (req, res) => {
 
   // Email incitatif au destinataire (s'il a un email enregistré)
   if (recipientUser && recipientUser.email) {
-    const siteUrl = 'https://video-hub-mu-nine.vercel.app';
+    const siteUrl = SITE_URL;
     const chatLink = `${siteUrl}/#messages?with=${encodeURIComponent(mySenderName)}`;
     const recipientIsVip = recipientUser.isVip || recipientUser.role === 'admin';
 
@@ -3043,7 +3044,7 @@ app.post('/api/admin/test-emails', requireAdmin, async (req, res) => {
 // ---------------- VIP SUBSCRIPTION (9,99€) & STRIPE ----------------
 app.post('/api/vip/create-checkout-session', authenticate, async (req, res) => {
   const user = req.user;
-  const siteUrl = 'https://video-hub-mu-nine.vercel.app';
+  const siteUrl = SITE_URL;
 
   if (!stripe) {
     // If Stripe is not configured with a secret key yet, allow simulation fallback
@@ -3177,7 +3178,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Auto-generated XML Sitemap for SEO
 app.get('/sitemap.xml', async (req, res) => {
   const db = loadDb();
-  const siteUrl = 'https://video-hub-mu-nine.vercel.app';
+  const siteUrl = SITE_URL;
   const today = new Date().toISOString().split('T')[0];
 
   const staticUrls = [

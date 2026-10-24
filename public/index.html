@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=4.0">
+  <link rel="stylesheet" href="/css/style.css?v=4.1">
   <script>
     // Vérification immédiate anti-clignotement (1h de validité)
     (function() {
@@ -2317,7 +2317,7 @@
   <!-- ==================== ADMIN EDIT VIDEO MODAL ==================== -->
   <div id="adminEditVideoModal" class="modal-overlay hidden" onclick="closeAdminEditModal(event)">
     <div class="modal-card modal-category admin-edit-modal-card" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeAdminEditModal()"></button>
+      <button class="modal-close-btn" onclick="closeAdminEditModal()" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       <div class="modal-header-box">
         <h3>Modifier la Vidéo & Choisir la Miniature</h3>
         <p>Prenez une capture sur la vidéo pour définir la miniature, ou ajustez les tags et métadonnées.</p>
@@ -2384,7 +2384,7 @@
   <!-- ==================== EDIT PROFILE MODAL ==================== -->
   <div id="editProfileModal" class="modal-overlay hidden" onclick="closeEditProfileModal(event)">
     <div class="modal-card modal-category" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeEditProfileModal()"></button>
+      <button class="modal-close-btn" onclick="closeEditProfileModal()" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       <div class="modal-header-box">
         <h3>Personnaliser mon Profil</h3>
         <p>Modifiez votre photo de profil, votre surnom et votre description.</p>
@@ -2431,7 +2431,7 @@
   <!-- ==================== ADMIN CREATE CATEGORY MODAL ==================== -->
   <div id="adminCreateCategoryModal" class="modal-overlay hidden" onclick="closeAdminCreateCategoryModal(event)">
     <div class="modal-card modal-category" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeAdminCreateCategoryModal()">✕</button>
+      <button class="modal-close-btn" onclick="closeAdminCreateCategoryModal()" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       <div class="modal-header-box">
         <h3>Créer une Catégorie (Admin)</h3>
         <p>Cette catégorie sera directement validée et publiée sur la plateforme.</p>
@@ -2459,7 +2459,7 @@
   <!-- ==================== ADMIN EDIT CATEGORY MODAL ==================== -->
   <div id="adminEditCategoryModal" class="modal-overlay hidden" onclick="closeAdminEditCategoryModal(event)">
     <div class="modal-card modal-category" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeAdminEditCategoryModal()">✕</button>
+      <button class="modal-close-btn" onclick="closeAdminEditCategoryModal()" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       <div class="modal-header-box">
         <h3>Modifier la Catégorie</h3>
         <p>Changez le nom ou la description de cette catégorie.</p>
@@ -2497,7 +2497,7 @@
   <!-- ==================== MODALE MOT DE PASSE OUBLIÉ ==================== -->
   <div id="forgotPasswordModal" class="modal-overlay hidden" onclick="closeForgotPasswordModal(event)">
     <div class="modal-card modal-cgu" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeForgotPasswordModal()">✕</button>
+      <button class="modal-close-btn" onclick="closeForgotPasswordModal()" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       
       <!-- STEP 1: Demand Code by Email -->
       <div id="forgotStep1">
@@ -2622,7 +2622,7 @@
   <!-- ==================== VIP CHECKOUT MODAL ==================== -->
   <div id="vipModal" class="modal-overlay hidden" onclick="closeVipModal(event)">
     <div class="modal-card modal-vip-checkout" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeVipModal()"></button>
+      <button class="modal-close-btn" onclick="closeVipModal()" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       
       <div class="vip-checkout-header-new">
         <div class="vip-modal-badge">ABONNEMENT CLUB PRIVILÈGE</div>
@@ -2700,7 +2700,7 @@
         </div>
         <div class="chat-header-actions">
           <button class="btn-chat-conversations" onclick="openConversationsModal()" title="Toutes les conversations">Boîte</button>
-          <button class="modal-close-btn" onclick="closeDirectMessageModal()"></button>
+          <button class="modal-close-btn" onclick="closeDirectMessageModal()" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
         </div>
       </div>
 
@@ -2754,7 +2754,7 @@
   <!-- ==================== CONVERSATIONS INBOX MODAL ==================== -->
   <div id="conversationsModal" class="modal-overlay hidden" onclick="closeConversationsModal(event)">
     <div class="modal-card modal-inbox" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeConversationsModal()"></button>
+      <button class="modal-close-btn" onclick="closeConversationsModal()" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       <div class="modal-header-box">
         <h3>Boîte de Réception (Messagerie)</h3>
         <p>Vos conversations privées avec les créateurs et membres de la communauté.</p>
@@ -2770,13 +2770,14 @@
   <div id="toastNotification" class="toast hidden"></div>
 
   <!-- SCRIPTS -->
-  <script src="/js/auth.js?v=4.0"></script>
-  <script src="/js/upload.js?v=4.0"></script>
-  <script src="/js/vip.js?v=4.0"></script>
-  <script src="/js/app.js?v=4.0"></script>
+  <script src="/js/auth.js?v=4.1"></script>
+  <script src="/js/upload.js?v=4.1"></script>
+  <script src="/js/vip.js?v=4.1"></script>
+  <script src="/js/app.js?v=4.1"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
-    <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;">
+    <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">
+      <button class="modal-close-btn" onclick="closeDeleteAccountModal()" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       <div class="modal-header-box">
         <h3 style="color:#ef4444;">Supprimer mon compte</h3>
         <p>Cette action est <strong>irreversible</strong>. Toutes vos donnees et videos seront definitvement supprimees.</p>
@@ -2795,7 +2796,7 @@
   <!-- ==================== ADMIN REPLY TO CONTACT MESSAGE MODAL ==================== -->
   <div id="adminReplyMessageModal" class="modal-overlay hidden" onclick="closeAdminReplyModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:580px;">
-      <button class="modal-close-btn" onclick="closeAdminReplyModal()"></button>
+      <button class="modal-close-btn" onclick="closeAdminReplyModal()" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       <div class="modal-header-box">
         <h3 style="color:var(--primary);margin:0 0 6px;">Répondre au message de contact</h3>
         <p style="font-size:0.85rem;color:var(--text-muted);margin:0;">L'e-mail de réponse sera envoyé directement au visiteur depuis votre adresse administrateur.</p>
@@ -2837,7 +2838,7 @@
   <!-- ==================== ADMIN EDIT VIDEO TAGS MODAL ==================== -->
   <div id="adminEditTagsModal" class="modal-overlay hidden" onclick="closeAdminEditTagsModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:580px;">
-      <button class="modal-close-btn" onclick="closeAdminEditTagsModal()"></button>
+      <button class="modal-close-btn" onclick="closeAdminEditTagsModal()" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       <div class="modal-header-box">
         <h3 style="color:var(--primary);margin:0 0 6px;">Modifier les tags de la vidéo</h3>
         <p id="adminEditTagsVideoTitle" style="font-size:0.88rem;color:var(--text-main);font-weight:600;margin:0;"></p>
