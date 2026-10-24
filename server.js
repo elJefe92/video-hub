@@ -114,25 +114,45 @@ let mailTransporter = null;
 function getMailTransporter() {
   if (mailTransporter) return mailTransporter;
 
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
+  const smtpSecure = process.env.SMTP_SECURE !== undefined ? (process.env.SMTP_SECURE === 'true') : (smtpPort === 465);
   const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER || 'ia.project.pro2k26@gmail.com';
   const smtpPass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD || 'rxcqdfrtywmzzaym').replace(/\s+/g, '');
 
-  mailTransporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: smtpUser,
-      pass: smtpPass
-    }
-  });
+  if (smtpHost) {
+    mailTransporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass
+      },
+      tls: {
+        rejectUnauthorized: true
+      }
+    });
+  } else {
+    // Gmail fallback
+    mailTransporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: smtpUser,
+        pass: smtpPass
+      }
+    });
+  }
 
   return mailTransporter;
 }
 
 async function sendRobustEmail({ to, subject, html, text, replyTo, category }) {
   if (!to) return false;
-  const senderAddress = process.env.SMTP_USER || 'ia.project.pro2k26@gmail.com';
+  const senderAddress = process.env.SMTP_FROM || process.env.SMTP_USER || 'ia.project.pro2k26@gmail.com';
   const transporter = getMailTransporter();
-  const cleanId = `rdq-${Date.now()}-${Math.random().toString(36).substring(2, 7)}@gmail.com`;
+  const domainPart = senderAddress.includes('@') ? senderAddress.split('@')[1] : 'revedeq.fr';
+  const cleanId = `rdq-${Date.now()}-${Math.random().toString(36).substring(2, 7)}@${domainPart}`;
 
   const mailOptions = {
     from: `"Rêve de Q Support" <${senderAddress}>`,
@@ -149,7 +169,7 @@ async function sendRobustEmail({ to, subject, html, text, replyTo, category }) {
       'X-Entity-Ref-ID': `RDQ-${Date.now()}`,
       'X-Auto-Response-Suppress': 'OOF, AutoReply',
       'Auto-Submitted': 'auto-generated',
-      'Feedback-ID': `REVE_DE_Q:${category || 'TRANSACTIONAL'}:1:GMAIL`
+      'Feedback-ID': `REVE_DE_Q:${category || 'TRANSACTIONAL'}:1:${domainPart.toUpperCase()}`
     }
   };
 
