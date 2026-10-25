@@ -272,17 +272,20 @@ function generateEmailTemplate(type, data = {}) {
   const siteUrl = SITE_URL;
   const username = data.username || 'Cher Membre';
   const toEmail = data.toEmail || 'contact@exemple.fr';
+  const isMessaging = type === 'new_message' || type === 'message';
+  const emblemUrl = isMessaging ? `${siteUrl}/revedeq-emblem-messages.png` : `${siteUrl}/revedeq-emblem.png`;
+  const subTitle = isMessaging ? 'Messagerie Privée Sécurisée' : 'Tes rêves, tes délires.';
 
   const baseHeader = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0b1120; color: #f8fafc; border-radius: 16px; overflow: hidden; border: 1px solid rgba(249, 115, 22, 0.25); box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
       <div style="background: radial-gradient(circle at 50% 30%, #1e1b4b 0%, #090d16 70%, #030712 100%); padding: 32px 24px 26px; text-align: center; border-bottom: 1px solid rgba(249, 115, 22, 0.2); position: relative;">
         <div style="display: inline-block; margin-bottom: 12px;">
-          <img src="${siteUrl}/revedeq-emblem.png" alt="Rêve de Q" width="64" height="64" style="display: block; margin: 0 auto; filter: drop-shadow(0 0 16px rgba(249, 115, 22, 0.65));">
+          <img src="${emblemUrl}" alt="Rêve de Q" width="68" height="68" style="display: block; margin: 0 auto; filter: drop-shadow(0 0 18px rgba(249, 115, 22, 0.7));">
         </div>
         <div style="margin: 0; font-size: 26px; font-weight: 900; letter-spacing: -0.5px; line-height: 1.1;">
           <span style="color: #ffffff;">Rêve de </span><span style="color: #fbbf24; text-shadow: 0 0 18px rgba(249, 115, 22, 0.75);">Q</span>
         </div>
-        <p style="margin: 8px 0 0; color: #94a3b8; font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;">Tes rêves, tes délires.</p>
+        <p style="margin: 8px 0 0; color: #94a3b8; font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;">${subTitle}</p>
         <div style="height: 2px; width: 60px; background: linear-gradient(90deg, transparent, #f59e0b, transparent); margin: 16px auto 0;"></div>
       </div>
       <div style="padding: 32px 26px; line-height: 1.6; background-color: #0b1120;">
@@ -2337,12 +2340,18 @@ app.post('/api/messages/send', optionalAuthenticate, async (req, res) => {
         to: recipientUser.email,
         subject: `${mySenderName} vous a envoyé un message - Répondez vite !`,
         html: `
-          <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:580px;margin:0 auto;background:#0f172a;color:#f8fafc;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
-            <div style="background:linear-gradient(135deg,#f97316,#ea580c);padding:28px 24px;text-align:center;">
-              <p style="margin:0;color:rgba(255,255,255,0.85);font-size:0.82rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;">Messagerie Privée</p>
-              <h1 style="margin:8px 0 0;color:#fff;font-size:1.6rem;font-weight:900;">Rêve de Q</h1>
+          <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:580px;margin:0 auto;background:#0b1120;color:#f8fafc;border-radius:16px;overflow:hidden;border:1px solid rgba(249,115,22,0.25);box-shadow:0 20px 50px rgba(0,0,0,0.6);">
+            <div style="background:radial-gradient(circle at 50% 30%, #1e1b4b 0%, #090d16 70%, #030712 100%);padding:32px 24px 26px;text-align:center;border-bottom:1px solid rgba(249,115,22,0.2);position:relative;">
+              <div style="display:inline-block;margin-bottom:12px;">
+                <img src="${siteUrl}/revedeq-emblem-messages.png" alt="Rêve de Q" width="68" height="68" style="display:block;margin:0 auto;filter:drop-shadow(0 0 18px rgba(249,115,22,0.7));">
+              </div>
+              <div style="margin:0;font-size:24px;font-weight:900;letter-spacing:-0.5px;line-height:1.1;">
+                <span style="color:#ffffff;">Rêve de </span><span style="color:#fbbf24;text-shadow:0 0 18px rgba(249,115,22,0.75);">Q</span>
+              </div>
+              <p style="margin:8px 0 0;color:#94a3b8;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;">Messagerie Privée Sécurisée</p>
+              <div style="height:2px;width:60px;background:linear-gradient(90deg,transparent,#f59e0b,transparent);margin:16px auto 0;"></div>
             </div>
-            <div style="padding:28px 24px;">
+            <div style="padding:28px 24px;background-color:#0b1120;">
               <p style="font-size:1rem;font-weight:700;color:#f8fafc;margin:0 0 6px;">${mySenderName} vous a écrit un message !</p>
               <p style="font-size:0.88rem;color:#94a3b8;margin:0 0 20px;">Ne le laissez pas sans réponse — il attend votre retour.</p>
 
@@ -2357,7 +2366,7 @@ app.post('/api/messages/send', optionalAuthenticate, async (req, res) => {
 
               <p style="font-size:0.72rem;color:#475569;margin-top:24px;text-align:center;">
                 Vous recevez cet email car vous êtes membre Rêve de Q.<br>
-                <a href="${siteUrl}" style="color:#f97316;">Accéder à Rêve de Q</a>
+                <a href="${siteUrl}" style="color:#f97316;text-decoration:none;">Accéder à Rêve de Q</a>
               </p>
             </div>
           </div>

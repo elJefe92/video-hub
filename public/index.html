@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=4.8">
+  <link rel="stylesheet" href="/css/style.css?v=4.9">
   <script>
     // Vérification immédiate anti-clignotement (1h de validité)
     (function() {
@@ -575,7 +575,7 @@
             <div class="vip-hero-top-badge">OFFRE PRIVILÈGE VIP</div>
             <h2 class="vip-hero-title">Devenez Membre du Club VIP</h2>
             <p class="vip-hero-desc">
-              Débloquez l'accès instantané à toutes les vidéos exclusives, profitez du badge certifié officiel, d'une priorité en tête de flux et d'une navigation sans aucune publicité.
+              Débloquez l'accès instantané à toutes les vidéos exclusives, profitez du badge certifié VIP, d'une priorité en tête de flux et d'une navigation sans aucune publicité.
             </p>
 
             <div class="vip-pricing-card">
@@ -607,7 +607,7 @@
                 </svg>
               </div>
               <h3>Badge Certifié VIP</h3>
-              <p>Votre profil et l'ensemble de vos vidéos sont immédiatement certifiés avec le badge membre VIP officiel.</p>
+              <p>Votre profil et l'ensemble de vos vidéos sont immédiatement certifiés avec le badge membre VIP.</p>
             </div>
 
             <div class="vip-feature-card">
@@ -669,7 +669,7 @@
                   <tr>
                     <td>Badge Certifié sur Profil & Vidéos</td>
                     <td><span class="cross-red">Non</span></td>
-                    <td><span class="check-gold">Badge Officiel</span></td>
+                    <td><span class="check-gold">Badge VIP Certifié</span></td>
                   </tr>
                   <tr>
                     <td>Mise en avant en tête de flux</td>
@@ -930,10 +930,8 @@
           <!-- State when user is not logged in -->
           <div id="messagesLoggedOutPrompt" class="messages-logged-out-prompt hidden">
             <div class="messages-prompt-card">
-              <div class="messages-prompt-icon">
-                <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
+              <div class="messages-prompt-icon" style="background:transparent;border:none;">
+                <img src="/revedeq-emblem-messages.png" alt="Messagerie Rêve de Q" width="72" height="72" style="filter: drop-shadow(0 0 16px rgba(245,158,11,0.6));">
               </div>
               <h3>Messagerie Privée Rêve de Q</h3>
               <p>Connectez-vous pour accéder à vos discussions privées avec les créateurs et membres de la communauté.</p>
@@ -961,10 +959,8 @@
             <div class="messages-pane-sidebar" id="messagesPaneSidebar">
               <div class="messages-sidebar-top">
                 <div class="messages-sidebar-heading">
-                  <div class="messages-heading-title">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                    </svg>
+                  <div class="messages-heading-title" style="display:flex;align-items:center;gap:8px;">
+                    <img src="/revedeq-emblem-messages.png" alt="Insigne Messagerie" width="24" height="24" style="filter: drop-shadow(0 0 6px rgba(245,158,11,0.5));">
                     <h3>Discussions</h3>
                   </div>
                   <button type="button" class="btn-refresh-messages" onclick="refreshDedicatedMessenger()" title="Actualiser les messages">
@@ -998,10 +994,8 @@
               
               <!-- Empty State (when no conversation is selected) -->
               <div id="messagesEmptyState" class="messages-empty-state">
-                <div class="messages-empty-icon">
-                  <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                  </svg>
+                <div class="messages-empty-icon" style="background:transparent;border:none;">
+                  <img src="/revedeq-emblem-messages.png" alt="Messagerie Rêve de Q" width="80" height="80" style="filter: drop-shadow(0 0 20px rgba(245,158,11,0.55));">
                 </div>
                 <h4>Sélectionnez une discussion</h4>
                 <p>Choisissez un contact dans la liste à gauche ou contactez un créateur pour démarrer un échange direct.</p>
@@ -2912,10 +2906,10 @@
   <div id="toastNotification" class="toast hidden"></div>
 
   <!-- SCRIPTS -->
-  <script src="/js/auth.js?v=4.8"></script>
-  <script src="/js/upload.js?v=4.8"></script>
-  <script src="/js/vip.js?v=4.8"></script>
-  <script src="/js/app.js?v=4.8"></script>
+  <script src="/js/auth.js?v=4.9"></script>
+  <script src="/js/upload.js?v=4.9"></script>
+  <script src="/js/vip.js?v=4.9"></script>
+  <script src="/js/app.js?v=4.9"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">
