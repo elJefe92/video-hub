@@ -16,7 +16,8 @@ const stripe = stripeSecret ? require('stripe')(stripeSecret) : null;
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'ia_project_video_hub_secret_2026';
-const SITE_URL = process.env.SITE_URL || 'https://www.revedeq.fr';
+const RAW_SITE_URL = process.env.SITE_URL || 'https://www.revedeq.fr';
+const SITE_URL = RAW_SITE_URL.replace('://revedeq.fr', '://www.revedeq.fr');
 
 // Security Hardening: Disable technology fingerprinting
 app.disable('x-powered-by');
