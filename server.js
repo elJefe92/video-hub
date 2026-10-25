@@ -1959,6 +1959,7 @@ app.post('/api/videos/upload', optionalAuthenticate, uploadVideoMiddleware, asyn
 
   db.videos.unshift(newVideo);
   saveDb(db);
+  await syncDbToCloud(db);
 
   addLog('Dépôt Vidéo (Sans connexion)', `Vidéo "${newVideo.title}" (${newVideo.region}) déposée par ${resolvedEmail}`);
 
