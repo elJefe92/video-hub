@@ -4054,6 +4054,16 @@ async function loadAdminStats() {
   }
 }
 
+// Auto-refresh admin statistics in real-time every 8 seconds when admin view is active
+setInterval(() => {
+  if (AUTH && typeof AUTH.isAdmin === 'function' && AUTH.isAdmin()) {
+    const adminView = document.getElementById('adminView');
+    if (adminView && !adminView.classList.contains('hidden')) {
+      loadAdminStats();
+    }
+  }
+}, 8000);
+
 // ---------------- ADMIN LOGS / AUDIT TRAIL ----------------
 let currentAdminLogFilter = 'all';
 

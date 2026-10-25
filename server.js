@@ -3241,37 +3241,49 @@ app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
 });
 
 app.get('/api/admin/stats', requireAdmin, async (req, res) => {
-  await syncDbFromCloud();
-  const db = loadDb();
-  const totalViews = db.videos.reduce((acc, v) => acc + (v.views || 0), 0);
-  const totalLikes = db.videos.reduce((acc, v) => acc + (v.likes || 0), 0);
-  const totalVips = db.users.filter(u => u.isVip).length;
-  const pendingReports = (db.reports || []).filter(r => r.status === 'pending').length;
-  const pendingCategories = (db.categories || []).filter(c => c.status === 'pending').length;
-  const totalMessages = (db.contactMessages || []).length;
-  const unreadMessages = (db.contactMessages || []).filter(m => !m.read && !m.replied).length;
-  const totalComments = (db.videos || []).reduce((acc, v) => acc + (v.comments ? v.comments.length : 0), 0);
+  try {
+    await syncDbFromCloud();
+    const db = loadDb();
 
-  const approvedCategories = (db.categories || []).filter(c => c.status !== 'pending').length;
+    const videos = Array.isArray(db.videos) ? db.videos : [];
+    const users = Array.isArray(db.users) ? db.users : [];
+    const categories = Array.isArray(db.categories) ? db.categories : [];
+    const reports = Array.isArray(db.reports) ? db.reports : [];
+    const contactMessages = Array.isArray(db.contactMessages) ? db.contactMessages : [];
 
-  res.json({
-    totalUsers: db.users.length,
-    totalVideos: db.videos.length,
-    approvedVideos: db.videos.filter(v => v.status === 'approved').length,
-    pendingVideos: db.videos.filter(v => v.status === 'pending').length,
-    totalCategories: db.categories.length,
-    approvedCategories,
-    pendingCategories,
-    totalViews,
-    totalLikes,
-    totalVips,
-    pendingReports,
-    totalReports,
-    totalMessages,
-    unreadMessages,
-    totalComments,
-    logs: db.logs || []
-  });
+    const totalViews = videos.reduce((acc, v) => acc + (v.views || 0), 0);
+    const totalLikes = videos.reduce((acc, v) => acc + (v.likes || 0), 0);
+    const totalVips = users.filter(u => u.isVip).length;
+    const pendingReports = reports.filter(r => r.status === 'pending').length;
+    const totalReports = reports.length;
+    const pendingCategories = categories.filter(c => c.status === 'pending').length;
+    const totalMessages = contactMessages.length;
+    const unreadMessages = contactMessages.filter(m => !m.read && !m.replied).length;
+    const totalComments = videos.reduce((acc, v) => acc + (Array.isArray(v.comments) ? v.comments.length : 0), 0);
+    const approvedCategories = categories.filter(c => c.status !== 'pending').length;
+
+    res.json({
+      totalUsers: users.length,
+      totalVideos: videos.length,
+      approvedVideos: videos.filter(v => v.status === 'approved').length,
+      pendingVideos: videos.filter(v => v.status === 'pending').length,
+      totalCategories: categories.length,
+      approvedCategories,
+      pendingCategories,
+      totalViews,
+      totalLikes,
+      totalVips,
+      pendingReports,
+      totalReports,
+      totalMessages,
+      unreadMessages,
+      totalComments,
+      logs: db.logs || []
+    });
+  } catch (err) {
+    console.error('Error fetching admin stats:', err);
+    res.status(500).json({ error: 'Erreur lors du calcul des statistiques administratives.' });
+  }
 });
 
 
