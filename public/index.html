@@ -63,7 +63,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=5.2">
+  <link rel="stylesheet" href="/css/style.css?v=5.4">
   <script>
     // Vérification immédiate anti-clignotement (1h de validité)
     (function() {
@@ -124,14 +124,14 @@
             <line x1="3" y1="18" x2="21" y2="18"></line>
           </svg>
         </button>
-        <div class="brand-logo" onclick="switchTab('accueil')">
+        <a href="/" class="brand-logo" onclick="navigateToTab('accueil'); return false;" style="text-decoration:none;">
           <span class="brand-text">
             <span class="brand-text-prefix">Rêve de</span>
           </span>
           <div class="brand-emblem">
             <img src="/revedeq-emblem.png" alt="Q" class="brand-emblem-svg" width="38" height="38">
           </div>
-        </div>
+        </a>
       </div>
 
       <!-- Search bar (Only for searching categories) -->
@@ -152,9 +152,9 @@
       <!-- Quick user actions & Upload button next to search bar -->
       <div class="header-actions">
         <!-- + Déposer une vidéo button right next to search bar -->
-        <button class="btn-header-upload-top" onclick="switchTab('upload')" title="Déposer une vidéo">
+        <a href="/upload" class="btn-header-upload-top" onclick="navigateToTab('upload'); return false;" title="Déposer une vidéo" style="text-decoration:none;display:inline-flex;align-items:center;">
           + Déposer une vidéo
-        </button>
+        </a>
         <a href="/contact" class="btn-header-contact" onclick="navigateToTab('contact'); return false;" title="Formulaire de contact">
           Nous contacter
         </a>
@@ -172,20 +172,20 @@
             <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
           </svg>
         </button>
-        <button class="btn-header-explore" onclick="navigateToTab('explorer')">Catégories</button>
-        <button class="btn-header-vip-top" onclick="navigateToTab('vip')" title="Accéder au Club VIP">
+        <a href="/categories" class="btn-header-explore" onclick="navigateToTab('explorer'); return false;" title="Toutes les catégories" style="text-decoration:none;display:inline-flex;align-items:center;">Catégories</a>
+        <a href="/vip" class="btn-header-vip-top" onclick="navigateToTab('vip'); return false;" title="Accéder au Club VIP" style="text-decoration:none;display:inline-flex;align-items:center;">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
           </svg>
           VIP
-        </button>
-        <a href="/#messages" class="btn-header-messages" onclick="event.preventDefault(); navigateToTab('messages');" title="Messagerie privée & Tchat">
+        </a>
+        <a href="/messages" class="btn-header-messages" onclick="navigateToTab('messages'); return false;" title="Messagerie privée & Tchat">
           Messages <span id="headerUnreadBadge" class="header-unread-badge hidden">0</span>
         </a>
         <a href="/proposer-categorie" class="btn-add-cat-top" onclick="navigateToTab('proposer-categorie'); return false;" title="Ajouter une catégorie">+ Catégorie</a>
         
         <!-- Mobile Header Messages Button -->
-        <a href="/#messages" id="btnHeaderMessagesMobile" class="btn-header-messages-mobile" onclick="event.preventDefault(); navigateToTab('messages');" title="Messagerie" aria-label="Messagerie">
+        <a href="/messages" id="btnHeaderMessagesMobile" class="btn-header-messages-mobile" onclick="navigateToTab('messages'); return false;" title="Messagerie" aria-label="Messagerie">
           <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
           </svg>
@@ -203,9 +203,9 @@
           <div id="notificationList" style="padding:8px 0;"></div>
         </div>
 
-        <div id="headerAuthBtn" class="header-auth" onclick="switchTab('profil')">
+        <a href="/profil" id="headerAuthBtn" class="header-auth" onclick="navigateToTab('profil'); return false;" style="text-decoration:none;">
           <span class="header-auth-label">Se connecter</span>
-        </div>
+        </a>
       </div>
     </div>
   </header>
@@ -2434,9 +2434,9 @@
             <h4 class="footer-col-title">Explorer</h4>
             <ul class="footer-links-list">
               <li><a href="/" onclick="navigateToTab('accueil'); return false;">Accueil & Récents</a></li>
-              <li><a href="/#explorer" onclick="navigateToTab('explorer'); return false;">Explorer par Catégories</a></li>
-              <li><a href="/#vip" onclick="navigateToTab('vip'); return false;">Vidéos Exclusives VIP</a></li>
-              <li><a href="/#upload" onclick="navigateToTab('upload'); return false;">Déposer une vidéo (Gratuit)</a></li>
+              <li><a href="/categories" onclick="navigateToTab('explorer'); return false;">Explorer par Catégories</a></li>
+              <li><a href="/vip" onclick="navigateToTab('vip'); return false;">Vidéos Exclusives VIP</a></li>
+              <li><a href="/upload" onclick="navigateToTab('upload'); return false;">Déposer une vidéo (Gratuit)</a></li>
             </ul>
           </div>
 
@@ -2444,11 +2444,11 @@
           <div class="footer-col">
             <h4 class="footer-col-title">Compte & Membres</h4>
             <ul class="footer-links-list">
-              <li><a href="/#profil" onclick="navigateToTab('profil'); switchAuthMode('register'); return false;">Créer un compte</a></li>
-              <li><a href="/#profil" onclick="navigateToTab('profil'); switchAuthMode('login'); return false;">Se connecter</a></li>
-              <li><a href="/#profil" onclick="navigateToTab('profil'); return false;">Mon Profil & Favoris</a></li>
+              <li><a href="/profil" onclick="navigateToTab('profil'); switchAuthMode('register'); return false;">Créer un compte</a></li>
+              <li><a href="/profil" onclick="navigateToTab('profil'); switchAuthMode('login'); return false;">Se connecter</a></li>
+              <li><a href="/profil" onclick="navigateToTab('profil'); return false;">Mon Profil & Favoris</a></li>
               <li><a href="/messages" onclick="navigateToTab('messages'); return false;">Messagerie Privée</a></li>
-              <li><a href="/#vip" onclick="navigateToTab('vip'); return false;">Pass VIP (9,99€ / mois)</a></li>
+              <li><a href="/vip" onclick="navigateToTab('vip'); return false;">Pass VIP (9,99€ / mois)</a></li>
             </ul>
           </div>
 
@@ -2456,7 +2456,7 @@
           <div class="footer-col">
             <h4 class="footer-col-title">Aide & Support</h4>
             <ul class="footer-links-list">
-              <li><a href="/#faq" onclick="navigateToTab('faq'); return false;">Foire Aux Questions (FAQ)</a></li>
+              <li><a href="/faq" onclick="navigateToTab('faq'); return false;">Foire Aux Questions (FAQ)</a></li>
               <li><a href="/signaler" onclick="navigateToTab('signaler'); return false;">Signaler un abus / Retrait</a></li>
               <li><a href="/contact" onclick="navigateToTab('contact'); return false;">Contact Support & DPO</a></li>
               <li><a href="/protection-mineurs" onclick="navigateToTab('protection-mineurs'); return false;">Protection des Mineurs</a></li>
@@ -3052,10 +3052,10 @@
   <div id="toastNotification" class="toast hidden"></div>
 
   <!-- SCRIPTS -->
-  <script src="/js/auth.js?v=5.3"></script>
-  <script src="/js/upload.js?v=5.3"></script>
-  <script src="/js/vip.js?v=5.3"></script>
-  <script src="/js/app.js?v=5.3"></script>
+  <script src="/js/auth.js?v=5.4"></script>
+  <script src="/js/upload.js?v=5.4"></script>
+  <script src="/js/vip.js?v=5.4"></script>
+  <script src="/js/app.js?v=5.4"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">
@@ -3164,14 +3164,14 @@
 
   <!-- MOBILE BOTTOM NAVIGATION (ERGONOMIC 5-TAB BAR) -->
   <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Navigation mobile">
-    <button type="button" class="bottom-nav-item active" id="bottomNavAccueil" onclick="switchTab('accueil')" aria-label="Accueil">
+    <button type="button" class="bottom-nav-item active" id="bottomNavAccueil" onclick="navigateToTab('accueil')" aria-label="Accueil">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-5a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-9.5z"/>
       </svg>
       <span>Accueil</span>
     </button>
     
-    <button type="button" class="bottom-nav-item" id="bottomNavExplorer" onclick="switchTab('explorer')" aria-label="Catégories">
+    <button type="button" class="bottom-nav-item" id="bottomNavExplorer" onclick="navigateToTab('explorer')" aria-label="Catégories">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
         <rect x="3" y="3" width="7" height="7" rx="1"/>
         <rect x="14" y="3" width="7" height="7" rx="1"/>
@@ -3181,7 +3181,7 @@
       <span>Catégories</span>
     </button>
 
-    <button type="button" class="bottom-nav-item" id="bottomNavUpload" onclick="switchTab('upload')" aria-label="Déposer une vidéo">
+    <button type="button" class="bottom-nav-item" id="bottomNavUpload" onclick="navigateToTab('upload')" aria-label="Déposer une vidéo">
       <div class="bottom-nav-upload-pill">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5">
           <line x1="12" y1="5" x2="12" y2="19"/>
@@ -3191,7 +3191,7 @@
       <span>Déposer</span>
     </button>
 
-    <button type="button" class="bottom-nav-item" id="bottomNavMessages" onclick="switchTab('messages')" aria-label="Messagerie">
+    <button type="button" class="bottom-nav-item" id="bottomNavMessages" onclick="navigateToTab('messages')" aria-label="Messagerie">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
       </svg>
@@ -3199,7 +3199,7 @@
       <span>Messages</span>
     </button>
 
-    <button type="button" class="bottom-nav-item" id="bottomNavProfil" onclick="switchTab('profil')" aria-label="Mon Profil">
+    <button type="button" class="bottom-nav-item" id="bottomNavProfil" onclick="navigateToTab('profil')" aria-label="Mon Profil">
       <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
         <circle cx="12" cy="7" r="4"/>

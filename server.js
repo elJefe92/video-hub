@@ -18,6 +18,22 @@ const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'ia_project_video_hub_secret_2026';
 const SITE_URL = process.env.SITE_URL || 'https://revedeq.fr';
 
+// Security Hardening: Disable technology fingerprinting
+app.disable('x-powered-by');
+
+// Security Hardening: HTTP Response Headers (OWASP)
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
+    res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
+  }
+  next();
+});
+
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -249,11 +265,39 @@ async function sendVerificationEmail(toEmail, username, verificationCode) {
 // In-memory store for password reset codes: email -> { code, expiresAt, userId }
 const passwordResetCodes = new Map();
 
-// In-memory rate limiting: IP -> { count, firstAttempt, lockedUntil }
+// In-memory rate limiting maps
 const loginAttempts = new Map();
+const registerAttempts = new Map();
+const resetPwdAttempts = new Map();
+const contactAttempts = new Map();
+
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const RATE_LIMIT_LOCK_MS = 15 * 60 * 1000; // 15 minutes lock
+
+function checkIpRateLimit(map, clientIp, maxAttempts = RATE_LIMIT_MAX, windowMs = RATE_LIMIT_WINDOW_MS, lockMs = RATE_LIMIT_LOCK_MS) {
+  const now = Date.now();
+  const entry = map.get(clientIp);
+  if (entry) {
+    if (entry.lockedUntil && now < entry.lockedUntil) {
+      const remaining = Math.ceil((entry.lockedUntil - now) / 60000);
+      return { allowed: false, remaining, retryAfter: entry.lockedUntil };
+    }
+    if (now - entry.firstAttempt > windowMs) {
+      map.delete(clientIp);
+    }
+  }
+  return { allowed: true };
+}
+
+function recordIpAttempt(map, clientIp, maxAttempts = RATE_LIMIT_MAX, lockMs = RATE_LIMIT_LOCK_MS) {
+  const cur = map.get(clientIp) || { count: 0, firstAttempt: Date.now() };
+  cur.count += 1;
+  if (cur.count >= maxAttempts) {
+    cur.lockedUntil = Date.now() + lockMs;
+  }
+  map.set(clientIp, cur);
+}
 
 async function sendPasswordResetEmail(toEmail, username, resetCode) {
   if (!toEmail) return false;
@@ -582,9 +626,28 @@ const storage = multer.diskStorage({
   }
 });
 
+// Whitelist of strictly permitted MIME types and extensions for uploads
+const ALLOWED_MIME_TYPES = new Set([
+  'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/mpeg',
+  'image/jpeg', 'image/png', 'image/webp', 'image/avif'
+]);
+
+const ALLOWED_EXTENSIONS = new Set([
+  '.mp4', '.webm', '.mov', '.avi', '.mpg', '.mpeg',
+  '.jpg', '.jpeg', '.png', '.webp', '.avif'
+]);
+
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 100 * 1024 * 1024 } // 100MB
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+  fileFilter: function (req, file, cb) {
+    const ext = path.extname(file.originalname || '').toLowerCase();
+    const mime = (file.mimetype || '').toLowerCase();
+    if (!ALLOWED_EXTENSIONS.has(ext) || !ALLOWED_MIME_TYPES.has(mime)) {
+      return cb(new Error('Format de fichier non autorise. Seuls les formats video (MP4, WEBM, MOV) et images (JPG, PNG, WEBP) sont acceptes.'));
+    }
+    cb(null, true);
+  }
 });
 
 // Middleware for Auth
@@ -601,8 +664,8 @@ function authenticate(req, res, next) {
     if (!user) {
       return res.status(401).json({ error: 'Utilisateur introuvable.' });
     }
-    // Auto grant admin role and VIP status to admin
-    if (user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com' || user.role === 'admin' || (user.username && user.username.toLowerCase() === 'administrateur')) {
+    // Auto grant admin role and VIP status strictly to the official admin account
+    if (user.email && user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') {
       user.role = 'admin';
       user.isVip = true;
     }
@@ -623,7 +686,7 @@ function optionalAuthenticate(req, res, next) {
       const db = loadDb();
       const user = db.users.find(u => u.id === decoded.userId);
       if (user) {
-        if (user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com' || user.role === 'admin' || (user.username && user.username.toLowerCase() === 'administrateur')) {
+        if (user.email && user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') {
           user.role = 'admin';
           user.isVip = true;
         }
@@ -710,6 +773,15 @@ function isReservedAdminUsername(username, userEmail) {
 
 // 1. Étape 1 : Demande de code de vérification pour inscription
 app.post('/api/auth/send-verification-code', async (req, res) => {
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  const limitCheck = checkIpRateLimit(registerAttempts, clientIp, 5, 15 * 60 * 1000, 15 * 60 * 1000);
+  if (!limitCheck.allowed) {
+    return res.status(429).json({
+      error: `Trop de demandes d'inscription. Veuillez réessayer dans ${limitCheck.remaining} minute(s).`
+    });
+  }
+  recordIpAttempt(registerAttempts, clientIp, 5, 15 * 60 * 1000);
+
   const { username, email, password, avatar } = req.body;
   if (!username || !email || !password) {
     return res.status(400).json({ error: 'Tous les champs sont requis.' });
@@ -1125,29 +1197,39 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     return res.status(400).json({ error: 'Veuillez saisir votre adresse e-mail.' });
   }
 
-  const db = loadDb();
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  const limitCheck = checkIpRateLimit(resetPwdAttempts, clientIp, 3, 15 * 60 * 1000, 15 * 60 * 1000);
+  if (!limitCheck.allowed) {
+    return res.status(429).json({
+      error: `Trop de demandes de réinitialisation. Veuillez réessayer dans ${limitCheck.remaining} minute(s).`
+    });
+  }
+  recordIpAttempt(resetPwdAttempts, clientIp, 3, 15 * 60 * 1000);
+
   const cleanEmail = email.trim().toLowerCase();
+  await syncDbFromCloud();
+  const db = loadDb();
   const user = db.users.find(u => u.email && u.email.toLowerCase() === cleanEmail);
 
-  if (!user) {
-    return res.status(404).json({ error: `Aucun compte n'est associé à l'adresse "${cleanEmail}".` });
+  if (user) {
+    // Generate 6-digit code valid for 15 minutes
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 15 * 60 * 1000;
+
+    user.resetCode = code;
+    user.resetExpiresAt = expiresAt;
+    saveDb(db);
+    await syncDbToCloud(db);
+
+    // Send reset code email
+    await sendPasswordResetEmail(user.email, user.username, code);
+    addLog('Demande Mot de Passe Oublié', `Code de réinitialisation généré pour ${user.email}`);
   }
 
-  // Generate 6-digit code valid for 15 minutes
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = Date.now() + 15 * 60 * 1000;
-
-  user.resetCode = code;
-  user.resetExpiresAt = expiresAt;
-  saveDb(db);
-
-  // Send reset code email
-  const sent = await sendPasswordResetEmail(user.email, user.username, code);
-  addLog('Demande Mot de Passe Oublié', `Code de réinitialisation généré pour ${user.email}`);
-
+  // Uniform response preventing user enumeration
   res.json({
     success: true,
-    message: `Un code de sécurité à 6 chiffres a été envoyé à ${user.email}. Pensez à vérifier votre dossier Spam ou Courrier indésirable si l'e-mail tarde à arriver.`
+    message: `Si cette adresse e-mail correspond à un compte inscrit, un code de sécurité à 6 chiffres a été envoyé. Pensez à vérifier votre dossier Spam ou Courrier indésirable.`
   });
 });
 
@@ -2668,6 +2750,15 @@ app.post('/api/reports/submit', async (req, res) => {
 
 // ---------------- CONTACT FORM MESSAGES & REAL EMAIL NOTIFICATION ----------------
 app.post('/api/contact/submit', async (req, res) => {
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  const limitCheck = checkIpRateLimit(contactAttempts, clientIp, 5, 15 * 60 * 1000, 15 * 60 * 1000);
+  if (!limitCheck.allowed) {
+    return res.status(429).json({
+      error: `Trop de messages envoyes. Veuillez patienter ${limitCheck.remaining} minute(s) avant de renvoyer un message.`
+    });
+  }
+  recordIpAttempt(contactAttempts, clientIp, 5, 15 * 60 * 1000);
+
   const { name, email, subject, message } = req.body;
   if (!name || !email || !subject || !message) {
     return res.status(400).json({ error: 'Veuillez remplir tous les champs obligatoires (*).' });
@@ -3576,10 +3667,30 @@ function renderSeoPage(req, res) {
         };
         extraSchema = `<script type="application/ld+json">${JSON.stringify(catSchema)}</script>`;
       }
-    } else if (req.path === '/vip') {
+    } else if (req.path === '/vip' || req.path === '/abonnement') {
       title = 'Abonnement Club VIP Privé - Streaming 4K & Zéro Pub | Rêve de Q';
       description = 'Rejoignez le Club VIP Rêve de Q (9,99€ / mois) : accès illimité aux vidéos exclusives, streaming 4K Ultra HD, messagerie illimitée et facturation 100% discrète.';
-      canonical = `${siteUrl}/#vip`;
+      canonical = `${siteUrl}/vip`;
+    } else if (req.path === '/upload' || req.path === '/deposer') {
+      title = 'Déposer une Vidéo Adulte - Partage Gratuit & Anonyme (18+) | Rêve de Q';
+      description = 'Partagez votre vidéo adulte gratuitement et en toute discrétion sur Rêve de Q. Mise en ligne rapide sans inscription obligatoire.';
+      canonical = `${siteUrl}/upload`;
+    } else if (req.path === '/categories' || req.path === '/explorer') {
+      title = 'Toutes les Catégories de Vidéos Adultes HD & 4K | Rêve de Q';
+      description = 'Explorez l\'ensemble des catégories de vidéos pour adultes sur Rêve de Q : amateur français, levrette, gros cul, cougar, beurette, solo et duo.';
+      canonical = `${siteUrl}/categories`;
+    } else if (req.path.startsWith('/messages')) {
+      title = 'Messagerie Privée & Tchat Entre Membres | Rêve de Q';
+      description = 'Discutez en toute discrétion avec les membres et créateurs sur la messagerie privée sécurisée de Rêve de Q.';
+      canonical = `${siteUrl}/messages`;
+    } else if (req.path === '/profil' || req.path === '/compte' || req.path === '/connexion') {
+      title = 'Mon Profil & Espace Membre | Rêve de Q';
+      description = 'Gérez votre compte Rêve de Q, retrouvez vos vidéos favorites, vos publications et vos paramètres de confidentialité.';
+      canonical = `${siteUrl}/profil`;
+    } else if (req.path === '/faq') {
+      title = 'Foire Aux Questions (FAQ) | Rêve de Q';
+      description = 'Toutes les réponses à vos questions : comment regarder, déposer une vidéo, s\'abonner au Club VIP et protéger votre anonymat sur Rêve de Q.';
+      canonical = `${siteUrl}/faq`;
     }
 
     html = html.replace(/<title>.*?<\/title>/i, `<title>${escapeHtmlServer(title)}</title>`);
@@ -3612,9 +3723,10 @@ app.get('/sitemap.xml', async (req, res) => {
 
   const staticUrls = [
     { loc: siteUrl, priority: '1.0', changefreq: 'daily' },
-    { loc: `${siteUrl}/#explorer`, priority: '0.9', changefreq: 'daily' },
-    { loc: `${siteUrl}/#vip`, priority: '0.8', changefreq: 'monthly' },
-    { loc: `${siteUrl}/#faq`, priority: '0.6', changefreq: 'monthly' },
+    { loc: `${siteUrl}/categories`, priority: '0.9', changefreq: 'daily' },
+    { loc: `${siteUrl}/vip`, priority: '0.8', changefreq: 'monthly' },
+    { loc: `${siteUrl}/upload`, priority: '0.8', changefreq: 'monthly' },
+    { loc: `${siteUrl}/faq`, priority: '0.6', changefreq: 'monthly' },
     { loc: `${siteUrl}/contact`, priority: '0.5', changefreq: 'monthly' },
     { loc: `${siteUrl}/mentions-legales`, priority: '0.5', changefreq: 'monthly' },
     { loc: `${siteUrl}/cgu`, priority: '0.5', changefreq: 'monthly' },
@@ -3671,13 +3783,26 @@ ${videoEntries.join('\n')}
   res.send(xml);
 });
 
-// Direct URLs with Dynamic Server-Side SEO & Meta Pre-rendering
-app.get('/video/:id', renderSeoPage);
-app.get('/profil/:username', renderSeoPage);
-app.get(['/categorie/:slug', '/categories/:slug'], renderSeoPage);
-app.get(['/messages', '/messages/:username'], renderSeoPage);
-app.get(['/vip', '/abonnement'], renderSeoPage);
+// Direct Clean URLs with Dynamic Server-Side SEO & Meta Pre-rendering
 app.get([
+  '/',
+  '/upload',
+  '/deposer',
+  '/categories',
+  '/explorer',
+  '/vip',
+  '/abonnement',
+  '/messages',
+  '/messages/:username',
+  '/profil',
+  '/compte',
+  '/connexion',
+  '/profil/:username',
+  '/faq',
+  '/admin',
+  '/video/:id',
+  '/categorie/:slug',
+  '/categories/:slug',
   '/contact',
   '/mentions-legales',
   '/cgu',

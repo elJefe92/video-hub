@@ -156,106 +156,147 @@ function handleUrlHash() {
     'proposer-categorie'
   ];
 
-  // Handle dedicated doc pages URLs (/contact, /cgu, /mentions-legales, etc.)
+  // 1. Dedicated doc pages (/contact, /cgu, /mentions-legales, etc.)
   if (pathParts[0] && docPages.includes(pathParts[0])) {
-    switchTab(pathParts[0]);
+    switchTab(pathParts[0], false);
     return;
   }
 
-  // Handle /video/:id direct URLs
+  // 2. /video/:id direct URLs
   if (pathParts[0] === 'video' && pathParts[1]) {
     const videoId = decodeURIComponent(pathParts[1]);
     openVideoPlayerModal(videoId);
     return;
   }
 
-  // Handle ?video=:id query parameter
+  // 3. ?video=:id query parameter
   if (videoQuery) {
     openVideoPlayerModal(videoQuery);
     return;
   }
 
-  // If navigated back from watch page to home
+  // 4. /upload or /deposer
+  if (pathParts[0] === 'upload' || pathParts[0] === 'deposer') {
+    switchTab('upload', false);
+    return;
+  }
+
+  // 5. /vip or /abonnement
+  if (pathParts[0] === 'vip' || pathParts[0] === 'abonnement') {
+    switchTab('vip', false);
+    return;
+  }
+
+  // 6. /categories or /explorer
+  if (pathParts[0] === 'categories' || pathParts[0] === 'explorer') {
+    if (pathParts[1]) {
+      const rawSlug = decodeURIComponent(pathParts[1]).toLowerCase().replace(/_/g, '-');
+      switchTab('accueil', false);
+      const applyCat = () => {
+        const found = (allCategoriesList || []).find(c =>
+          c.id && (c.id.toLowerCase() === rawSlug || c.id.toLowerCase().replace(/_/g, '-') === rawSlug)
+        );
+        filterByCategory(found ? found.id : rawSlug, false);
+      };
+      if (allCategoriesList && allCategoriesList.length > 0) applyCat();
+      else setTimeout(applyCat, 400);
+      return;
+    }
+    switchTab('explorer', false);
+    return;
+  }
+
+  // 7. /categorie/:slug
+  if (pathParts[0] === 'categorie' && pathParts[1]) {
+    const rawSlug = decodeURIComponent(pathParts[1]).toLowerCase().replace(/_/g, '-');
+    switchTab('accueil', false);
+    const applyCat = () => {
+      const found = (allCategoriesList || []).find(c =>
+        c.id && (c.id.toLowerCase() === rawSlug || c.id.toLowerCase().replace(/_/g, '-') === rawSlug)
+      );
+      filterByCategory(found ? found.id : rawSlug, false);
+    };
+    if (allCategoriesList && allCategoriesList.length > 0) applyCat();
+    else setTimeout(applyCat, 400);
+    return;
+  }
+
+  // 8. /profil or /compte or /connexion
+  if (pathParts[0] === 'profil' || pathParts[0] === 'compte' || pathParts[0] === 'connexion') {
+    if (pathParts[1]) {
+      const username = decodeURIComponent(pathParts[1]);
+      switchTab('accueil', false);
+      setTimeout(() => openPublicUserProfile(username), 350);
+      return;
+    }
+    switchTab('profil', false);
+    return;
+  }
+
+  // 9. /messages or /messages/:username
+  if (pathParts[0] === 'messages') {
+    const partner = pathParts[1] ? decodeURIComponent(pathParts[1]) : null;
+    switchTab('messages', false);
+    if (partner) {
+      setTimeout(() => openDedicatedChatWith({ username: partner }), 350);
+    }
+    return;
+  }
+
+  // 10. /faq
+  if (pathParts[0] === 'faq') {
+    switchTab('faq', false);
+    return;
+  }
+
+  // 11. /admin
+  if (pathParts[0] === 'admin' || pathname === '/admin' || hash === 'admin') {
+    if (AUTH.isAdmin()) {
+      switchTab('admin', false);
+    } else {
+      showToast("Accès refusé. L'Espace Administrateur est strictement réservé au compte officiel.");
+      window.history.replaceState(null, '', '/');
+      switchTab('accueil', false);
+    }
+    return;
+  }
+
+  // 12. If on root path / and playing video, close watch page
   if (currentPlayingVideo && pathParts.length === 0 && !hash) {
     closeWatchPage();
     return;
   }
 
-  // Handle /categorie/:slug or /categories/:slug direct URLs (SEO)
-  if ((pathParts[0] === 'categorie' || pathParts[0] === 'categories') && pathParts[1]) {
-    const rawSlug = decodeURIComponent(pathParts[1]).toLowerCase().replace(/_/g, '-');
-    switchTab('accueil');
-    const applyCategoryFromSlug = () => {
-      const found = (allCategoriesList || []).find(c =>
-        c.id && (c.id.toLowerCase() === rawSlug || c.id.toLowerCase().replace(/_/g, '-') === rawSlug)
-      );
-      if (found) {
-        filterByCategory(found.id, false);
-      } else {
-        filterByCategory(rawSlug, false);
-      }
-    };
-    if (allCategoriesList && allCategoriesList.length > 0) {
-      applyCategoryFromSlug();
-    } else {
-      setTimeout(applyCategoryFromSlug, 400);
-    }
-    return;
-  }
-
-  // Handle /profil/:username direct URLs
-  if (pathParts[0] === 'profil' && pathParts[1]) {
-    const username = decodeURIComponent(pathParts[1]);
-    switchTab('accueil');
-    setTimeout(() => openPublicUserProfile(username), 400);
-    return;
-  }
-
-  // Handle /messages or /messages/:username direct URLs
-  if (pathParts[0] === 'messages') {
-    const partner = pathParts[1] ? decodeURIComponent(pathParts[1]) : null;
-    switchTab('messages');
-    if (partner) {
-      setTimeout(() => openDedicatedChatWith({ username: partner }), 350);
-    }
-    return;
-  }
-
-  if (pathname === '/admin' || hash === 'admin') {
-    if (AUTH.isAdmin()) {
-      switchTab('admin');
-    } else {
-      showToast("Accès refusé. L'Espace Administrateur est strictement réservé au compte ia.project.pro2k26@gmail.com");
-      window.history.replaceState(null, '', '/');
-      window.location.hash = 'accueil';
-      switchTab('accueil');
-    }
-    return;
-  }
-
+  // 13. Query tag
   if (catQuery) {
     quickFilterByTag(catQuery);
     return;
   }
 
+  // 14. Hash fallback support
   if (hash.startsWith('tag=') || hash.startsWith('category=') || hash.startsWith('categorie=') || hash.startsWith('cat=')) {
     const tag = hash.split('=')[1];
     quickFilterByTag(tag);
   } else if (hash === 'explorer') {
-    switchTab('explorer');
-  } else if (hash === 'messages' || hash.startsWith('messages?') || hash.startsWith('messages/')) {
-    switchTab('messages');
-    const hashParams = new URLSearchParams(hash.includes('?') ? hash.split('?')[1] : '');
-    const partner = hashParams.get('with') || hashParams.get('user') || (hash.startsWith('messages/') ? decodeURIComponent(hash.split('/')[1]) : null);
-    if (partner) {
-      setTimeout(() => openDedicatedChatWith({ username: partner }), 350);
-    }
+    switchTab('explorer', false);
+  } else if (hash === 'vip') {
+    switchTab('vip', false);
+  } else if (hash === 'upload') {
+    switchTab('upload', false);
+  } else if (hash === 'faq') {
+    switchTab('faq', false);
+  } else if (hash === 'profil') {
+    switchTab('profil', false);
+  } else if (hash === 'messages' || hash.startsWith('messages?')) {
+    switchTab('messages', false);
   } else if (docPages.includes(hash)) {
-    switchTab(hash);
-  } else if (['accueil', 'upload', 'vip', 'faq', 'profil', 'messages'].includes(hash)) {
-    switchTab(hash);
+    switchTab(hash, false);
+  } else {
+    // Root default
+    switchTab('accueil', false);
   }
 }
+window.handleUrlHash = handleUrlHash;
 
 
 // Sidebar drawer toggle
@@ -298,41 +339,39 @@ function closeSearchSuggestions() {
   }
 }
 
-// Navigate from sidebar with auto-close on mobile
+const TAB_URL_MAP = {
+  accueil: '/',
+  upload: '/upload',
+  explorer: '/categories',
+  vip: '/vip',
+  messages: '/messages',
+  profil: '/profil',
+  faq: '/faq',
+  admin: '/admin',
+  contact: '/contact',
+  'mentions-legales': '/mentions-legales',
+  cgu: '/cgu',
+  confidentialite: '/confidentialite',
+  reclamations: '/reclamations',
+  signaler: '/signaler',
+  'protection-mineurs': '/protection-mineurs',
+  'proposer-categorie': '/proposer-categorie'
+};
+
+// Navigate from buttons/links with clean URL pushState and auto-close sidebar on mobile
 function navigateToTab(tabName) {
   closeSearchSuggestions();
   if (tabName === 'admin') {
     navigateToAdmin();
     return;
   }
-
-  const docPages = [
-    'contact',
-    'mentions-legales',
-    'cgu',
-    'confidentialite',
-    'reclamations',
-    'signaler',
-    'protection-mineurs',
-    'proposer-categorie'
-  ];
-
-  if (docPages.includes(tabName)) {
-    if (window.location.pathname !== `/${tabName}`) {
-      window.history.pushState(null, '', `/${tabName}`);
-    }
-  } else if (['accueil', 'explorer', 'upload', 'vip', 'faq', 'profil'].includes(tabName)) {
-    if (window.location.pathname !== '/' && !window.location.pathname.startsWith('/video/')) {
-      window.history.pushState(null, '', `/#${tabName}`);
-    }
-  }
-
-  switchTab(tabName);
+  switchTab(tabName, true);
   toggleSidebar(false);
 }
+window.navigateToTab = navigateToTab;
 
-// Tab navigation controller
-function switchTab(tabName) {
+// Tab navigation controller with browser history pushState
+function switchTab(tabName, shouldPushHistory = true) {
   closeSearchSuggestions();
   const docPages = [
     'contact',
@@ -347,16 +386,19 @@ function switchTab(tabName) {
 
   if (tabName === 'admin') {
     if (!AUTH.isAdmin()) {
-      showToast("Accès refusé. L'Espace Administrateur est strictement réservé au compte ia.project.pro2k26@gmail.com");
+      showToast("Accès refusé. L'Espace Administrateur est strictement réservé au compte officiel.");
       window.history.replaceState(null, '', '/');
       tabName = 'accueil';
     } else {
-      if (window.location.pathname !== '/admin') {
-        window.history.pushState(null, '', '/admin');
+      if (shouldPushHistory && window.location.pathname !== '/admin') {
+        window.history.pushState({ tab: 'admin' }, '', '/admin');
       }
     }
-  } else if (window.location.pathname === '/admin') {
-    window.history.pushState(null, '', '/');
+  } else if (shouldPushHistory) {
+    const targetUrl = TAB_URL_MAP[tabName] || (docPages.includes(tabName) ? `/${tabName}` : null);
+    if (targetUrl && window.location.pathname !== targetUrl) {
+      window.history.pushState({ tab: tabName }, '', targetUrl);
+    }
   }
 
   // Handle player cleanup when switching away from watch page
@@ -377,10 +419,6 @@ function switchTab(tabName) {
     isVipTeaserActive = false;
     currentPlayingVideo = null;
     lastActiveTab = tabName;
-
-    if (window.location.pathname.startsWith('/video/') && !docPages.includes(tabName)) {
-      window.history.pushState(null, '', '/');
-    }
   }
 
   const pageTitles = {
@@ -392,13 +430,13 @@ function switchTab(tabName) {
     signaler: 'Signaler un Contenu - Rêve de Q',
     'protection-mineurs': 'Protection des Mineurs (CSAM) - Rêve de Q',
     'proposer-categorie': 'Proposer une Catégorie - Rêve de Q',
-    accueil: 'Rêve de Q - Tes rêves, tes délires',
-    explorer: 'Explorer les Vidéos - Rêve de Q',
-    vip: 'Espace VIP Club Privilège - Rêve de Q',
-    faq: 'Foire Aux Questions - Rêve de Q',
-    profil: 'Mon Profil Membre - Rêve de Q',
-    admin: 'Administration - Rêve de Q',
-    messages: 'Messagerie Privée - Rêve de Q'
+    accueil: 'Rêve de Q - Vidéos Adultes Gratuites HD / 4K & Sans Pub Intrusive (18+)',
+    explorer: 'Toutes les Catégories de Vidéos Adultes HD & 4K | Rêve de Q',
+    vip: 'Abonnement Club VIP Privé - Streaming 4K & Zéro Pub | Rêve de Q',
+    faq: 'Foire Aux Questions (FAQ) | Rêve de Q',
+    profil: 'Mon Espace Membre & Profil | Rêve de Q',
+    admin: 'Administration Officielle - Rêve de Q',
+    messages: 'Messagerie Privée & Tchat Sécurisé | Rêve de Q'
   };
   if (pageTitles[tabName]) {
     document.title = pageTitles[tabName];
@@ -475,9 +513,10 @@ function switchTab(tabName) {
     autoFillUserCredentials();
   }
 
-  // Scroll to top
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Scroll immediately to top for crisp new page feel
+  window.scrollTo(0, 0);
 }
+window.switchTab = switchTab;
 
 // ==================== CATEGORIES & SELECTORS ====================
 async function loadCategories() {
