@@ -1998,7 +1998,8 @@ app.post('/api/videos/:id/like', (req, res) => {
   });
 });
 
-app.post('/api/admin/videos/:id/toggle-vip-exclusive', requireAdmin, (req, res) => {
+app.post('/api/admin/videos/:id/toggle-vip-exclusive', requireAdmin, async (req, res) => {
+  await syncDbFromCloud(true);
   const db = loadDb();
   const video = db.videos.find(v => v.id === req.params.id);
   if (!video) {
@@ -2006,6 +2007,7 @@ app.post('/api/admin/videos/:id/toggle-vip-exclusive', requireAdmin, (req, res) 
   }
   video.isVipExclusive = !video.isVipExclusive;
   saveDb(db);
+  await syncDbToCloud(db);
   addLog('Modération VIP', `Vidéo "${video.title}" statut VIP Exclusif : ${video.isVipExclusive}`);
   res.json({
     message: video.isVipExclusive ? 'Vidéo désormais réservée aux membres VIP.' : 'Vidéo remise en accès gratuit.',
@@ -2572,7 +2574,8 @@ app.get('/api/admin/videos', requireAdmin, (req, res) => {
   res.json({ videos: list });
 });
 
-app.post('/api/admin/videos/:id/approve', requireAdmin, (req, res) => {
+app.post('/api/admin/videos/:id/approve', requireAdmin, async (req, res) => {
+  await syncDbFromCloud(true);
   const db = loadDb();
   const video = db.videos.find(v => v.id === req.params.id);
   if (!video) {
@@ -2586,6 +2589,7 @@ app.post('/api/admin/videos/:id/approve', requireAdmin, (req, res) => {
   if (video.authorId) computeCreatorBadge(video.authorId, db);
 
   saveDb(db);
+  await syncDbToCloud(db);
 
   addLog('Validation Video', `Video "${video.title}" validee et publiee par Admin`);
 
@@ -2595,7 +2599,8 @@ app.post('/api/admin/videos/:id/approve', requireAdmin, (req, res) => {
   });
 });
 
-app.post('/api/admin/videos/:id/toggle-daily', requireAdmin, (req, res) => {
+app.post('/api/admin/videos/:id/toggle-daily', requireAdmin, async (req, res) => {
+  await syncDbFromCloud(true);
   const db = loadDb();
   const video = db.videos.find(v => v.id === req.params.id);
   if (!video) {
@@ -2608,6 +2613,7 @@ app.post('/api/admin/videos/:id/toggle-daily', requireAdmin, (req, res) => {
   }
 
   saveDb(db);
+  await syncDbToCloud(db);
   addLog('Sélection du Jour', `Vidéo "${video.title}" ${video.isDailyFeatured ? 'marquée comme Vidéo du Jour ' : 'retirée de la sélection du jour'}`);
 
   res.json({
@@ -2619,25 +2625,70 @@ app.post('/api/admin/videos/:id/toggle-daily', requireAdmin, (req, res) => {
   });
 });
 
-app.post('/api/admin/videos/:id/reject', requireAdmin, (req, res) => {
+// Admin Delete Video (POST /reject and DELETE /)
+app.post('/api/admin/videos/:id/reject', requireAdmin, async (req, res) => {
+  await syncDbFromCloud(true);
   const db = loadDb();
-  const index = db.videos.findIndex(v => v.id === req.params.id);
+  const videoId = req.params.id;
+  const index = (db.videos || []).findIndex(v => v.id === videoId);
   if (index === -1) {
     return res.status(404).json({ error: 'Vidéo introuvable.' });
   }
 
   const removed = db.videos.splice(index, 1)[0];
-  saveDb(db);
+  
+  // Remove comments associated with this video
+  db.comments = (db.comments || []).filter(c => c.videoId !== videoId);
 
-  addLog('Refus Vidéo', `Vidéo "${removed.title}" refusée/supprimée par Admin`);
+  // Remove from favorites of all users
+  (db.users || []).forEach(u => {
+    if (Array.isArray(u.favorites)) {
+      u.favorites = u.favorites.filter(fId => fId !== videoId);
+    }
+  });
+
+  saveDb(db);
+  await syncDbToCloud(db);
+
+  addLog('Suppression Vidéo Admin', `Vidéo "${removed.title}" supprimée définitivement par Admin`);
 
   res.json({
-    message: `La vidéo "${removed.title}" a été supprimée. `
+    success: true,
+    message: `La vidéo "${removed.title}" a été supprimée définitivement.`
   });
 });
 
-app.put('/api/admin/videos/:id', requireAdmin, (req, res) => {
+app.delete('/api/admin/videos/:id', requireAdmin, async (req, res) => {
+  await syncDbFromCloud(true);
+  const db = loadDb();
+  const videoId = req.params.id;
+  const index = (db.videos || []).findIndex(v => v.id === videoId);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Vidéo introuvable.' });
+  }
+
+  const removed = db.videos.splice(index, 1)[0];
+  db.comments = (db.comments || []).filter(c => c.videoId !== videoId);
+  (db.users || []).forEach(u => {
+    if (Array.isArray(u.favorites)) {
+      u.favorites = u.favorites.filter(fId => fId !== videoId);
+    }
+  });
+
+  saveDb(db);
+  await syncDbToCloud(db);
+
+  addLog('Suppression Vidéo Admin', `Vidéo "${removed.title}" supprimée définitivement par Admin`);
+
+  res.json({
+    success: true,
+    message: `La vidéo "${removed.title}" a été supprimée définitivement.`
+  });
+});
+
+app.put('/api/admin/videos/:id', requireAdmin, async (req, res) => {
   const { title, description, category, categories, thumbnail, isVipExclusive, vipPreviewStart, vipPreviewDuration } = req.body;
+  await syncDbFromCloud(true);
   const db = loadDb();
   const video = db.videos.find(v => v.id === req.params.id);
   if (!video) {
@@ -2688,6 +2739,7 @@ app.put('/api/admin/videos/:id', requireAdmin, (req, res) => {
   }
 
   saveDb(db);
+  await syncDbToCloud(db);
   addLog('Modification Vidéo', `Métadonnées et miniature de "${video.title}" mises à jour par Admin`);
 
   res.json({ message: 'Vidéo et miniature mises à jour avec succès ! ', video });

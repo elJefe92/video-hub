@@ -4256,7 +4256,7 @@ async function loadAdminVideos() {
             <button class="btn btn-sm btn-secondary" onclick="openAdminEditModal('${v.id}')" style="border-color:var(--primary);color:var(--primary);font-weight:700;">
               Miniature & Éditer
             </button>
-            <button class="btn btn-sm btn-danger" onclick="rejectVideo('${v.id}')">Supprimer</button>
+            <button class="btn btn-sm btn-danger" onclick="openAdminDeleteVideoModal('${v.id}')">Supprimer</button>
           </div>
         </div>
       `;
@@ -4314,22 +4314,95 @@ async function approveVideo(id) {
   }
 }
 
-async function rejectVideo(id) {
-  if (!confirm('Confirmer le refus et la suppression définitive de cette vidéo ?')) return;
+let pendingAdminDeleteVideoId = null;
+
+function openAdminDeleteVideoModal(videoId) {
+  if (!AUTH.isAdmin()) {
+    showToast('Action réservée aux administrateurs.');
+    return;
+  }
+  pendingAdminDeleteVideoId = videoId;
+  const video = (window.adminVideosList || []).find(v => v.id === videoId) ||
+                (allVideosList || []).find(v => v.id === videoId);
+
+  const modal = document.getElementById('adminDeleteVideoModal');
+  const input = document.getElementById('adminDeleteVideoConfirmInput');
+  const titleEl = document.getElementById('adminDeleteVideoTitle');
+  const authorEl = document.getElementById('adminDeleteVideoAuthor');
+  const thumbEl = document.getElementById('adminDeleteVideoThumb');
+
+  if (input) input.value = '';
+  if (titleEl) titleEl.textContent = video ? (video.title || 'Vidéo sans titre') : ('Vidéo ID: ' + videoId);
+  if (authorEl) authorEl.textContent = video ? ('Auteur : ' + (video.authorEmail || video.authorName || 'Anonyme') + ' • ' + (video.views || 0) + ' vues') : '';
+  if (thumbEl) thumbEl.src = video?.thumbnail || 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300';
+
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    if (input) setTimeout(() => input.focus(), 150);
+  }
+}
+
+function closeAdminDeleteVideoModal(e) {
+  if (e && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) return;
+  const modal = document.getElementById('adminDeleteVideoModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+  pendingAdminDeleteVideoId = null;
+}
+
+async function handleConfirmAdminDeleteVideo() {
+  if (!pendingAdminDeleteVideoId) {
+    showToast('Aucune vidéo sélectionnée.');
+    return;
+  }
+  const input = document.getElementById('adminDeleteVideoConfirmInput');
+  const val = input ? input.value.trim().toUpperCase() : '';
+  
+  // Accept both DELETE and DELATE case-insensitively
+  if (val !== 'DELETE' && val !== 'DELATE') {
+    showToast('Veuillez taper DELETE pour confirmer la suppression.');
+    if (input) input.focus();
+    return;
+  }
+
+  const videoId = pendingAdminDeleteVideoId;
+  const btn = document.getElementById('adminConfirmDeleteVideoBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Suppression en cours...';
+  }
+
   try {
-    const res = await fetch(`/api/admin/videos/${id}/reject`, {
+    const res = await fetch(`/api/admin/videos/${videoId}/reject`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${AUTH.token}` }
     });
     const data = await res.json();
-    showToast(data.message || 'Vidéo supprimée.');
+    if (!res.ok) {
+      showToast(data.error || 'Erreur lors de la suppression.');
+      return;
+    }
+    showToast(data.message || 'Vidéo supprimée définitivement.');
+    closeAdminDeleteVideoModal();
     await loadAdminStats();
     await loadAdminVideos();
     await loadVideos();
     if (typeof loadExplorerData === 'function') loadExplorerData();
   } catch (err) {
-    showToast('Erreur.');
+    showToast('Erreur de communication avec le serveur.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Supprimer définitivement';
+    }
   }
+}
+
+function rejectVideo(id) {
+  openAdminDeleteVideoModal(id);
 }
 
 // Edit video modal with live video frame capture & thumbnail studio
