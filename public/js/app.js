@@ -18,7 +18,54 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+// ==================== AD & CAMPAIGN ATTRIBUTION ENGINE (SEA & ADULT NETWORKS) ====================
+function initCampaignAttribution() {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const trackingKeys = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'clickid', 'subid', 'zoneid', 'cid'];
+    let hasNewParams = false;
+    const attribution = JSON.parse(sessionStorage.getItem('rdq_campaign_attribution') || '{}');
+
+    trackingKeys.forEach(key => {
+      const val = urlParams.get(key);
+      if (val) {
+        attribution[key] = val.trim();
+        hasNewParams = true;
+      }
+    });
+
+    if (document.referrer && !attribution.referrer) {
+      attribution.referrer = document.referrer;
+      hasNewParams = true;
+    }
+
+    if (hasNewParams) {
+      attribution.firstSeen = attribution.firstSeen || new Date().toISOString();
+      sessionStorage.setItem('rdq_campaign_attribution', JSON.stringify(attribution));
+      localStorage.setItem('rdq_last_campaign', JSON.stringify(attribution));
+    }
+  } catch (e) {}
+}
+
+// Global Conversion Event Dispatcher for Analytics / Postbacks
+window.rdqTrackEvent = function(eventName, eventData = {}) {
+  try {
+    const attribution = JSON.parse(sessionStorage.getItem('rdq_campaign_attribution') || '{}');
+    const payload = {
+      event: eventName,
+      timestamp: new Date().toISOString(),
+      url: window.location.href,
+      attribution,
+      ...eventData
+    };
+    if (window.dataLayer && Array.isArray(window.dataLayer)) {
+      window.dataLayer.push(payload);
+    }
+  } catch (e) {}
+};
+
 document.addEventListener('DOMContentLoaded', async () => {
+  initCampaignAttribution();
   initTheme();
   await AUTH.init();
   await loadCategories();

@@ -9,12 +9,18 @@ async function openVipCheckoutModal() {
 
   // Attempt Stripe Checkout first if configured
   try {
+    const attribution = JSON.parse(sessionStorage.getItem('rdq_campaign_attribution') || '{}');
+    if (typeof window.rdqTrackEvent === 'function') {
+      window.rdqTrackEvent('checkout_initiated', { plan: 'VIP_MONTHLY', amount: 9.99 });
+    }
+
     const res = await fetch('/api/vip/create-checkout-session', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${AUTH.token}`
-      }
+      },
+      body: JSON.stringify({ attribution })
     });
     const data = await res.json();
     if (data.url) {

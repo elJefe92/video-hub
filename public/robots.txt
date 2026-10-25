@@ -1,0 +1,34 @@
+User-agent: *
+Allow: /
+Allow: /video/
+Allow: /profil/
+Allow: /sitemap.xml
+Allow: /llms.txt
+Disallow: /api/
+Disallow: /admin
+Disallow: /#admin
+
+# AI Search & GEO Crawlers
+User-agent: GPTBot
+Allow: /
+Allow: /llms.txt
+Disallow: /api/
+
+User-agent: ChatGPT-User
+Allow: /
+Allow: /llms.txt
+
+User-agent: PerplexityBot
+Allow: /
+Allow: /llms.txt
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /llms.txt
+
+User-agent: Google-Extended
+Allow: /
+Allow: /llms.txt
+
+# Official XML Sitemap (with Google Video Schema)
+Sitemap: https://www.revedeq.fr/sitemap.xml

@@ -3368,7 +3368,10 @@ app.post('/api/vip/create-checkout-session', authenticate, async (req, res) => {
       client_reference_id: user.id,
       metadata: {
         userId: user.id,
-        username: user.username
+        username: user.username,
+        utm_source: String(req.body.attribution?.utm_source || '').slice(0, 50),
+        utm_campaign: String(req.body.attribution?.utm_campaign || '').slice(0, 50),
+        clickid: String(req.body.attribution?.clickid || '').slice(0, 50)
       },
       success_url: `${siteUrl}/?vip_status=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/?vip_status=cancelled`
@@ -3468,7 +3471,111 @@ app.get('/admin', (req, res) => {
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Auto-generated XML Sitemap for SEO
+function escapeHtmlServer(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Dynamic Server-Side SEO & Open Graph Injection
+function renderSeoPage(req, res) {
+  const indexHtmlPath = path.join(__dirname, 'public', 'index.html');
+  try {
+    let html = fs.readFileSync(indexHtmlPath, 'utf8');
+    const siteUrl = SITE_URL;
+    const db = loadDb();
+
+    let title = 'Rêve de Q - Vidéos Adultes Streaming HD/4K (18+)';
+    let description = 'Rêve de Q : Première plateforme française de streaming vidéo pour adultes (18+). Vidéos exclusives, amateur français, créateurs certifiés en HD et 4K.';
+    let canonical = `${siteUrl}${req.path === '/' ? '' : req.path}`;
+    let ogImage = `${siteUrl}/revedeq-banner.png`;
+    let extraSchema = '';
+
+    // 1. Video detection (/video/:id or /?video=:id)
+    let videoId = null;
+    if (req.path.startsWith('/video/')) {
+      videoId = req.path.split('/')[2];
+    } else if (req.query && req.query.video) {
+      videoId = req.query.video;
+    }
+
+    if (videoId) {
+      const video = (db.videos || []).find(v => v.id === videoId);
+      if (video) {
+        title = `${video.title || 'Vidéo Adulte'} - Vidéo Adulte HD/4K | Rêve de Q`;
+        description = (video.description || `Regardez la vidéo adulte "${video.title}" en streaming haute définition sur Rêve de Q.`).substring(0, 160);
+        canonical = `${siteUrl}/video/${encodeURIComponent(video.id)}`;
+        ogImage = video.thumbnail || ogImage;
+
+        const videoSchema = {
+          '@context': 'https://schema.org',
+          '@type': 'VideoObject',
+          'name': video.title || 'Vidéo Adulte Rêve de Q',
+          'description': video.description || description,
+          'thumbnailUrl': [ogImage],
+          'uploadDate': video.createdAt || new Date().toISOString(),
+          'contentUrl': video.videoUrl || canonical,
+          'embedUrl': `${siteUrl}/?video=${encodeURIComponent(video.id)}`,
+          'isFamilyFriendly': false,
+          'author': {
+            '@type': 'Person',
+            'name': video.authorName || 'Créateur Rêve de Q'
+          }
+        };
+        extraSchema = `<script type="application/ld+json">${JSON.stringify(videoSchema)}</script>`;
+      }
+    } else if (req.path.startsWith('/profil/')) {
+      const username = decodeURIComponent(req.path.split('/')[2] || '');
+      const user = (db.users || []).find(u => u.username && u.username.toLowerCase() === username.toLowerCase());
+      if (user) {
+        title = `Profil de ${user.username} - Vidéos & Créateur Adulte | Rêve de Q`;
+        description = `Découvrez les publications et vidéos adultes exclusives de ${user.username} sur la plateforme Rêve de Q.`;
+        canonical = `${siteUrl}/profil/${encodeURIComponent(user.username)}`;
+        ogImage = user.avatar || `${siteUrl}/revedeq-logo.png`;
+        const profileSchema = {
+          '@context': 'https://schema.org',
+          '@type': 'ProfilePage',
+          'mainEntity': {
+            '@type': 'Person',
+            'name': user.username,
+            'image': ogImage
+          }
+        };
+        extraSchema = `<script type="application/ld+json">${JSON.stringify(profileSchema)}</script>`;
+      }
+    } else if (req.path === '/vip') {
+      title = 'Abonnement Club VIP Privé - Streaming 4K & Zéro Pub | Rêve de Q';
+      description = 'Rejoignez le Club VIP Rêve de Q (9,99€ / mois) : accès illimité aux vidéos exclusives, streaming 4K Ultra HD, messagerie illimitée et facturation 100% discrète.';
+      canonical = `${siteUrl}/#vip`;
+    }
+
+    html = html.replace(/<title>.*?<\/title>/i, `<title>${escapeHtmlServer(title)}</title>`);
+    html = html.replace(/<meta name="description" content=".*?"\s*\/?>/i, `<meta name="description" content="${escapeHtmlServer(description)}">`);
+    html = html.replace(/<link rel="canonical" href=".*?"\s*\/?>/i, `<link rel="canonical" href="${canonical}">`);
+    html = html.replace(/<meta property="og:title" content=".*?"\s*\/?>/i, `<meta property="og:title" content="${escapeHtmlServer(title)}">`);
+    html = html.replace(/<meta property="og:description" content=".*?"\s*\/?>/i, `<meta property="og:description" content="${escapeHtmlServer(description)}">`);
+    html = html.replace(/<meta property="og:url" content=".*?"\s*\/?>/i, `<meta property="og:url" content="${canonical}">`);
+    html = html.replace(/<meta property="og:image" content=".*?"\s*\/?>/i, `<meta property="og:image" content="${ogImage}">`);
+    html = html.replace(/<meta name="twitter:title" content=".*?"\s*\/?>/i, `<meta name="twitter:title" content="${escapeHtmlServer(title)}">`);
+    html = html.replace(/<meta name="twitter:description" content=".*?"\s*\/?>/i, `<meta name="twitter:description" content="${escapeHtmlServer(description)}">`);
+    html = html.replace(/<meta name="twitter:image" content=".*?"\s*\/?>/i, `<meta name="twitter:image" content="${ogImage}">`);
+
+    if (extraSchema) {
+      html = html.replace('</head>', `${extraSchema}\n</head>`);
+    }
+
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    return res.send(html);
+  } catch (err) {
+    return res.sendFile(indexHtmlPath);
+  }
+}
+
+// Auto-generated Google Video XML Sitemap for Adult SEO
 app.get('/sitemap.xml', async (req, res) => {
   const db = loadDb();
   const siteUrl = SITE_URL;
@@ -3477,16 +3584,13 @@ app.get('/sitemap.xml', async (req, res) => {
   const staticUrls = [
     { loc: siteUrl, priority: '1.0', changefreq: 'daily' },
     { loc: `${siteUrl}/#explorer`, priority: '0.9', changefreq: 'daily' },
-    { loc: `${siteUrl}/#vip`, priority: '0.7', changefreq: 'monthly' },
+    { loc: `${siteUrl}/#vip`, priority: '0.8', changefreq: 'monthly' },
     { loc: `${siteUrl}/#faq`, priority: '0.6', changefreq: 'monthly' },
-    { loc: `${siteUrl}/contact`, priority: '0.6', changefreq: 'monthly' },
+    { loc: `${siteUrl}/contact`, priority: '0.5', changefreq: 'monthly' },
     { loc: `${siteUrl}/mentions-legales`, priority: '0.5', changefreq: 'monthly' },
     { loc: `${siteUrl}/cgu`, priority: '0.5', changefreq: 'monthly' },
     { loc: `${siteUrl}/confidentialite`, priority: '0.5', changefreq: 'monthly' },
-    { loc: `${siteUrl}/reclamations`, priority: '0.5', changefreq: 'monthly' },
-    { loc: `${siteUrl}/signaler`, priority: '0.6', changefreq: 'monthly' },
-    { loc: `${siteUrl}/protection-mineurs`, priority: '0.5', changefreq: 'monthly' },
-    { loc: `${siteUrl}/proposer-categorie`, priority: '0.6', changefreq: 'monthly' },
+    { loc: `${siteUrl}/protection-mineurs`, priority: '0.6', changefreq: 'monthly' },
   ];
 
   const categoryUrls = (db.categories || []).filter(c => !c.isSystem).map(c => ({
@@ -3495,23 +3599,42 @@ app.get('/sitemap.xml', async (req, res) => {
     changefreq: 'daily'
   }));
 
-  const videoUrls = (db.videos || []).filter(v => v.status !== 'pending').slice(0, 500).map(v => ({
-    loc: `${siteUrl}/?video=${encodeURIComponent(v.id)}`,
-    priority: '0.7',
-    lastmod: v.createdAt ? v.createdAt.split('T')[0] : today,
-    changefreq: 'weekly'
-  }));
-
-  const allUrls = [...staticUrls, ...categoryUrls, ...videoUrls];
+  const videoEntries = (db.videos || []).filter(v => v.status !== 'pending').slice(0, 500).map(v => {
+    const pubDate = v.createdAt ? v.createdAt.split('T')[0] : today;
+    const thumb = v.thumbnail || `${siteUrl}/revedeq-banner.png`;
+    const cleanTitle = escapeHtmlServer(v.title || 'Vidéo Adulte Rêve de Q');
+    const cleanDesc = escapeHtmlServer((v.description || v.title || 'Vidéo adulte streaming HD sur Rêve de Q.').substring(0, 1000));
+    return `  <url>
+    <loc>${siteUrl}/video/${encodeURIComponent(v.id)}</loc>
+    <lastmod>${pubDate}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <video:video>
+      <video:thumbnail_loc>${thumb}</video:thumbnail_loc>
+      <video:title>${cleanTitle}</video:title>
+      <video:description>${cleanDesc}</video:description>
+      <video:publication_date>${pubDate}</video:publication_date>
+      <video:family_friendly>no</video:family_friendly>
+    </video:video>
+  </url>`;
+  });
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${allUrls.map(u => `  <url>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
+${staticUrls.map(u => `  <url>
     <loc>${u.loc}</loc>
-    <lastmod>${u.lastmod || today}</lastmod>
+    <lastmod>${today}</lastmod>
     <changefreq>${u.changefreq}</changefreq>
     <priority>${u.priority}</priority>
   </url>`).join('\n')}
+${categoryUrls.map(u => `  <url>
+    <loc>${u.loc}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>${u.changefreq}</changefreq>
+    <priority>${u.priority}</priority>
+  </url>`).join('\n')}
+${videoEntries.join('\n')}
 </urlset>`;
 
   res.set('Content-Type', 'application/xml; charset=utf-8');
@@ -3519,22 +3642,11 @@ ${allUrls.map(u => `  <url>
   res.send(xml);
 });
 
-// Direct public profile URL - serves SPA with username in path
-app.get('/profil/:username', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Direct dedicated messaging URL - serves SPA
-app.get(['/messages', '/messages/:username'], (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Direct video watch page URL - serves SPA with video ID in path
-app.get('/video/:id', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Direct dedicated pages URLs - serves SPA
+// Direct URLs with Dynamic Server-Side SEO & Meta Pre-rendering
+app.get('/video/:id', renderSeoPage);
+app.get('/profil/:username', renderSeoPage);
+app.get(['/messages', '/messages/:username'], renderSeoPage);
+app.get(['/vip', '/abonnement'], renderSeoPage);
 app.get([
   '/contact',
   '/mentions-legales',
@@ -3544,14 +3656,10 @@ app.get([
   '/signaler',
   '/protection-mineurs',
   '/proposer-categorie'
-], (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+], renderSeoPage);
 
-// SPA Fallback
-app.use((req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+// SPA Fallback with SEO Pre-rendering
+app.use(renderSeoPage);
 
 
 if (process.env.NODE_ENV !== 'production' || require.main === module) {
