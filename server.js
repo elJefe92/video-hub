@@ -3843,18 +3843,43 @@ app.get('/sitemap.xml', async (req, res) => {
 
   const videoEntries = (db.videos || []).filter(v => v.status !== 'pending').slice(0, 500).map(v => {
     const pubDate = v.createdAt ? v.createdAt.split('T')[0] : today;
-    const thumb = v.thumbnail || `${siteUrl}/revedeq-banner.png`;
+    
+    // Ensure absolute thumbnail URL
+    let fullThumb = v.thumbnail || `${siteUrl}/revedeq-banner.png`;
+    if (!fullThumb.startsWith('http://') && !fullThumb.startsWith('https://')) {
+      fullThumb = `${siteUrl}${fullThumb.startsWith('/') ? '' : '/'}${fullThumb}`;
+    }
+    fullThumb = escapeHtmlServer(fullThumb);
+
     const cleanTitle = escapeHtmlServer(v.title || 'Vidéo Adulte Rêve de Q');
     const cleanDesc = escapeHtmlServer((v.description || v.title || 'Vidéo adulte streaming HD sur Rêve de Q.').substring(0, 1000));
+    const playerUrl = `${siteUrl}/video/${encodeURIComponent(v.id)}`;
+
+    // Parse duration in seconds if available
+    let durationTag = '';
+    if (v.duration && typeof v.duration === 'string') {
+      const parts = v.duration.trim().split(':').map(n => parseInt(n, 10));
+      let sec = 0;
+      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+        sec = parts[0] * 60 + parts[1];
+      } else if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+        sec = parts[0] * 3600 + parts[1] * 60 + parts[2];
+      }
+      if (sec > 0 && sec < 28800) {
+        durationTag = `\n      <video:duration>${sec}</video:duration>`;
+      }
+    }
+
     return `  <url>
-    <loc>${siteUrl}/video/${encodeURIComponent(v.id)}</loc>
+    <loc>${playerUrl}</loc>
     <lastmod>${pubDate}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
     <video:video>
-      <video:thumbnail_loc>${thumb}</video:thumbnail_loc>
+      <video:thumbnail_loc>${fullThumb}</video:thumbnail_loc>
       <video:title>${cleanTitle}</video:title>
       <video:description>${cleanDesc}</video:description>
+      <video:player_loc>${playerUrl}</video:player_loc>${durationTag}
       <video:publication_date>${pubDate}</video:publication_date>
       <video:family_friendly>no</video:family_friendly>
     </video:video>
