@@ -489,6 +489,11 @@ function switchTab(tabName, shouldPushHistory = true) {
     loadExplorerData();
   }
 
+  // If opening accueil tab, refresh videos
+  if (tabName === 'accueil') {
+    loadVideos();
+  }
+
   // If opening messages tab, initialize dedicated messenger
   if (tabName === 'messages') {
     loadDedicatedMessenger();
@@ -940,7 +945,13 @@ async function loadVideos(cat = 'all', searchQuery = '') {
     if (searchQuery && !document.getElementById('searchInput')?.value) {
       queryString += `&q=${encodeURIComponent(searchQuery)}`;
     }
-    const res = await fetch(`/api/videos?${queryString}`);
+    const res = await fetch(`/api/videos?${queryString}&_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      }
+    });
     const data = await res.json();
     allVideosList = data.videos || [];
 
@@ -1415,7 +1426,10 @@ async function loadExplorerData(shouldScroll = false) {
   if (!tagsContainer || !contentArea) return;
 
   try {
-    const res = await fetch('/api/explorer');
+    const res = await fetch(`/api/explorer?_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+    });
     const data = await res.json();
     cachedExplorerCategories = data.categories || [];
 
@@ -1469,7 +1483,10 @@ async function loadExplorerData(shouldScroll = false) {
 
       // Fetch matching videos
       const queryCats = Array.from(selectedExplorerTags).join(',');
-      const vidRes = await fetch(`/api/videos?categories=${encodeURIComponent(queryCats)}`);
+      const vidRes = await fetch(`/api/videos?categories=${encodeURIComponent(queryCats)}&_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }
+      });
       const vidData = await vidRes.json();
       const matchedVideos = vidData.videos || [];
 
@@ -1623,7 +1640,17 @@ async function openVideoPlayerModal(videoId) {
     if (sid) {
       headers['x-voter-session'] = sid;
     }
-    const res = await fetch(`/api/videos/${encodeURIComponent(videoId)}?sessionId=${encodeURIComponent(sid)}`, { headers });
+    const res = await fetch(`/api/videos/${encodeURIComponent(videoId)}?sessionId=${encodeURIComponent(sid)}&_t=${Date.now()}`, {
+      headers,
+      cache: 'no-store'
+    });
+    if (res.status === 404) {
+      allVideosList = (allVideosList || []).filter(v => v.id !== videoId);
+      renderVideoGrid(allVideosList);
+      showToast('Cette vidéo a été supprimée.');
+      switchTab('accueil');
+      return;
+    }
     if (res.ok) {
       const data = await res.json();
       if (data && data.video) {
@@ -1714,6 +1741,15 @@ async function openVideoPlayerModal(videoId) {
       adminEditBtn.classList.remove('hidden');
     } else {
       adminEditBtn.classList.add('hidden');
+    }
+  }
+
+  const adminDeleteBtn = document.getElementById('modalAdminDeleteBtn');
+  if (adminDeleteBtn) {
+    if (AUTH.isAdmin()) {
+      adminDeleteBtn.classList.remove('hidden');
+    } else {
+      adminDeleteBtn.classList.add('hidden');
     }
   }
 
@@ -1939,6 +1975,13 @@ function openAdminEditModalFromPlayingVideo() {
   if (!currentPlayingVideo) return;
   openAdminEditModal(currentPlayingVideo.id);
 }
+window.openAdminEditModalFromPlayingVideo = openAdminEditModalFromPlayingVideo;
+
+function openAdminDeleteModalFromPlayingVideo() {
+  if (!currentPlayingVideo) return;
+  openAdminDeleteVideoModal(currentPlayingVideo.id);
+}
+window.openAdminDeleteModalFromPlayingVideo = openAdminDeleteModalFromPlayingVideo;
 
 // ==================== 5-STAR RATING CONTROLLER (SVG Vectoriel) ====================
 let myActiveRating = 0;
@@ -3565,8 +3608,9 @@ async function loadAdminOnlineVideos() {
   container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">Chargement des videos en ligne...</div>';
 
   try {
-    const res = await fetch('/api/admin/videos?status=approved', {
-      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    const res = await fetch(`/api/admin/videos?status=approved&_t=${Date.now()}`, {
+      headers: { 'Authorization': `Bearer ${AUTH.token}` },
+      cache: 'no-store'
     });
     if (!res.ok) throw new Error('Erreur');
     const data = await res.json();
@@ -3994,8 +4038,9 @@ function filterAdminVideosFromKpi(status) {
 async function loadAdminStats() {
   if (!AUTH.isAdmin()) return;
   try {
-    const res = await fetch('/api/admin/stats', {
-      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    const res = await fetch(`/api/admin/stats?_t=${Date.now()}`, {
+      headers: { 'Authorization': `Bearer ${AUTH.token}` },
+      cache: 'no-store'
     });
     if (!res.ok) return;
     const stats = await res.json();
@@ -4201,11 +4246,12 @@ async function loadAdminVideos() {
   const search = document.getElementById('adminVideoSearchInput')?.value || '';
 
   try {
-    let url = `/api/admin/videos?status=${status}&category=${category}`;
+    let url = `/api/admin/videos?status=${status}&category=${category}&_t=${Date.now()}`;
     if (search.trim()) url += `&search=${encodeURIComponent(search.trim())}`;
 
     const res = await fetch(url, {
-      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+      headers: { 'Authorization': `Bearer ${AUTH.token}` },
+      cache: 'no-store'
     });
     const data = await res.json();
     const list = data.videos || [];
@@ -4398,6 +4444,24 @@ async function handleConfirmAdminDeleteVideo() {
     }
     showToast(data.message || 'Vidéo supprimée définitivement.');
     closeAdminDeleteVideoModal();
+
+    // Immediately purge from memory arrays and re-render grids
+    allVideosList = (allVideosList || []).filter(v => v.id !== videoId);
+    if (window.adminVideosList) {
+      window.adminVideosList = window.adminVideosList.filter(v => v.id !== videoId);
+    }
+    if (typeof allAdminOnlineVideos !== 'undefined' && Array.isArray(allAdminOnlineVideos)) {
+      allAdminOnlineVideos = allAdminOnlineVideos.filter(v => v.id !== videoId);
+    }
+    renderVideoGrid(allVideosList);
+    if (typeof renderAdminOnlineVideosList === 'function') {
+      renderAdminOnlineVideosList();
+    }
+    if (currentPlayingVideo && currentPlayingVideo.id === videoId) {
+      currentPlayingVideo = null;
+      switchTab('accueil');
+    }
+
     await loadAdminStats();
     await loadAdminVideos();
     if (typeof loadAdminOnlineVideos === 'function') await loadAdminOnlineVideos();

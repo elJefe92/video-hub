@@ -42,6 +42,9 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Automatically sync latest cloud state on every API request across all serverless lambdas
 app.use((req, res, next) => {
   if (req.path && req.path.startsWith('/api/')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     syncDbFromCloud()
       .then(() => next())
       .catch(() => next());
@@ -1757,6 +1760,9 @@ app.get('/api/videos', (req, res) => {
     };
   });
 
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
   res.json({ videos: list });
 });
 
@@ -1780,6 +1786,9 @@ app.get('/api/videos/:id', optionalAuthenticate, async (req, res) => {
     }
   }
 
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
   res.json({
     video: {
       ...video,
@@ -3671,7 +3680,10 @@ app.get('/admin', (req, res) => {
 });
 
 // Serve frontend static files
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: 0,
+  etag: true
+}));
 
 function escapeHtmlServer(str) {
   if (str === null || str === undefined) return '';
@@ -3810,6 +3822,7 @@ function renderSeoPage(req, res) {
     }
 
     res.set('Content-Type', 'text/html; charset=utf-8');
+    res.set('Cache-Control', 'no-cache, must-revalidate');
     return res.send(html);
   } catch (err) {
     return res.sendFile(indexHtmlPath);
