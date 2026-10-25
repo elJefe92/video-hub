@@ -4695,6 +4695,11 @@ function filterAndRenderAdminUsers() {
           <button class="btn btn-sm ${isUserVip ? 'btn-secondary' : 'btn-vip-pill'}" onclick="toggleUserVip('${u.id}')" title="${isUserVip ? 'Rétrograder au compte standard Free' : 'Accorder les privilèges VIP à 9,99€'}">
             ${isUserVip ? 'Retirer VIP' : 'Passer VIP'}
           </button>
+          ${!isUserAdmin ? `
+            <button class="btn btn-sm" onclick="deleteUserByAdmin('${u.id}', '${u.username}')" style="background:#ef4444;color:#fff;border:none;padding:6px 10px;border-radius:6px;font-size:0.75rem;cursor:pointer;" title="Supprimer définitivement cet utilisateur">
+              Supprimer
+            </button>
+          ` : ''}
         </div>
       </div>
     `;
@@ -4884,6 +4889,28 @@ async function toggleUserVip(userId) {
     await loadAdminUsers();
   } catch (err) {
     showToast('Erreur lors du changement de statut.');
+  }
+}
+
+async function deleteUserByAdmin(userId, username) {
+  if (!confirm(`Confirmer la suppression définitive du compte "${username}" ? Toutes ses données seront effacées.`)) {
+    return;
+  }
+  try {
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'Erreur lors de la suppression.');
+      return;
+    }
+    showToast(`Compte "${username}" supprimé.`);
+    await loadAdminStats();
+    await loadAdminUsers();
+  } catch (err) {
+    showToast('Erreur de communication.');
   }
 }
 

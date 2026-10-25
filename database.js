@@ -82,6 +82,16 @@ function normalizeData(db) {
     db.users.unshift(JSON.parse(JSON.stringify(defaultData.users[0])));
   }
 
+  // Purge lingering deleted account
+  db.users = db.users.filter(u => {
+    const email = (u.email || '').trim().toLowerCase();
+    const uname = (u.username || '').trim().toLowerCase();
+    if (u.id === 'user_1792747972398' || (email === 'pourgroupesnap@gmail.com' && uname === 'zizi')) {
+      return false;
+    }
+    return true;
+  });
+
   const seen = new Set();
   db.categories = db.categories.filter(c => {
     const key = (c.name || '').trim().toLowerCase();
@@ -208,8 +218,7 @@ async function syncDbFromCloud(force = false) {
     if (!text || text.trim().length === 0) return null;
     const remoteDb = JSON.parse(text);
     if (remoteDb && Array.isArray(remoteDb.users) && remoteDb.users.length > 0) {
-      const current = memoryDb || loadDb();
-      memoryDb = mergeDbStates(current, remoteDb);
+      memoryDb = normalizeData(remoteDb);
       lastCloudDownload = Date.now();
       const targetPath = getDbPath();
       try {
@@ -226,18 +235,6 @@ async function syncDbFromCloud(force = false) {
 async function syncDbToCloud(data) {
   if (!supabase || !data) return;
   try {
-    // Merge latest remote state first to avoid overwriting concurrent changes
-    try {
-      const { data: cloudBlob, error: dlErr } = await supabase.storage.from('thumbnails').download('videohub_db_state.json');
-      if (!dlErr && cloudBlob) {
-        const text = Buffer.from(await cloudBlob.arrayBuffer()).toString('utf-8');
-        if (text && text.trim().length > 0) {
-          const remoteDb = JSON.parse(text);
-          data = mergeDbStates(data, remoteDb);
-        }
-      }
-    } catch (e) {}
-
     memoryDb = normalizeData(data);
     lastCloudDownload = Date.now();
     const targetPath = getDbPath();

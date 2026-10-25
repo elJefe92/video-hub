@@ -1158,14 +1158,22 @@ app.delete('/api/user/account', authenticate, async (req, res) => {
     return res.status(403).json({ error: 'Le compte administrateur est protégé et ne peut pas être supprimé.' });
   }
 
+  await syncDbFromCloud(true);
   const db = loadDb();
   
-  // Remove user
-  db.users = db.users.filter(u => u.id !== user.id);
+  const targetId = user.id;
+  const targetEmail = (user.email || '').trim().toLowerCase();
+
+  // Remove user by both ID and Email
+  db.users = (db.users || []).filter(u => {
+    if (u.id === targetId) return false;
+    if (targetEmail && u.email && u.email.trim().toLowerCase() === targetEmail) return false;
+    return true;
+  });
   
   // Remove user videos
-  const videoCount = (db.videos || []).filter(v => v.authorId === user.id || v.authorEmail === user.email).length;
-  db.videos = (db.videos || []).filter(v => v.authorId !== user.id && v.authorEmail !== user.email);
+  const videoCount = (db.videos || []).filter(v => v.authorId === targetId || (targetEmail && v.authorEmail && v.authorEmail.toLowerCase() === targetEmail)).length;
+  db.videos = (db.videos || []).filter(v => v.authorId !== targetId && (!targetEmail || !v.authorEmail || v.authorEmail.toLowerCase() !== targetEmail));
   
   saveDb(db);
   await syncDbToCloud(db);
@@ -3150,6 +3158,34 @@ app.post('/api/admin/users/:id/toggle-vip', requireAdmin, async (req, res) => {
 
   const { passwordHash: _, ...userSafe } = user;
   res.json({ message: `Statut VIP mis à jour pour ${user.username}`, user: userSafe });
+});
+
+// Admin Delete User
+app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
+  const userId = req.params.id;
+  await syncDbFromCloud(true);
+  const db = loadDb();
+  const targetUser = db.users.find(u => u.id === userId);
+  if (!targetUser) {
+    return res.status(404).json({ error: 'Utilisateur introuvable.' });
+  }
+
+  const isAdminUser = (targetUser.role === 'admin') || 
+                      (targetUser.email && targetUser.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') ||
+                      (targetUser.username && targetUser.username.toLowerCase() === 'administrateur');
+  if (isAdminUser) {
+    return res.status(403).json({ error: 'Impossible de supprimer le compte administrateur.' });
+  }
+
+  const targetEmail = (targetUser.email || '').trim().toLowerCase();
+  db.users = db.users.filter(u => u.id !== userId && (!targetEmail || !u.email || u.email.trim().toLowerCase() !== targetEmail));
+  db.videos = (db.videos || []).filter(v => v.authorId !== userId && (!targetEmail || !v.authorEmail || v.authorEmail.toLowerCase() !== targetEmail));
+
+  saveDb(db);
+  await syncDbToCloud(db);
+
+  addLog('Suppression Utilisateur Admin', `Utilisateur supprime par admin: ${targetUser.username} (${targetUser.email})`);
+  res.json({ success: true, message: 'Utilisateur supprime definitivement.' });
 });
 
 app.get('/api/admin/stats', requireAdmin, async (req, res) => {
