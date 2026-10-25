@@ -1664,7 +1664,8 @@ function resolveVideoThumbnail(v) {
 }
 
 // ---------------- VIDEOS & EXPLORER ROUTES ----------------
-app.get('/api/videos', (req, res) => {
+app.get('/api/videos', async (req, res) => {
+  await syncDbFromCloud(true);
   const { category, categories, region, search, userId } = req.query;
   const db = loadDb();
   let list = (db.videos || []).map(v => resolveVideoThumbnail(v));
@@ -1783,6 +1784,7 @@ app.get('/api/videos', (req, res) => {
 
 // Single video lookup
 app.get('/api/videos/:id', optionalAuthenticate, async (req, res) => {
+  await syncDbFromCloud(true);
   const db = loadDb();
   let video = (db.videos || []).find(v => v.id === req.params.id);
   if (!video) return res.status(404).json({ error: 'Vidéo introuvable.' });
@@ -1815,7 +1817,8 @@ app.get('/api/videos/:id', optionalAuthenticate, async (req, res) => {
 });
 
 // Explorer Directory : group videos by category for fast search
-app.get('/api/explorer', (req, res) => {
+app.get('/api/explorer', async (req, res) => {
+  await syncDbFromCloud(true);
   const db = loadDb();
   const approved = (db.videos || []).filter(v => v.status === 'approved').map(v => resolveVideoThumbnail(v));
 
@@ -2780,9 +2783,11 @@ app.post('/api/admin/videos/:id/approve', requireAdmin, async (req, res) => {
 
   addLog('Validation Video', `Video "${video.title}" validee et publiee par Admin`);
 
+  const resolvedVideo = resolveVideoThumbnail(video);
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.json({
     message: `La video "${video.title}" a ete validee et mise en ligne !`,
-    video
+    video: resolvedVideo
   });
 });
 
@@ -2956,8 +2961,6 @@ app.put('/api/admin/videos/:id', requireAdmin, async (req, res) => {
   const resolvedVideo = resolveVideoThumbnail(video);
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.json({ message: 'Vidéo et miniature mises à jour avec succès ! ', video: resolvedVideo });
-
-  res.json({ message: 'Vidéo et miniature mises à jour avec succès ! ', video });
 });
 
 // ---------------- CONTENT ABUSE REPORTS (SIGNALEMENTS DE CONTENU ABUSIF / DMCA) ----------------

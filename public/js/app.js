@@ -4340,8 +4340,13 @@ async function loadAdminVideos() {
 
     if (list.length === 0) {
       listContainer.innerHTML = `
-        <div style="text-align:center;padding:34px;background:#f8fafc;border-radius:12px;border:1px dashed var(--border-color);">
-          <p style="font-weight:700;color:var(--text-muted);">Aucune vidéo ne correspond à ce filtre.</p>
+        <div style="text-align:center;padding:34px;background:var(--bg-card);border-radius:12px;border:1px dashed var(--border-color);">
+          <p style="font-weight:700;color:var(--text-main);margin:0 0 6px;">Aucune vidéo en attente de modération.</p>
+          <p style="color:var(--text-muted);font-size:0.85rem;margin:0 0 16px;">Toutes les vidéos ont été traitées ou publiées.</p>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+            <button class="btn btn-sm btn-secondary" onclick="switchAdminSection('online')">Voir les vidéos en ligne</button>
+            <button class="btn btn-sm btn-primary" onclick="switchTab('accueil')">Voir le flux d'Accueil</button>
+          </div>
         </div>
       `;
       return;
@@ -4440,21 +4445,62 @@ async function toggleDailyFeatured(id) {
 }
 
 async function approveVideo(id) {
+  const btn = window.event?.target || document.querySelector(`button[onclick*="approveVideo('${id}')"]`);
+  let originalHtml = '';
+  if (btn) {
+    originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'Validation...';
+  }
+
   try {
-    const res = await fetch(`/api/admin/videos/${id}/approve`, {
+    const res = await fetch(`/api/admin/videos/${encodeURIComponent(id)}/approve`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+      headers: {
+        'Authorization': `Bearer ${AUTH.token}`,
+        'Cache-Control': 'no-cache'
+      }
     });
     const data = await res.json();
-    showToast(data.message || 'Vidéo validée.');
+    if (!res.ok) {
+      showToast(data.error || 'Erreur lors de la validation.');
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      }
+      return;
+    }
+
+    showToast(data.message || 'Vidéo validée et publiée sur le site !');
+
+    // Optimistically update card in UI
+    const card = btn?.closest('.pending-card');
+    if (card) {
+      const badge = card.querySelector('.badge-status-pill');
+      if (badge) {
+        badge.textContent = 'Validé';
+        badge.className = 'badge-status-pill approved';
+      }
+      if (btn) btn.remove();
+    }
+
     await loadAdminStats();
     await loadAdminVideos();
+    if (typeof loadAdminOnlineVideos === 'function') await loadAdminOnlineVideos();
     await loadVideos();
     if (typeof loadExplorerData === 'function') loadExplorerData();
   } catch (err) {
-    showToast('Erreur de validation.');
+    console.error('Error in approveVideo:', err);
+    showToast('Erreur de communication lors de la validation.');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
   }
 }
+window.approveVideo = approveVideo;
+window.toggleAdminVipExclusive = toggleAdminVipExclusive;
+window.toggleDailyFeatured = toggleDailyFeatured;
 
 let pendingAdminDeleteVideoId = null;
 
