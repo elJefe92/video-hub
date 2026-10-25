@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">
+  <defs>
+    <linearGradient id="rqGold" x1="10%" y1="0%" x2="90%" y2="100%">
+      <stop offset="0%" stop-color="#fff6c2"/>
+      <stop offset="30%" stop-color="#fbbf24"/>
+      <stop offset="68%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#c2410c"/>
+    </linearGradient>
+    <linearGradient id="rqTail" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff6c2"/>
+      <stop offset="45%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0.05"/>
+    </linearGradient>
+    <linearGradient id="rqPlay" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="100%" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+  <!-- Anneau du Q ouvert comme un croissant -->
+  <circle cx="48" cy="47" r="30" fill="none" stroke="url(#rqGold)" stroke-width="7.5" stroke-linecap="round"
+          stroke-dasharray="148 41" transform="rotate(62 48 47)"/>
+  <!-- Bouton lecture -->
+  <polygon points="41,34 65,47 41,60" fill="url(#rqPlay)" stroke="url(#rqPlay)" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Queue du Q : etoile filante -->
+  <path d="M55 60 C60 54 69 56 72 62 C78 72 86 84 96 98 C82 92 68 86 57 75 C52 70 51 64 55 60 Z" fill="url(#rqTail)"/>
+  <!-- Etincelle de reve -->
+  <path d="M82 14 L84 21 L91 23 L84 25 L82 32 L80 25 L73 23 L80 21 Z" fill="#fff6c2"/>
+  <circle cx="22" cy="20" r="1.6" fill="#fbbf24"/>
+  <circle cx="90" cy="48" r="1.2" fill="#fbbf24" opacity="0.7"/>
+</svg>

@@ -274,12 +274,18 @@ function generateEmailTemplate(type, data = {}) {
   const toEmail = data.toEmail || 'contact@exemple.fr';
 
   const baseHeader = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0f172a; color: #f8fafc; border-radius: 12px; overflow: hidden; border: 1px solid #334155;">
-      <div style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); padding: 30px 24px; text-align: center;">
-        <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">Rêve de <span style="color: #0f172a; background: #ffffff; padding: 2px 8px; border-radius: 6px; margin-left: 4px;">Q</span></h1>
-        <p style="margin: 8px 0 0; color: rgba(255,255,255,0.95); font-size: 14px; font-weight: 600;">Tes rêves, tes délires.</p>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0b1120; color: #f8fafc; border-radius: 16px; overflow: hidden; border: 1px solid rgba(249, 115, 22, 0.25); box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+      <div style="background: radial-gradient(circle at 50% 30%, #1e1b4b 0%, #090d16 70%, #030712 100%); padding: 32px 24px 26px; text-align: center; border-bottom: 1px solid rgba(249, 115, 22, 0.2); position: relative;">
+        <div style="display: inline-block; margin-bottom: 12px;">
+          <img src="${siteUrl}/logo-mark.svg" alt="Rêve de Q" width="56" height="56" style="display: block; margin: 0 auto; filter: drop-shadow(0 0 14px rgba(249, 115, 22, 0.65));">
+        </div>
+        <div style="margin: 0; font-size: 26px; font-weight: 900; letter-spacing: -0.5px; line-height: 1.1;">
+          <span style="color: #ffffff;">Rêve de </span><span style="color: #fbbf24; text-shadow: 0 0 18px rgba(249, 115, 22, 0.75);">Q</span>
+        </div>
+        <p style="margin: 8px 0 0; color: #94a3b8; font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;">Tes rêves, tes délires.</p>
+        <div style="height: 2px; width: 60px; background: linear-gradient(90deg, transparent, #f59e0b, transparent); margin: 16px auto 0;"></div>
       </div>
-      <div style="padding: 30px 24px; line-height: 1.6;">
+      <div style="padding: 32px 26px; line-height: 1.6; background-color: #0b1120;">
   `;
 
   const baseFooter = `
