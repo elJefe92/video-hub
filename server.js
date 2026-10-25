@@ -2547,7 +2547,7 @@ app.post('/api/admin/videos/:id/reject', requireAdmin, (req, res) => {
 });
 
 app.put('/api/admin/videos/:id', requireAdmin, (req, res) => {
-  const { title, description, category, categories, thumbnail } = req.body;
+  const { title, description, category, categories, thumbnail, isVipExclusive, vipPreviewStart, vipPreviewDuration } = req.body;
   const db = loadDb();
   const video = db.videos.find(v => v.id === req.params.id);
   if (!video) {
@@ -2556,6 +2556,16 @@ app.put('/api/admin/videos/:id', requireAdmin, (req, res) => {
 
   if (title) video.title = title.trim();
   if (description !== undefined) video.description = description.trim();
+  
+  if (isVipExclusive !== undefined) {
+    video.isVipExclusive = Boolean(isVipExclusive);
+  }
+  if (vipPreviewStart !== undefined) {
+    video.vipPreviewStart = Math.max(0, parseInt(vipPreviewStart, 10) || 0);
+  }
+  if (vipPreviewDuration !== undefined) {
+    video.vipPreviewDuration = Math.max(5, parseInt(vipPreviewDuration, 10) || 15);
+  }
   
   if (Array.isArray(categories) && categories.length > 0) {
     video.categories = categories;
@@ -3547,6 +3557,25 @@ function renderSeoPage(req, res) {
         };
         extraSchema = `<script type="application/ld+json">${JSON.stringify(profileSchema)}</script>`;
       }
+    } else if (req.path.startsWith('/categorie/') || req.path.startsWith('/categories/')) {
+      const slug = decodeURIComponent(req.path.split('/')[2] || '');
+      const cleanSlug = slug.toLowerCase().replace(/_/g, '-');
+      const cat = (db.categories || []).find(c =>
+        c.id && (c.id.toLowerCase() === cleanSlug || c.id.toLowerCase().replace(/_/g, '-') === cleanSlug)
+      );
+      if (cat) {
+        title = `Vidéos ${cat.name} - Streaming Adulte Gratuit HD/4K (18+) | Rêve de Q`;
+        description = `Découvrez notre sélection exclusive de vidéos adultes dans la catégorie "${cat.name}". Streaming 100% anonyme en haute définition et 4K sur Rêve de Q.`;
+        canonical = `${siteUrl}/categorie/${encodeURIComponent(cleanSlug)}`;
+        const catSchema = {
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          'name': `Vidéos ${cat.name}`,
+          'description': description,
+          'url': canonical
+        };
+        extraSchema = `<script type="application/ld+json">${JSON.stringify(catSchema)}</script>`;
+      }
     } else if (req.path === '/vip') {
       title = 'Abonnement Club VIP Privé - Streaming 4K & Zéro Pub | Rêve de Q';
       description = 'Rejoignez le Club VIP Rêve de Q (9,99€ / mois) : accès illimité aux vidéos exclusives, streaming 4K Ultra HD, messagerie illimitée et facturation 100% discrète.';
@@ -3594,7 +3623,7 @@ app.get('/sitemap.xml', async (req, res) => {
   ];
 
   const categoryUrls = (db.categories || []).filter(c => !c.isSystem).map(c => ({
-    loc: `${siteUrl}/?cat=${encodeURIComponent(c.id)}`,
+    loc: `${siteUrl}/categorie/${encodeURIComponent((c.id || '').toLowerCase().replace(/_/g, '-'))}`,
     priority: '0.8',
     changefreq: 'daily'
   }));
@@ -3645,6 +3674,7 @@ ${videoEntries.join('\n')}
 // Direct URLs with Dynamic Server-Side SEO & Meta Pre-rendering
 app.get('/video/:id', renderSeoPage);
 app.get('/profil/:username', renderSeoPage);
+app.get(['/categorie/:slug', '/categories/:slug'], renderSeoPage);
 app.get(['/messages', '/messages/:username'], renderSeoPage);
 app.get(['/vip', '/abonnement'], renderSeoPage);
 app.get([

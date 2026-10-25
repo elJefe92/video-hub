@@ -1687,15 +1687,27 @@
           <!-- Video Player Container (Cinema Format) -->
           <div class="player-container watch-player-container">
             <video id="modalVideoPlayer" controls autoplay playsinline webkit-playsinline preload="auto" ondblclick="toggleVideoFit()" title="Double-cliquez pour basculer le cadrage"></video>
+            
+            <!-- Floating VIP Teaser Pill -->
+            <div id="vipTeaserBadge" class="vip-teaser-badge hidden" style="position:absolute;top:16px;left:16px;z-index:10;background:rgba(11,17,32,0.85);backdrop-filter:blur(8px);border:1px solid #f59e0b;color:#fbbf24;padding:8px 16px;border-radius:999px;font-size:0.82rem;font-weight:700;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,0.6);">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="#fbbf24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <span>Extrait VIP gratuit · <strong id="vipTeaserCountdown" style="color:#ffffff;">15</strong>s restantes</span>
+            </div>
+
             <!-- VIP Paywall Overlay when video is VIP Exclusive and user is non-VIP -->
             <div id="vipPaywallOverlay" class="vip-paywall-box hidden">
               <div class="vip-lock-icon"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-              <h3>Contenu Exclusif VIP (9,99€ / mois)</h3>
-              <p>Cette vidéo populaire a atteint la communauté VIP et est désormais réservée aux membres abonnés.</p>
-              <button class="btn btn-vip-cta" onclick="switchTab('vip');">
-                S'abonner pour 9,99€ et débloquer
-              </button>
-              <span class="paywall-sub">Accès immédiat à toutes les vidéos exclusives + 0 Pub + Qualité 4K HD</span>
+              <h3 id="paywallTitle">Fin de l'extrait VIP gratuit</h3>
+              <p id="paywallDesc">Cette vidéo est réservée aux membres du Club VIP. Débloquez immédiatement l'accès intégral en 4K Ultra HD sans aucune interruption.</p>
+              <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:16px 0 10px;">
+                <button class="btn btn-vip-cta" onclick="openVipCheckoutModal()">
+                  Débloquer en VIP pour 9,99€
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="replayVipTeaser()" style="padding:10px 18px;font-size:0.9rem;">
+                  Revoir l'extrait
+                </button>
+              </div>
+              <span class="paywall-sub">Accès immédiat à toutes les vidéos exclusives + 0 Pub + Facturation discrète RDQ Service</span>
             </div>
           </div>
 
@@ -2560,6 +2572,37 @@
           <textarea id="editVideoDesc" class="form-textarea" rows="3"></textarea>
         </div>
 
+        <!-- VIP Teaser Configuration -->
+        <div class="form-group" style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:14px;margin-top:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <label class="form-label" style="margin:0;color:#fbbf24;font-weight:700;display:flex;align-items:center;gap:6px;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="#fbbf24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              Statut VIP Exclusif & Teaser
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.85rem;color:#f8fafc;">
+              <input type="checkbox" id="editVideoIsVipExclusive" style="accent-color:#f59e0b;transform:scale(1.2);">
+              <span>Activer l'Exclusivité VIP</span>
+            </label>
+          </div>
+          
+          <div id="adminVipTeaserSettings" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label class="form-label" style="font-size:0.8rem;">Début du Teaser (secondes)</label>
+              <div style="display:flex;gap:6px;">
+                <input type="number" id="editVideoVipPreviewStart" class="form-input" min="0" value="0" placeholder="0">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="captureScrubberTimeForTeaser()" title="Prendre la position actuelle du lecteur">Prendre</button>
+              </div>
+            </div>
+            <div>
+              <label class="form-label" style="font-size:0.8rem;">Durée de l'extrait (secondes)</label>
+              <input type="number" id="editVideoVipPreviewDuration" class="form-input" min="5" max="60" value="15" placeholder="15">
+            </div>
+          </div>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin:8px 0 0;">
+            Les non-VIP visionnent gratuitement cet extrait avant que la vidéo ne se verrouille avec l'écran d'abonnement.
+          </p>
+        </div>
+
         <button type="submit" class="btn btn-primary btn-block">
           Enregistrer les modifications
         </button>
@@ -2952,14 +2995,67 @@
     </div>
   </div>
 
+  <!-- ==================== VIDEO SHARE MODAL ==================== -->
+  <div id="videoShareModal" class="modal-overlay hidden" onclick="closeShareModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()" style="max-width:440px;">
+      <button class="modal-close-btn" onclick="closeShareModal()" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      <div class="modal-header-box" style="text-align:center;">
+        <h3>Partager cette vidéo</h3>
+        <p style="color:var(--text-muted);font-size:0.85rem;margin-top:4px;">Partagez le lien avec vos amis ou sur vos réseaux préférés.</p>
+      </div>
+
+      <div class="share-options-grid" style="display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;margin:20px 0;">
+        <!-- Telegram -->
+        <a id="shareBtnTelegram" href="#" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 10px;background:rgba(0,136,204,0.12);border:1px solid rgba(0,136,204,0.35);border-radius:12px;color:#38bdf8;text-decoration:none;font-size:0.82rem;font-weight:700;transition:transform 0.2s;">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="#38bdf8"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .37z"/></svg>
+          Telegram
+        </a>
+
+        <!-- X / Twitter -->
+        <a id="shareBtnTwitter" href="#" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.18);border-radius:12px;color:#f8fafc;text-decoration:none;font-size:0.82rem;font-weight:700;transition:transform 0.2s;">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          X / Twitter
+        </a>
+
+        <!-- WhatsApp -->
+        <a id="shareBtnWhatsapp" href="#" target="_blank" rel="noopener" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 10px;background:rgba(37,211,102,0.12);border:1px solid rgba(37,211,102,0.35);border-radius:12px;color:#4ade80;text-decoration:none;font-size:0.82rem;font-weight:700;transition:transform 0.2s;">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="#4ade80"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2m.01 1.67c2.2 0 4.26.86 5.82 2.42a8.225 8.225 0 012.41 5.83c0 4.54-3.7 8.24-8.24 8.24-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.196 8.196 0 01-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24m4.52 11.64c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.03-1.25-.75-.67-1.26-1.5-1.41-1.75-.14-.25-.02-.39.11-.51.11-.11.25-.29.38-.44.12-.14.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.35-.77-1.85-.2-.49-.41-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.12.17 1.77 2.7 4.29 3.79.6.26 1.07.41 1.44.53.6.19 1.15.16 1.58.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.18-.47-.3z"/></svg>
+          WhatsApp
+        </a>
+      </div>
+
+      <!-- Send as Direct Message to Friend -->
+      <div style="background:var(--bg-subtle);border:1px solid var(--border-color);border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-weight:700;font-size:0.88rem;color:var(--text-main);">Envoyer en Message Privé</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Transmettre la vidéo à un contact sur Rêve de Q</div>
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="sendVideoViaDirectMessage()">
+          Envoyer
+        </button>
+      </div>
+
+      <!-- Copy Link Input -->
+      <div class="form-group">
+        <label class="form-label">Lien direct de la vidéo</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="shareDirectLinkInput" class="form-input" readonly style="font-size:0.85rem;" onclick="this.select()">
+          <button type="button" class="btn btn-primary btn-sm" onclick="copyShareModalLink()" style="white-space:nowrap;">
+            Copier
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toastNotification" class="toast hidden"></div>
 
   <!-- SCRIPTS -->
-  <script src="/js/auth.js?v=5.1"></script>
-  <script src="/js/upload.js?v=5.1"></script>
-  <script src="/js/vip.js?v=5.1"></script>
-  <script src="/js/app.js?v=5.1"></script>
+  <script src="/js/auth.js?v=5.3"></script>
+  <script src="/js/upload.js?v=5.3"></script>
+  <script src="/js/vip.js?v=5.3"></script>
+  <script src="/js/app.js?v=5.3"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">

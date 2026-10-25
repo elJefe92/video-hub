@@ -3,6 +3,7 @@ let allVideosList = [];
 let allCategoriesList = [];
 let activeCategory = 'all';
 let currentPlayingVideo = null;
+let isVipTeaserActive = false;
 let lastActiveTab = 'accueil';
 let selectedExplorerTags = new Set();
 let currentFeedPage = 1;
@@ -180,6 +181,28 @@ function handleUrlHash() {
     return;
   }
 
+  // Handle /categorie/:slug or /categories/:slug direct URLs (SEO)
+  if ((pathParts[0] === 'categorie' || pathParts[0] === 'categories') && pathParts[1]) {
+    const rawSlug = decodeURIComponent(pathParts[1]).toLowerCase().replace(/_/g, '-');
+    switchTab('accueil');
+    const applyCategoryFromSlug = () => {
+      const found = (allCategoriesList || []).find(c =>
+        c.id && (c.id.toLowerCase() === rawSlug || c.id.toLowerCase().replace(/_/g, '-') === rawSlug)
+      );
+      if (found) {
+        filterByCategory(found.id, false);
+      } else {
+        filterByCategory(rawSlug, false);
+      }
+    };
+    if (allCategoriesList && allCategoriesList.length > 0) {
+      applyCategoryFromSlug();
+    } else {
+      setTimeout(applyCategoryFromSlug, 400);
+    }
+    return;
+  }
+
   // Handle /profil/:username direct URLs
   if (pathParts[0] === 'profil' && pathParts[1]) {
     const username = decodeURIComponent(pathParts[1]);
@@ -339,13 +362,19 @@ function switchTab(tabName) {
   // Handle player cleanup when switching away from watch page
   if (tabName !== 'watch') {
     const player = document.getElementById('modalVideoPlayer');
-    if (player && !player.paused) {
-      player.pause();
-      player.removeAttribute('src');
-      player.load();
+    if (player) {
+      player.ontimeupdate = null;
+      if (!player.paused) {
+        player.pause();
+        player.removeAttribute('src');
+        player.load();
+      }
     }
     const paywallOverlay = document.getElementById('vipPaywallOverlay');
     if (paywallOverlay) paywallOverlay.classList.add('hidden');
+    const teaserBadge = document.getElementById('vipTeaserBadge');
+    if (teaserBadge) teaserBadge.classList.add('hidden');
+    isVipTeaserActive = false;
     currentPlayingVideo = null;
     lastActiveTab = tabName;
 
@@ -586,7 +615,7 @@ function filterUploadCategories(query) {
   });
 }
 
-function filterByCategory(catId) {
+function filterByCategory(catId, shouldPushHistory = true) {
   activeCategory = catId;
   renderCategoriesBar();
   renderSidebarCategories();
@@ -595,11 +624,30 @@ function filterByCategory(catId) {
   loadVideos(catId, searchVal);
 
   const heading = document.getElementById('feedHeading');
-  const found = allCategoriesList.find(c => c.id === catId);
+  const found = (allCategoriesList || []).find(c => c.id === catId);
   if (heading && found) {
     heading.textContent = `${found.name}`;
   }
+
+  if (shouldPushHistory) {
+    if (catId && catId !== 'all') {
+      const slug = encodeURIComponent(catId.toLowerCase().replace(/_/g, '-'));
+      const targetUrl = `/categorie/${slug}`;
+      if (window.location.pathname !== targetUrl) {
+        window.history.pushState({ category: catId }, '', targetUrl);
+      }
+      if (found) {
+        document.title = `Vidéos ${found.name} - Streaming HD/4K | Rêve de Q`;
+      }
+    } else {
+      if (window.location.pathname.startsWith('/categorie/') || window.location.pathname.startsWith('/categories/')) {
+        window.history.pushState(null, '', '/');
+        document.title = 'Rêve de Q - Vidéos Adultes Gratuites HD / 4K & Sans Pub Intrusive (18+)';
+      }
+    }
+  }
 }
+window.filterByCategory = filterByCategory;
 
 function selectCategoryFromSidebar(catId) {
   switchTab('accueil');
@@ -1681,15 +1729,84 @@ async function openVideoPlayerModal(videoId) {
     if (commentForm) commentForm.classList.add('hidden');
   }
 
-  // Check VIP Exclusive paywall lock
+  // Check VIP Exclusive paywall lock & Teaser preview
   const hasVipAccess = AUTH.isVip() || AUTH.isAdmin();
+  const teaserBadge = document.getElementById('vipTeaserBadge');
+  const countdownEl = document.getElementById('vipTeaserCountdown');
+
   if (video.isVipExclusive && !hasVipAccess) {
-    // Show VIP Paywall Overlay
+    // 15-20s Teaser Preview before paywall lock
+    isVipTeaserActive = true;
+    const teaserStart = Math.max(0, parseInt(video.vipPreviewStart, 10) || 0);
+    const teaserDuration = Math.max(5, parseInt(video.vipPreviewDuration, 10) || 15);
+    const teaserEnd = teaserStart + teaserDuration;
+
+    if (paywallOverlay) paywallOverlay.classList.add('hidden');
+    if (teaserBadge) {
+      teaserBadge.classList.remove('hidden');
+      if (countdownEl) countdownEl.textContent = teaserDuration;
+    }
+
+    player.style.display = 'block';
+    player.poster = video.thumbnail || '';
+
+    const container = player.closest('.player-container');
+    if (container) {
+      container.classList.remove('portrait-mode', 'fit-cover');
+    }
+
+    const checkOrientation = () => {
+      if (container && player.videoHeight && player.videoWidth) {
+        if (player.videoHeight > player.videoWidth) {
+          container.classList.add('portrait-mode');
+        } else {
+          container.classList.remove('portrait-mode');
+        }
+      }
+    };
+
+    let teaserSeeked = false;
+    player.onloadedmetadata = () => {
+      checkOrientation();
+      if (!teaserSeeked && teaserStart > 0) {
+        player.currentTime = teaserStart;
+        teaserSeeked = true;
+      }
+    };
+
+    player.ontimeupdate = () => {
+      if (!isVipTeaserActive) return;
+      const cur = player.currentTime;
+      const remaining = Math.max(0, Math.ceil(teaserEnd - cur));
+      if (countdownEl) countdownEl.textContent = remaining;
+
+      // Lock player when teaser window expires or user scrubs outside
+      if (cur >= teaserEnd || cur < teaserStart - 0.5) {
+        player.pause();
+        if (teaserBadge) teaserBadge.classList.add('hidden');
+        if (paywallOverlay) paywallOverlay.classList.remove('hidden');
+      }
+    };
+
+    let playUrl = video.videoUrl;
+    if (playUrl && /\.mov$/i.test(playUrl)) {
+      playUrl = playUrl.replace(/\.mov$/i, '.mp4');
+    }
+
     player.pause();
-    player.style.display = 'none';
-    if (paywallOverlay) paywallOverlay.classList.remove('hidden');
+    player.src = playUrl;
+    player.load();
+    const playPromise = player.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(err => {
+        console.log('Lecture automatique bloquee par le navigateur:', err);
+      });
+    }
   } else {
-    // Normal Playback
+    // Normal Playback (VIP Member or Free Video)
+    isVipTeaserActive = false;
+    player.ontimeupdate = null;
+    if (teaserBadge) teaserBadge.classList.add('hidden');
     if (paywallOverlay) paywallOverlay.classList.add('hidden');
     player.style.display = 'block';
     player.poster = video.thumbnail || '';
@@ -1730,6 +1847,31 @@ async function openVideoPlayerModal(videoId) {
   document.body.style.overflow = '';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+function replayVipTeaser() {
+  const player = document.getElementById('modalVideoPlayer');
+  const paywallOverlay = document.getElementById('vipPaywallOverlay');
+  const teaserBadge = document.getElementById('vipTeaserBadge');
+  const countdownEl = document.getElementById('vipTeaserCountdown');
+  if (!player || !currentPlayingVideo) return;
+
+  const teaserStart = Math.max(0, parseInt(currentPlayingVideo.vipPreviewStart, 10) || 0);
+  const teaserDuration = Math.max(5, parseInt(currentPlayingVideo.vipPreviewDuration, 10) || 15);
+
+  isVipTeaserActive = true;
+  if (paywallOverlay) paywallOverlay.classList.add('hidden');
+  if (teaserBadge) teaserBadge.classList.remove('hidden');
+  if (countdownEl) countdownEl.textContent = teaserDuration;
+
+  player.currentTime = teaserStart;
+  const playPromise = player.play();
+  if (playPromise !== undefined) {
+    playPromise.catch(err => {
+      console.log('Lecture bloquee par le navigateur:', err);
+    });
+  }
+}
+window.replayVipTeaser = replayVipTeaser;
 
 function renderModalTags(categories) {
   const container = document.getElementById('modalVideoTagsList');
@@ -2675,7 +2817,9 @@ function closeDirectMessageModal() {
 function closeWatchPage() {
   const player = document.getElementById('modalVideoPlayer');
   const paywallOverlay = document.getElementById('vipPaywallOverlay');
+  const teaserBadge = document.getElementById('vipTeaserBadge');
   if (player) {
+    player.ontimeupdate = null;
     player.pause();
     player.removeAttribute('src');
     player.load();
@@ -2686,11 +2830,13 @@ function closeWatchPage() {
     }
   }
   if (paywallOverlay) paywallOverlay.classList.add('hidden');
+  if (teaserBadge) teaserBadge.classList.add('hidden');
+  isVipTeaserActive = false;
   const modal = document.getElementById('videoModal');
   if (modal) modal.classList.add('hidden');
   document.body.style.overflow = '';
   currentPlayingVideo = null;
-  document.title = 'Rêve de Q - Plateforme Vidéo Communautaire Sans Doublons';
+  document.title = 'Rêve de Q - Vidéos Adultes Gratuites HD / 4K & Sans Pub Intrusive (18+)';
 
   // Navigate back to previous tab
   const backTab = (lastActiveTab && lastActiveTab !== 'watch') ? lastActiveTab : 'accueil';
@@ -2717,28 +2863,93 @@ function toggleVideoFit() {
   showToast(isContain ? 'Format original' : 'Plein cadre (bords recouverts)');
 }
 
-async function shareCurrentVideo() {
+function shareCurrentVideo() {
   if (!currentPlayingVideo) return;
-  const url = `${window.location.origin}/video/${encodeURIComponent(currentPlayingVideo.id)}`;
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: currentPlayingVideo.title || 'Vidéo sur Rêve de Q',
-        text: `Regardez "${currentPlayingVideo.title || 'cette vidéo'}" sur Rêve de Q`,
-        url: url
-      });
-      return;
-    } catch (e) {}
+  const video = currentPlayingVideo;
+  const origin = window.location.origin;
+  const shareUrl = `${origin}/video/${encodeURIComponent(video.id)}`;
+  const title = encodeURIComponent(video.title || 'Vidéo exclusive sur Rêve de Q');
+  const urlEnc = encodeURIComponent(shareUrl);
+  const text = encodeURIComponent(`Regardez "${video.title || 'cette vidéo'}" sur Rêve de Q (18+)`);
+
+  const modal = document.getElementById('videoShareModal');
+  const telegramBtn = document.getElementById('shareBtnTelegram');
+  const twitterBtn = document.getElementById('shareBtnTwitter');
+  const whatsappBtn = document.getElementById('shareBtnWhatsapp');
+  const directLinkInput = document.getElementById('shareDirectLinkInput');
+
+  if (telegramBtn) {
+    telegramBtn.href = `https://t.me/share/url?url=${urlEnc}&text=${text}`;
   }
+  if (twitterBtn) {
+    twitterBtn.href = `https://twitter.com/intent/tweet?text=${text}&url=${urlEnc}`;
+  }
+  if (whatsappBtn) {
+    whatsappBtn.href = `https://api.whatsapp.com/send?text=${text}%20${urlEnc}`;
+  }
+  if (directLinkInput) {
+    directLinkInput.value = shareUrl;
+  }
+
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+}
+window.shareCurrentVideo = shareCurrentVideo;
+
+function closeShareModal(e) {
+  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) {
+    return;
+  }
+  const modal = document.getElementById('videoShareModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+}
+window.closeShareModal = closeShareModal;
+
+async function copyShareModalLink() {
+  const input = document.getElementById('shareDirectLinkInput');
+  const text = input ? input.value : (currentPlayingVideo ? `${window.location.origin}/video/${currentPlayingVideo.id}` : '');
+  if (!text) return;
+
   if (navigator.clipboard && navigator.clipboard.writeText) {
     try {
-      await navigator.clipboard.writeText(url);
-      showToast('Lien de la vidéo copié dans le presse-papier !');
+      await navigator.clipboard.writeText(text);
+      showToast('Lien direct copié dans le presse-papier !');
       return;
     } catch (e) {}
   }
-  prompt('Copiez le lien de la vidéo :', url);
+  if (input) {
+    input.select();
+    document.execCommand('copy');
+    showToast('Lien direct copié !');
+  }
 }
+window.copyShareModalLink = copyShareModalLink;
+
+function sendVideoViaDirectMessage() {
+  if (!currentPlayingVideo) return;
+  const video = currentPlayingVideo;
+  closeShareModal();
+  if (!AUTH.isLoggedIn()) {
+    showToast('Connectez-vous pour envoyer un message privé.');
+    switchTab('profil');
+    return;
+  }
+  const shareLink = `${window.location.origin}/video/${video.id}`;
+  switchTab('messages');
+  setTimeout(() => {
+    const input = document.getElementById('chatMessageInput');
+    if (input) {
+      input.value = `Regarde cette vidéo sur Rêve de Q : "${video.title || 'Vidéo'}" ${shareLink}`;
+      input.focus();
+    }
+  }, 400);
+}
+window.sendVideoViaDirectMessage = sendVideoViaDirectMessage;
 
 function toggleVideoFit() {
   const container = document.querySelector('.player-container');
@@ -4114,6 +4325,13 @@ async function openAdminEditModal(videoId) {
   document.getElementById('editVideoTitle').value = v.title;
   document.getElementById('editVideoDesc').value = v.description || '';
 
+  const isVipExEl = document.getElementById('editVideoIsVipExclusive');
+  const vipStartEl = document.getElementById('editVideoVipPreviewStart');
+  const vipDurEl = document.getElementById('editVideoVipPreviewDuration');
+  if (isVipExEl) isVipExEl.checked = Boolean(v.isVipExclusive);
+  if (vipStartEl) vipStartEl.value = v.vipPreviewStart !== undefined ? v.vipPreviewStart : 0;
+  if (vipDurEl) vipDurEl.value = v.vipPreviewDuration !== undefined ? v.vipPreviewDuration : 15;
+
   // Setup current thumbnail preview
   const thumbHiddenInput = document.getElementById('editVideoSelectedThumbnail');
   const thumbPreviewImg = document.getElementById('adminCurrentThumbPreview');
@@ -4271,12 +4489,26 @@ function selectAdminSuggestedThumbnail(idx) {
   showToast(`Miniature n°${idx + 1} sélectionnée !`);
 }
 
+function captureScrubberTimeForTeaser() {
+  const scrubberVideo = document.getElementById('adminScrubVideoPlayer');
+  const vipStartEl = document.getElementById('editVideoVipPreviewStart');
+  if (scrubberVideo && vipStartEl) {
+    const sec = Math.floor(scrubberVideo.currentTime || 0);
+    vipStartEl.value = sec;
+    showToast(`Début du teaser calé à ${sec}s`);
+  }
+}
+window.captureScrubberTimeForTeaser = captureScrubberTimeForTeaser;
+
 async function saveAdminVideoEdit(e) {
   e.preventDefault();
   const id = document.getElementById('editVideoId').value;
   const title = document.getElementById('editVideoTitle').value.trim();
   const description = document.getElementById('editVideoDesc').value.trim();
   const thumbnail = (document.getElementById('editVideoSelectedThumbnail')?.value || '').trim();
+  const isVipExclusive = Boolean(document.getElementById('editVideoIsVipExclusive')?.checked);
+  const vipPreviewStart = Math.max(0, parseInt(document.getElementById('editVideoVipPreviewStart')?.value, 10) || 0);
+  const vipPreviewDuration = Math.max(5, parseInt(document.getElementById('editVideoVipPreviewDuration')?.value, 10) || 15);
 
   const selectedCheckboxes = document.querySelectorAll('#editVideoCategoriesMultiSelect input[type="checkbox"]:checked');
   const categories = Array.from(selectedCheckboxes).map(cb => cb.value);
@@ -4293,7 +4525,16 @@ async function saveAdminVideoEdit(e) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${AUTH.token}`
       },
-      body: JSON.stringify({ title, categories, category: categories[0], description, thumbnail })
+      body: JSON.stringify({
+        title,
+        categories,
+        category: categories[0],
+        description,
+        thumbnail,
+        isVipExclusive,
+        vipPreviewStart,
+        vipPreviewDuration
+      })
     });
 
     const data = await res.json();
@@ -4311,6 +4552,9 @@ async function saveAdminVideoEdit(e) {
       currentPlayingVideo.description = description;
       currentPlayingVideo.categories = categories;
       currentPlayingVideo.category = categories[0];
+      currentPlayingVideo.isVipExclusive = isVipExclusive;
+      currentPlayingVideo.vipPreviewStart = vipPreviewStart;
+      currentPlayingVideo.vipPreviewDuration = vipPreviewDuration;
       if (data.video && data.video.thumbnail) {
         currentPlayingVideo.thumbnail = data.video.thumbnail;
       }
@@ -4330,6 +4574,7 @@ async function saveAdminVideoEdit(e) {
     showToast('Erreur de sauvegarde.');
   }
 }
+window.saveAdminVideoEdit = saveAdminVideoEdit;
 
 // Admin Users Management
 // ==================== ADMIN USERS & VIP CONTROLLER ====================
