@@ -403,6 +403,10 @@ function switchTab(tabName, shouldPushHistory = true) {
 
   // Handle player cleanup when switching away from watch page
   if (tabName !== 'watch') {
+    if (window._currentHlsInstance) {
+      try { window._currentHlsInstance.destroy(); } catch (e) {}
+      window._currentHlsInstance = null;
+    }
     const player = document.getElementById('modalVideoPlayer');
     if (player) {
       player.ontimeupdate = null;
@@ -1621,6 +1625,31 @@ function getVoterSessionId() {
   return sid;
 }
 
+window._currentHlsInstance = null;
+
+function attachVideoSource(player, playUrl) {
+  if (!player || !playUrl) return;
+  if (window._currentHlsInstance) {
+    try { window._currentHlsInstance.destroy(); } catch (e) {}
+    window._currentHlsInstance = null;
+  }
+
+  const isHls = /\.m3u8($|\?)/i.test(playUrl);
+
+  if (isHls && !player.canPlayType('application/vnd.apple.mpegurl') && window.Hls && window.Hls.isSupported()) {
+    const hls = new window.Hls({
+      enableWorker: true,
+      lowLatencyMode: true
+    });
+    hls.loadSource(playUrl);
+    hls.attachMedia(player);
+    window._currentHlsInstance = hls;
+  } else {
+    player.src = playUrl;
+    player.load();
+  }
+}
+
 async function openVideoPlayerModal(videoId) {
   let video = (allVideosList || []).find(v => v.id === videoId);
   if (!video && window.adminVideosList) {
@@ -1869,8 +1898,7 @@ async function openVideoPlayerModal(videoId) {
     }
 
     player.pause();
-    player.src = playUrl;
-    player.load();
+    attachVideoSource(player, playUrl);
     const playPromise = player.play();
     if (playPromise !== undefined) {
       playPromise.catch(err => {
@@ -1908,8 +1936,7 @@ async function openVideoPlayerModal(videoId) {
     }
 
     player.pause();
-    player.src = playUrl;
-    player.load();
+    attachVideoSource(player, playUrl);
     const playPromise = player.play();
     if (playPromise !== undefined) {
       playPromise.catch(err => {
@@ -2897,6 +2924,10 @@ function closeDirectMessageModal() {
 }
 
 function closeWatchPage() {
+  if (window._currentHlsInstance) {
+    try { window._currentHlsInstance.destroy(); } catch (e) {}
+    window._currentHlsInstance = null;
+  }
   const player = document.getElementById('modalVideoPlayer');
   const paywallOverlay = document.getElementById('vipPaywallOverlay');
   const teaserBadge = document.getElementById('vipTeaserBadge');

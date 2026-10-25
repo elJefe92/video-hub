@@ -1,11 +1,17 @@
 const fs = require('fs');
 
-const libraryId = (process.env.BUNNY_STREAM_LIBRARY_ID || '').trim();
-const apiKey = (process.env.BUNNY_STREAM_API_KEY || '').trim();
-const customCdn = (process.env.BUNNY_STREAM_CDN_HOSTNAME || '').trim();
+function getLibraryId() {
+  return (process.env.BUNNY_STREAM_LIBRARY_ID || '').trim();
+}
+function getApiKey() {
+  return (process.env.BUNNY_STREAM_API_KEY || '').trim();
+}
+function getCustomCdn() {
+  return (process.env.BUNNY_STREAM_CDN_HOSTNAME || '').trim();
+}
 
 function isBunnyConfigured() {
-  return Boolean(libraryId && apiKey);
+  return Boolean(getLibraryId() && getApiKey());
 }
 
 /**
@@ -17,6 +23,9 @@ function isBunnyConfigured() {
  */
 async function uploadToBunnyStream(localFilePath, title) {
   if (!isBunnyConfigured()) return null;
+  const libraryId = getLibraryId();
+  const apiKey = getApiKey();
+  const customCdn = getCustomCdn();
 
   try {
     if (!fs.existsSync(localFilePath)) {
