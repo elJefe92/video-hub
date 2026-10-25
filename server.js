@@ -277,7 +277,7 @@ function generateEmailTemplate(type, data = {}) {
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0b1120; color: #f8fafc; border-radius: 16px; overflow: hidden; border: 1px solid rgba(249, 115, 22, 0.25); box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
       <div style="background: radial-gradient(circle at 50% 30%, #1e1b4b 0%, #090d16 70%, #030712 100%); padding: 32px 24px 26px; text-align: center; border-bottom: 1px solid rgba(249, 115, 22, 0.2); position: relative;">
         <div style="display: inline-block; margin-bottom: 12px;">
-          <img src="${siteUrl}/logo-mark.svg" alt="Rêve de Q" width="56" height="56" style="display: block; margin: 0 auto; filter: drop-shadow(0 0 14px rgba(249, 115, 22, 0.65));">
+          <img src="${siteUrl}/revedeq-emblem.png" alt="Rêve de Q" width="64" height="64" style="display: block; margin: 0 auto; filter: drop-shadow(0 0 16px rgba(249, 115, 22, 0.65));">
         </div>
         <div style="margin: 0; font-size: 26px; font-weight: 900; letter-spacing: -0.5px; line-height: 1.1;">
           <span style="color: #ffffff;">Rêve de </span><span style="color: #fbbf24; text-shadow: 0 0 18px rgba(249, 115, 22, 0.75);">Q</span>
