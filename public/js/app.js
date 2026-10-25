@@ -3626,7 +3626,7 @@ function renderAdminOnlineVideos(videos) {
         <button class="btn btn-sm btn-secondary" onclick="openVideoPlayerModal('${v.id}')">Voir</button>
         <button class="btn btn-sm btn-secondary" onclick="openAdminEditTagsModal('${v.id}')" style="border-color:#3b82f6;color:#3b82f6;font-weight:700;">Modifier les tags</button>
         <button class="btn btn-sm btn-secondary" onclick="openAdminEditModal('${v.id}')">Modifier</button>
-        <button class="btn btn-sm btn-danger" onclick="handleAdminDeleteVideo('${v.id}')">Supprimer</button>
+        <button class="btn btn-sm btn-danger" onclick="openAdminDeleteVideoModal('${v.id}')">Supprimer</button>
       </div>
     </div>
   `).join('');
@@ -4332,7 +4332,8 @@ function openAdminDeleteVideoModal(videoId) {
     return;
   }
   pendingAdminDeleteVideoId = videoId;
-  const video = (window.adminVideosList || []).find(v => v.id === videoId) ||
+  const video = (typeof allAdminOnlineVideos !== 'undefined' && Array.isArray(allAdminOnlineVideos) && allAdminOnlineVideos.find(v => v.id === videoId)) ||
+                (window.adminVideosList || []).find(v => v.id === videoId) ||
                 (allVideosList || []).find(v => v.id === videoId);
 
   const modal = document.getElementById('adminDeleteVideoModal');
@@ -4399,6 +4400,7 @@ async function handleConfirmAdminDeleteVideo() {
     closeAdminDeleteVideoModal();
     await loadAdminStats();
     await loadAdminVideos();
+    if (typeof loadAdminOnlineVideos === 'function') await loadAdminOnlineVideos();
     await loadVideos();
     if (typeof loadExplorerData === 'function') loadExplorerData();
   } catch (err) {
@@ -4414,6 +4416,10 @@ async function handleConfirmAdminDeleteVideo() {
 function rejectVideo(id) {
   openAdminDeleteVideoModal(id);
 }
+window.handleAdminDeleteVideo = openAdminDeleteVideoModal;
+window.openAdminDeleteVideoModal = openAdminDeleteVideoModal;
+window.closeAdminDeleteVideoModal = closeAdminDeleteVideoModal;
+window.handleConfirmAdminDeleteVideo = handleConfirmAdminDeleteVideo;
 
 // Edit video modal with live video frame capture & thumbnail studio
 window._adminExtractedSnapshots = [];

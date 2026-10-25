@@ -121,6 +121,8 @@ body {
   padding: 4px 6px;
   border-radius: 12px;
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.25s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .brand-logo:hover {
@@ -168,10 +170,12 @@ body.theme-light .brand-emblem {
   font-size: 1.3rem;
   letter-spacing: -0.4px;
   display: inline-flex;
-  align-items: baseline;
+  align-items: center;
   gap: 4px;
   color: var(--text-main);
   position: relative;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Effet reflet métallique sur « Rêve de » */
@@ -182,6 +186,7 @@ body.theme-light .brand-emblem {
   -webkit-text-fill-color: transparent;
   animation: brandShimmer 6.5s infinite ease-in-out;
   display: inline-block;
+  white-space: nowrap;
 }
 
 /* Effet Signature Néon Doré sur le « Q » */
@@ -5196,6 +5201,42 @@ body.theme-light #videoModal .similar-author {
   .header-container {
     padding: 0 10px !important;
     gap: 6px !important;
+  }
+
+  .header-left {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    flex-shrink: 0 !important;
+    min-width: 0 !important;
+  }
+
+  .brand-logo {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 2px 2px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .brand-text {
+    font-size: 1.15rem !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important;
+  }
+
+  .brand-text-prefix {
+    white-space: nowrap !important;
+    display: inline-block !important;
+  }
+
+  .brand-emblem {
+    width: 32px !important;
+    height: 32px !important;
+    flex-shrink: 0 !important;
   }
 
   .search-box-wrap {
