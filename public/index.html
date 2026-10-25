@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=5.0">
+  <link rel="stylesheet" href="/css/style.css?v=5.1">
   <script>
     // Vérification immédiate anti-clignotement (1h de validité)
     (function() {
@@ -41,7 +41,7 @@
           </defs>
           <path fill="url(#flameGrad)" d="M12 23c4.97 0 9-3.8 9-8.5 0-4.08-2.67-6.61-4.74-8.62-.71-.69-1.42-1.39-2.02-2.18-.38-.5-.65-1.07-.84-1.7-.1-.33-.5-.48-.77-.28-.85.64-1.8 1.55-2.45 2.65C9.07 6.22 8.5 8.1 8.5 9.5c0 .32.03.63.08.93.07.41-.33.74-.7.62-.64-.2-1.25-.56-1.78-1.04-.27-.24-.7-.08-.75.28-.15 1.09-.07 2.3.28 3.46.72 2.38 2.5 4.3 4.87 5.11.45.15.65.68.41 1.09-.43.73-.59 1.48-.48 2.14.07.44.47.78.92.78.29 0 .58-.14.77-.38.71-.89 1.58-1.57 2.55-1.99.36-.16.76.07.82.46.12.78-.02 1.58-.4 2.34-.17.34.05.75.43.75z"/>
         </svg>
-        <span class="adult-brand-name">Rêve de <span class="brand-q-glow">Q</span></span>
+        <span class="adult-brand-name" style="display:inline-flex;align-items:center;gap:6px;">Rêve de <img src="/revedeq-emblem.png" alt="Q" width="28" height="28" style="filter:drop-shadow(0 0 8px rgba(245,158,11,0.6));"></span>
       </div>
 
       <h2 class="adult-warning-title">CONTENU RÉSERVÉ AUX ADULTES</h2>
@@ -74,13 +74,12 @@
           </svg>
         </button>
         <div class="brand-logo" onclick="switchTab('accueil')">
-          <div class="brand-emblem">
-            <img src="/revedeq-emblem.png" alt="Rêve de Q" class="brand-emblem-svg" width="40" height="40">
-          </div>
           <span class="brand-text">
             <span class="brand-text-prefix">Rêve de</span>
-            <span class="brand-q-glow">Q</span>
           </span>
+          <div class="brand-emblem">
+            <img src="/revedeq-emblem.png" alt="Q" class="brand-emblem-svg" width="38" height="38">
+          </div>
         </div>
       </div>
 
@@ -123,11 +122,11 @@
           </svg>
         </button>
         <button class="btn-header-explore" onclick="navigateToTab('explorer')">Catégories</button>
-        <button class="btn-header-vip-top" onclick="navigateToTab('vip')" title="Accéder au Club VIP (9,99€)">
+        <button class="btn-header-vip-top" onclick="navigateToTab('vip')" title="Accéder au Club VIP">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
           </svg>
-          VIP (9,99€)
+          VIP
         </button>
         <a href="/#messages" class="btn-header-messages" onclick="event.preventDefault(); navigateToTab('messages');" title="Messagerie privée & Tchat">
           Messages <span id="headerUnreadBadge" class="header-unread-badge hidden">0</span>
@@ -2355,7 +2354,7 @@
           <!-- Column 1: Brand & Presentation -->
           <div class="footer-col footer-col-brand">
             <div class="footer-logo">
-              <span class="logo-text">Rêve de <span class="brand-q-glow">Q</span></span>
+              <span class="logo-text" style="display:inline-flex;align-items:center;gap:6px;">Rêve de <img src="/revedeq-emblem.png" alt="Q" width="28" height="28" style="filter:drop-shadow(0 0 8px rgba(245,158,11,0.6));"></span>
               <span class="logo-dot"></span>
             </div>
             <p class="footer-brand-desc">
@@ -2906,10 +2905,10 @@
   <div id="toastNotification" class="toast hidden"></div>
 
   <!-- SCRIPTS -->
-  <script src="/js/auth.js?v=5.0"></script>
-  <script src="/js/upload.js?v=5.0"></script>
-  <script src="/js/vip.js?v=5.0"></script>
-  <script src="/js/app.js?v=5.0"></script>
+  <script src="/js/auth.js?v=5.1"></script>
+  <script src="/js/upload.js?v=5.1"></script>
+  <script src="/js/vip.js?v=5.1"></script>
+  <script src="/js/app.js?v=5.1"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">
