@@ -1589,95 +1589,7 @@
       "status": "approved"
     }
   ],
-  "videos": [
-    {
-      "id": "vid_1788264820815",
-      "title": "hgu",
-      "description": "vuvujgh",
-      "videoUrl": "/uploads/media-1788264820804-95666336.MP4",
-      "thumbnail": "/uploads/thumb_admin_1788268915436_jsz7.jpg",
-      "authorId": "user_admin_main",
-      "authorName": "Administrateur",
-      "authorEmail": "ia.project.pro2k26@gmail.com",
-      "authorAvatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
-      "region": "Île-de-France",
-      "isGuest": false,
-      "isVipAuthor": true,
-      "category": "casting_anal",
-      "categories": [
-        "casting_anal",
-        "chatte_rasee",
-        "cougar_francaise"
-      ],
-      "status": "approved",
-      "views": 1,
-      "likes": 0,
-      "duration": "0:30",
-      "createdAt": "2026-09-01T12:13:40.815Z",
-      "isDailyFeatured": false,
-      "featuredDate": "2026-09-01",
-      "isVipExclusive": false,
-      "comments": [
-        {
-          "id": "comm_1788265922939_nyyjz",
-          "videoId": "vid_1788264820815",
-          "authorId": null,
-          "authorName": "Marc",
-          "authorAvatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Marc",
-          "isVip": false,
-          "isAdmin": false,
-          "text": "Superbe vidéo, hâte de voir les prochaines ! ",
-          "createdAt": "2026-09-01T12:32:02.939Z"
-        }
-      ],
-      "ratingCount": 1,
-      "ratingSum": 5,
-      "rating": 5,
-      "ratings": {
-        "user_admin_main": 5
-      }
-    },
-    {
-      "id": "vid_1788264754329",
-      "title": "sensu",
-      "description": "@c'est moi",
-      "videoUrl": "/uploads/media-1788264754186-538154546.mp4",
-      "thumbnail": "/uploads/thumb_admin_1788268948471_nkmp.jpg",
-      "authorId": "guest_1788264754329",
-      "authorName": "itchigrvs",
-      "authorEmail": "itchigrvs@gmail.com",
-      "authorAvatar": "https://api.dicebear.com/7.x/bottts/svg?seed=itchigrvs",
-      "region": "Île-de-France",
-      "isGuest": true,
-      "isVipAuthor": false,
-      "category": "amateur_francais",
-      "categories": [
-        "amateur_francais"
-      ],
-      "status": "approved",
-      "views": 1,
-      "likes": 0,
-      "duration": "2:18",
-      "createdAt": "2026-09-01T12:12:34.329Z",
-      "isDailyFeatured": false,
-      "featuredDate": "2026-09-01",
-      "publishedAt": "2026-09-01T12:13:03.307Z",
-      "isVipExclusive": false,
-      "comments": [
-        {
-          "id": "comm_1788266058600_09vcl",
-          "videoId": "vid_1788264754329",
-          "authorId": "user_admin_main",
-          "authorName": "Administrateur",
-          "authorAvatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
-          "isVip": true,
-          "isAdmin": true,
-          "text": "top",
-          "createdAt": "2026-09-01T12:34:18.600Z"
-        }
-      ]
-    }
-  ],
+  "videos": [],
   "logs": [
     {
       "id": "log_1788336298706",
@@ -1854,68 +1766,8 @@
       "answer": "La plateforme agit en qualité d'hébergeur de contenu au sens de la LCEN. L'auteur reste pénalement responsable des propos et fichiers mis en ligne."
     }
   ],
-  "messages": [
-    {
-      "id": "msg_1788266411439_ky6pt",
-      "senderId": null,
-      "senderName": "Marc",
-      "senderAvatar": "https://api.dicebear.com/7.x/initials/svg?seed=Marc",
-      "recipientId": "user_admin_main",
-      "recipientName": "Administrateur",
-      "recipientAvatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
-      "text": "Bonjour Admin, super site ! Est-ce que tu peux regarder ma vidéo ?",
-      "read": true,
-      "createdAt": "2026-09-01T12:40:11.439Z"
-    }
-  ],
-  "reports": [
-    {
-      "id": "rep_1788269706346_tezt",
-      "fullName": "Test Signalement",
-      "email": "test@contact.fr",
-      "videoUrl": "http://localhost:3000/#video-vid_1788264820815",
-      "videoTitle": "hgu",
-      "reason": "Diffusion non consentie / Atteinte à la vie privée",
-      "details": "Demande de retrait pour test de conformité.",
-      "signature": "Test Signalement",
-      "status": "pending",
-      "createdAt": "2026-09-01T13:35:06.346Z"
-    }
-  ],
-  "contactMessages": [
-    {
-      "id": "contact_1788336298705_47is",
-      "name": "Jean Test",
-      "email": "test@example.com",
-      "subject": "Question générale",
-      "message": "Bonjour, ceci est un test du formulaire de contact.",
-      "createdAt": "2026-09-02T08:04:58.705Z"
-    }
-  ],
-  "comments": [
-    {
-      "id": "comm_1788265922939_nyyjz",
-      "videoId": "vid_1788264820815",
-      "videoTitle": "hgu",
-      "authorId": null,
-      "authorName": "Marc",
-      "authorAvatar": "https://api.dicebear.com/7.x/bottts/svg?seed=Marc",
-      "isVip": false,
-      "isAdmin": false,
-      "text": "Superbe vidéo, hâte de voir les prochaines ! ",
-      "createdAt": "2026-09-01T12:32:02.939Z"
-    },
-    {
-      "id": "comm_1788266058600_09vcl",
-      "videoId": "vid_1788264754329",
-      "videoTitle": "sensu",
-      "authorId": "user_admin_main",
-      "authorName": "Administrateur",
-      "authorAvatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
-      "isVip": true,
-      "isAdmin": true,
-      "text": "top",
-      "createdAt": "2026-09-01T12:34:18.600Z"
-    }
-  ]
+  "messages": [],
+  "reports": [],
+  "contactMessages": [],
+  "comments": []
 }

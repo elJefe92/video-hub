@@ -1056,11 +1056,18 @@ function renderVideoCard(v) {
   const formattedDate = pubDate ? new Date(pubDate).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
   const avatarUrl = v.authorAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(v.authorName || 'Utilisateur')}`;
   const isFav = isFavorite(v.id);
+  let thumbSrc = v.thumbnail;
+  if ((!thumbSrc || thumbSrc.startsWith('/uploads/')) && v.bunnyVideoId) {
+    thumbSrc = `https://vz-789547.b-cdn.net/${v.bunnyVideoId}/thumbnail.jpg`;
+  }
+  if (!thumbSrc) {
+    thumbSrc = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=640';
+  }
 
   return `
     <div class="video-card" onclick="openVideoPlayerModal('${v.id}')">
       <div class="video-thumbnail-wrap">
-        <img class="video-thumbnail" src="${v.thumbnail}" alt="${escapeHtml(v.title)}" loading="lazy">
+        <img class="video-thumbnail" src="${thumbSrc}" alt="${escapeHtml(v.title)}" loading="lazy" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=640'">
         <div class="play-overlay-btn" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
         </div>
@@ -3203,8 +3210,9 @@ async function loadAdminReports() {
   container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">Chargement des signalements...</div>';
 
   try {
-    const res = await fetch('/api/admin/reports', {
-      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    const res = await fetch(`/api/admin/reports?_t=${Date.now()}`, {
+      headers: { 'Authorization': `Bearer ${AUTH.token}` },
+      cache: 'no-store'
     });
     if (!res.ok) throw new Error('Erreur');
     const data = await res.json();
@@ -3290,6 +3298,9 @@ function renderAdminReports() {
             ` : `
               <span style="font-size:0.8rem;color:#10b981;font-weight:700;">Dossier cloture</span>
             `}
+            <button class="btn btn-sm btn-danger-outline" onclick="handleAdminDeleteReport('${r.id}')" style="border:1px solid #ef4444;color:#ef4444;background:transparent;" title="Supprimer définitivement ce signalement">
+              Supprimer le signalement
+            </button>
           </div>
         </div>
 
@@ -3383,6 +3394,35 @@ async function handleAdminDismissReport(reportId) {
   }
 }
 
+async function handleAdminDeleteReport(reportId) {
+  if (!confirm('Supprimer définitivement ce signalement ? Cette action est irréversible.')) return;
+  const previous = [...allAdminReports];
+  allAdminReports = allAdminReports.filter(r => r.id !== reportId);
+  renderAdminReports();
+
+  try {
+    const res = await fetch(`/api/admin/reports/${encodeURIComponent(reportId)}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      allAdminReports = previous;
+      renderAdminReports();
+      showToast(data.error || 'Erreur lors de la suppression.');
+      return;
+    }
+    showToast('Signalement supprimé définitivement.');
+    await loadAdminReports();
+    await loadAdminStats();
+  } catch (e) {
+    allAdminReports = previous;
+    renderAdminReports();
+    showToast('Erreur de communication.');
+  }
+}
+window.handleAdminDeleteReport = handleAdminDeleteReport;
+
 // ---------------- ADMIN MESSAGES MANAGEMENT ----------------
 function renderAdminMessages(messages) {
   const container = document.getElementById('adminMessagesList');
@@ -3445,8 +3485,9 @@ async function loadAdminMessages() {
   container.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">Chargement des messages...</div>';
 
   try {
-    const res = await fetch('/api/admin/messages', {
-      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    const res = await fetch(`/api/admin/messages?_t=${Date.now()}`, {
+      headers: { 'Authorization': `Bearer ${AUTH.token}` },
+      cache: 'no-store'
     });
     if (!res.ok) throw new Error('Erreur');
     const data = await res.json();
@@ -3558,6 +3599,7 @@ async function handleAdminDeleteMessage(msgId) {
     if (!res.ok) throw new Error('Erreur');
     showToast('Message supprimé.');
     await loadAdminStats();
+    await loadAdminMessages();
   } catch (e) {
     window.adminMessagesList = previousList;
     renderAdminMessages(window.adminMessagesList);
@@ -3685,9 +3727,16 @@ function renderAdminOnlineVideos(videos) {
     return;
   }
 
-  container.innerHTML = videos.map(v => `
+  container.innerHTML = videos.map(v => {
+    let thumb = v.thumbnail;
+    if ((!thumb || thumb.startsWith('/uploads/')) && v.bunnyVideoId) {
+      thumb = `https://vz-789547.b-cdn.net/${v.bunnyVideoId}/thumbnail.jpg`;
+    }
+    if (!thumb) thumb = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300';
+
+    return `
     <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-      <img src="${v.thumbnail || 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300'}" style="width:110px;height:70px;object-fit:cover;border-radius:8px;cursor:pointer;" onclick="openVideoPlayerModal('${v.id}')">
+      <img src="${thumb}" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300'" style="width:110px;height:70px;object-fit:cover;border-radius:8px;cursor:pointer;" onclick="openVideoPlayerModal('${v.id}')">
       <div style="flex:1;min-width:220px;">
         <h4 style="margin:0 0 4px;font-size:0.95rem;color:var(--text-main);">${v.title}</h4>
         <div style="font-size:0.78rem;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap;">
@@ -3704,7 +3753,8 @@ function renderAdminOnlineVideos(videos) {
         <button class="btn btn-sm btn-danger" onclick="openAdminDeleteVideoModal('${v.id}')">Supprimer</button>
       </div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 
@@ -4298,11 +4348,16 @@ async function loadAdminVideos() {
     }
 
     listContainer.innerHTML = list.map(v => {
+      let thumb = v.thumbnail;
+      if ((!thumb || thumb.startsWith('/uploads/')) && v.bunnyVideoId) {
+        thumb = `https://vz-789547.b-cdn.net/${v.bunnyVideoId}/thumbnail.jpg`;
+      }
+      if (!thumb) thumb = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300';
       const cats = (v.categories && Array.isArray(v.categories) && v.categories.length > 0) ? v.categories : [v.category];
       return `
         <div class="pending-card">
           <div class="pending-thumb-wrap" onclick="openAdminEditModal('${v.id}')" style="cursor:pointer;" title="Cliquer pour changer la miniature de cette vidéo">
-            <img src="${v.thumbnail}" alt="${v.title}">
+            <img src="${thumb}" alt="${v.title}" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300'">
             <div class="thumb-play-mini" title="Changer la miniature">
               
             </div>
@@ -4556,18 +4611,39 @@ async function openAdminEditModal(videoId) {
   if (vipDurEl) vipDurEl.value = v.vipPreviewDuration !== undefined ? v.vipPreviewDuration : 15;
 
   // Setup current thumbnail preview
+  let curThumb = v.thumbnail;
+  if ((!curThumb || curThumb.startsWith('/uploads/')) && v.bunnyVideoId) {
+    curThumb = `https://vz-789547.b-cdn.net/${v.bunnyVideoId}/thumbnail.jpg`;
+  }
+  if (!curThumb) curThumb = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300';
+
   const thumbHiddenInput = document.getElementById('editVideoSelectedThumbnail');
   const thumbPreviewImg = document.getElementById('adminCurrentThumbPreview');
   const thumbStatusBadge = document.getElementById('adminThumbStatusBadge');
-  if (thumbHiddenInput) thumbHiddenInput.value = v.thumbnail || '';
-  if (thumbPreviewImg) thumbPreviewImg.src = v.thumbnail || '';
+  if (thumbHiddenInput) thumbHiddenInput.value = curThumb;
+  if (thumbPreviewImg) {
+    thumbPreviewImg.src = curThumb;
+    thumbPreviewImg.onerror = () => { thumbPreviewImg.src = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300'; };
+  }
   if (thumbStatusBadge) thumbStatusBadge.textContent = 'Miniature actuelle';
 
-  // Load video player for frame grabbing
+  // Load video player for frame grabbing (with HLS support)
   const scrubberVideo = document.getElementById('adminScrubVideoPlayer');
   if (scrubberVideo) {
-    scrubberVideo.src = v.videoUrl;
-    scrubberVideo.load();
+    if (window._adminHlsInstance) {
+      window._adminHlsInstance.destroy();
+      window._adminHlsInstance = null;
+    }
+    const isHls = /\.m3u8($|\?)/i.test(v.videoUrl);
+    if (isHls && !scrubberVideo.canPlayType('application/vnd.apple.mpegurl') && window.Hls && window.Hls.isSupported()) {
+      const hls = new window.Hls({ enableWorker: true });
+      hls.loadSource(v.videoUrl);
+      hls.attachMedia(scrubberVideo);
+      window._adminHlsInstance = hls;
+    } else {
+      scrubberVideo.src = v.videoUrl;
+      scrubberVideo.load();
+    }
   }
 
   // Generate automated frame captures from the video
@@ -4600,12 +4676,36 @@ function closeAdminEditModal(e) {
   }
   const modal = document.getElementById('adminEditVideoModal');
   const scrubberVideo = document.getElementById('adminScrubVideoPlayer');
+  if (window._adminHlsInstance) {
+    window._adminHlsInstance.destroy();
+    window._adminHlsInstance = null;
+  }
   if (scrubberVideo) {
     scrubberVideo.pause();
     scrubberVideo.src = '';
   }
+  const customThumbInput = document.getElementById('adminCustomThumbInput');
+  if (customThumbInput) customThumbInput.value = '';
   if (modal) modal.classList.add('hidden');
 }
+
+function handleAdminCustomThumbPick(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const dataUrl = e.target.result;
+    const thumbHiddenInput = document.getElementById('editVideoSelectedThumbnail');
+    const thumbPreviewImg = document.getElementById('adminCurrentThumbPreview');
+    const thumbStatusBadge = document.getElementById('adminThumbStatusBadge');
+    if (thumbHiddenInput) thumbHiddenInput.value = dataUrl;
+    if (thumbPreviewImg) thumbPreviewImg.src = dataUrl;
+    if (thumbStatusBadge) thumbStatusBadge.textContent = 'Image personnalisée importée';
+    showToast('Miniature sélectionnée depuis votre appareil.');
+  };
+  reader.readAsDataURL(file);
+}
+window.handleAdminCustomThumbPick = handleAdminCustomThumbPick;
 
 // Extract 4 high quality candidate frames from video for admin
 async function generateAdminVideoThumbnails(videoUrl) {

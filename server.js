@@ -1648,11 +1648,26 @@ app.delete('/api/categories/:id', requireAdmin, async (req, res) => {
   });
 });
 
+// Helper to resolve working thumbnail for Bunny Stream videos
+function resolveVideoThumbnail(v) {
+  if (!v) return v;
+  const copy = { ...v };
+  if ((!copy.thumbnail || copy.thumbnail.startsWith('/uploads/')) && copy.bunnyVideoId) {
+    const customCdn = (process.env.BUNNY_STREAM_CDN_HOSTNAME || '').trim();
+    const libId = (process.env.BUNNY_STREAM_LIBRARY_ID || '').trim();
+    const hlsHost = customCdn || (libId ? `vz-${libId}.b-cdn.net` : '');
+    if (hlsHost) {
+      copy.thumbnail = `https://${hlsHost}/${copy.bunnyVideoId}/thumbnail.jpg`;
+    }
+  }
+  return copy;
+}
+
 // ---------------- VIDEOS & EXPLORER ROUTES ----------------
 app.get('/api/videos', (req, res) => {
   const { category, categories, region, search, userId } = req.query;
   const db = loadDb();
-  let list = [...db.videos];
+  let list = (db.videos || []).map(v => resolveVideoThumbnail(v));
 
   if (userId) {
     list = list.filter(v => v.authorId === userId);
@@ -1769,8 +1784,9 @@ app.get('/api/videos', (req, res) => {
 // Single video lookup
 app.get('/api/videos/:id', optionalAuthenticate, async (req, res) => {
   const db = loadDb();
-  const video = (db.videos || []).find(v => v.id === req.params.id);
+  let video = (db.videos || []).find(v => v.id === req.params.id);
   if (!video) return res.status(404).json({ error: 'Vidéo introuvable.' });
+  video = resolveVideoThumbnail(video);
 
   // Enrich with creator badge and voter's existing rating (by user ID or session)
   const author = video.authorId ? (db.users || []).find(u => u.id === video.authorId) : null;
@@ -1801,7 +1817,7 @@ app.get('/api/videos/:id', optionalAuthenticate, async (req, res) => {
 // Explorer Directory : group videos by category for fast search
 app.get('/api/explorer', (req, res) => {
   const db = loadDb();
-  const approved = db.videos.filter(v => v.status === 'approved');
+  const approved = (db.videos || []).filter(v => v.status === 'approved').map(v => resolveVideoThumbnail(v));
 
   const categoriesWithVideos = db.categories
     .filter(c => c.id !== 'all')
@@ -2722,10 +2738,11 @@ app.put('/api/admin/videos/:id/tags', requireAdmin, (req, res) => {
 });
 
 // ---------------- ADMIN ADVANCED MODERATION ROUTES (Shop Ton Partiel Style) ----------------
-app.get('/api/admin/videos', requireAdmin, (req, res) => {
+app.get('/api/admin/videos', requireAdmin, async (req, res) => {
+  await syncDbFromCloud(true);
   const { status, category, search } = req.query;
   const db = loadDb();
-  let list = [...db.videos];
+  let list = (db.videos || []).map(v => resolveVideoThumbnail(v));
 
   if (status && status !== 'all') {
     list = list.filter(v => v.status === status);
@@ -2738,6 +2755,9 @@ app.get('/api/admin/videos', requireAdmin, (req, res) => {
     list = list.filter(v => v.title.toLowerCase().includes(s) || v.authorName.toLowerCase().includes(s));
   }
 
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
   res.json({ videos: list });
 });
 
@@ -2845,8 +2865,21 @@ app.delete('/api/admin/videos/:id', requireAdmin, async (req, res) => {
   saveDb(db);
   await syncDbToCloud(db);
 
+  // Clean up Bunny Stream video if applicable
+  if (removed.bunnyVideoId) {
+    const libraryId = (process.env.BUNNY_STREAM_LIBRARY_ID || '').trim();
+    const apiKey = (process.env.BUNNY_STREAM_API_KEY || '').trim();
+    if (libraryId && apiKey) {
+      fetch(`https://video.bunnycdn.com/library/${libraryId}/videos/${removed.bunnyVideoId}`, {
+        method: 'DELETE',
+        headers: { 'AccessKey': apiKey }
+      }).catch(err => console.error('[Bunny Delete Error]:', err));
+    }
+  }
+
   addLog('Suppression Vidéo Admin', `Vidéo "${removed.title}" supprimée définitivement par Admin`);
 
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.json({
     success: true,
     message: `La vidéo "${removed.title}" a été supprimée définitivement.`
@@ -2885,17 +2918,28 @@ app.put('/api/admin/videos/:id', requireAdmin, async (req, res) => {
     }
   }
 
-  // Process and save thumbnail captured by admin
+  // Process and save thumbnail captured or uploaded by admin
   if (thumbnail && typeof thumbnail === 'string') {
     if (thumbnail.startsWith('data:image')) {
       try {
-        const matches = thumbnail.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-        if (matches && matches.length === 3) {
-          const buffer = Buffer.from(matches[2], 'base64');
-          const filename = `thumb_admin_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.jpg`;
-          const filepath = path.join(uploadsDir, filename);
-          fs.writeFileSync(filepath, buffer);
-          video.thumbnail = `/uploads/${filename}`;
+        const thumbFilename = `thumb_admin_${video.id}_${Date.now()}`;
+        const supabaseThumb = await uploadBase64ToSupabaseStorage('thumbnails', thumbnail, thumbFilename);
+        if (supabaseThumb) {
+          video.thumbnail = supabaseThumb;
+        } else if (video.bunnyVideoId) {
+          const customCdn = (process.env.BUNNY_STREAM_CDN_HOSTNAME || '').trim();
+          const libId = (process.env.BUNNY_STREAM_LIBRARY_ID || '').trim();
+          const hlsHost = customCdn || `vz-${libId}.b-cdn.net`;
+          video.thumbnail = `https://${hlsHost}/${video.bunnyVideoId}/thumbnail.jpg`;
+        } else {
+          const matches = thumbnail.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+          if (matches && matches.length === 3) {
+            const buffer = Buffer.from(matches[2], 'base64');
+            const filename = `thumb_admin_${Date.now()}_${Math.random().toString(36).substring(2, 6)}.jpg`;
+            const filepath = path.join(uploadsDir, filename);
+            fs.writeFileSync(filepath, buffer);
+            video.thumbnail = `/uploads/${filename}`;
+          }
         }
       } catch (e) {
         console.error('Error saving base64 thumbnail:', e);
@@ -2908,6 +2952,10 @@ app.put('/api/admin/videos/:id', requireAdmin, async (req, res) => {
   saveDb(db);
   await syncDbToCloud(db);
   addLog('Modification Vidéo', `Métadonnées et miniature de "${video.title}" mises à jour par Admin`);
+
+  const resolvedVideo = resolveVideoThumbnail(video);
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.json({ message: 'Vidéo et miniature mises à jour avec succès ! ', video: resolvedVideo });
 
   res.json({ message: 'Vidéo et miniature mises à jour avec succès ! ', video });
 });
@@ -3096,13 +3144,29 @@ app.post('/api/contact/submit', async (req, res) => {
 
 // ---------------- ADMIN REPORTS (SIGNALEMENTS) ----------------
 app.get('/api/admin/reports', requireAdmin, async (req, res) => {
-  await syncDbFromCloud();
+  await syncDbFromCloud(true);
   const db = loadDb();
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
   res.json({ reports: db.reports || [] });
 });
 
+app.delete('/api/admin/reports/:id', requireAdmin, async (req, res) => {
+  await syncDbFromCloud(true);
+  const db = loadDb();
+  const repId = req.params.id;
+  db.reports = (db.reports || []).filter(r => r.id !== repId);
+  saveDb(db);
+  await syncDbToCloud(db);
+
+  addLog('Suppression Signalement', `Signalement #${repId} supprimé définitivement par Admin`);
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.json({ success: true, message: 'Signalement supprimé définitivement.' });
+});
+
 app.post('/api/admin/reports/:id/resolve', requireAdmin, async (req, res) => {
-  await syncDbFromCloud();
+  await syncDbFromCloud(true);
   const db = loadDb();
   db.reports = db.reports || [];
   const rep = db.reports.find(r => r.id === req.params.id);
@@ -3114,11 +3178,12 @@ app.post('/api/admin/reports/:id/resolve', requireAdmin, async (req, res) => {
   await syncDbToCloud(db);
 
   addLog('Signalement Traite', `Signalement #${rep.id} marque comme resolu par Admin`);
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.json({ message: 'Signalement marque comme traite.', report: rep });
 });
 
 app.post('/api/admin/reports/:id/delete-video', requireAdmin, async (req, res) => {
-  await syncDbFromCloud();
+  await syncDbFromCloud(true);
   const db = loadDb();
   db.reports = db.reports || [];
   const rep = db.reports.find(r => r.id === req.params.id);
@@ -3148,11 +3213,12 @@ app.post('/api/admin/reports/:id/delete-video', requireAdmin, async (req, res) =
   await syncDbToCloud(db);
 
   addLog('Suppression Video Signalement', `Video supprimee suite au signalement #${rep.id} (${rep.reason})`);
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.json({ message: 'Video supprimee et signalement resolu.', report: rep, deleted: !!deletedVideo });
 });
 
 app.post('/api/admin/reports/:id/dismiss', requireAdmin, async (req, res) => {
-  await syncDbFromCloud();
+  await syncDbFromCloud(true);
   const db = loadDb();
   db.reports = db.reports || [];
   const rep = db.reports.find(r => r.id === req.params.id);
@@ -3164,18 +3230,22 @@ app.post('/api/admin/reports/:id/dismiss', requireAdmin, async (req, res) => {
   await syncDbToCloud(db);
 
   addLog('Signalement Classe', `Signalement #${rep.id} classe sans suite.`);
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.json({ message: 'Signalement classe sans suite.', report: rep });
 });
 
 // ---------------- ADMIN CONTACT MESSAGES ----------------
 app.get('/api/admin/messages', requireAdmin, async (req, res) => {
-  await syncDbFromCloud();
+  await syncDbFromCloud(true);
   const db = loadDb();
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
   res.json({ messages: db.contactMessages || [] });
 });
 
 app.delete('/api/admin/messages/:id', requireAdmin, async (req, res) => {
-  await syncDbFromCloud();
+  await syncDbFromCloud(true);
   const db = loadDb();
   const targetId = req.params.id;
   const targetMsg = (db.contactMessages || []).find(m => m.id === targetId);
@@ -3185,6 +3255,7 @@ app.delete('/api/admin/messages/:id', requireAdmin, async (req, res) => {
   }
   saveDb(db);
   await syncDbToCloud(db);
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.json({ success: true, message: 'Message supprimé avec succès.' });
 });
 

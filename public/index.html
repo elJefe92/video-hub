@@ -535,6 +535,19 @@
               </div>
             </div>
 
+            <!-- Choix de la Miniature / Capture vidéo -->
+            <div class="form-group hidden" id="thumbnailSnapshotsWrap" style="margin-top:16px;">
+              <label class="form-label">Miniature de la vidéo (Sélectionnez une capture ou importez une image) :</label>
+              <div id="thumbnailSnapshotsGrid" class="thumb-snapshots-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:10px;"></div>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <label class="btn btn-sm btn-secondary" style="cursor:pointer;margin:0;">
+                  <span>Importer une image (JPG, PNG)</span>
+                  <input type="file" id="thumbnailFileInput" accept="image/*" style="display:none;" onchange="handleCustomThumbnailPick(this)">
+                </label>
+                <span id="customThumbNameDisplay" style="font-size:0.8rem;color:var(--text-muted);">Capture n°1 sélectionnée par défaut</span>
+              </div>
+            </div>
+
             <!-- Email (Obligatoire) -->
             <div class="form-group">
               <label for="uploaderEmail" class="form-label">Votre Adresse E-mail * <small style="font-weight:400;color:var(--text-muted);">(pour le suivi de publication)</small></label>
@@ -2532,10 +2545,14 @@
           <label class="form-label">Lecteur Vidéo & Capture de Miniature</label>
           <div class="admin-scrubber-container">
             <video id="adminScrubVideoPlayer" controls playsinline></video>
-            <div class="admin-capture-actions">
-              <button type="button" class="btn btn-secondary btn-block" onclick="captureAdminVideoCurrentFrame()">
+            <div class="admin-capture-actions" style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;">
+              <button type="button" class="btn btn-secondary" style="flex:1;min-width:200px;" onclick="captureAdminVideoCurrentFrame()">
                 Définir l'image actuelle comme miniature
               </button>
+              <label class="btn btn-secondary" style="cursor:pointer;margin:0;display:flex;align-items:center;justify-content:center;min-width:180px;">
+                <span>Importer une image (JPG/PNG)</span>
+                <input type="file" id="adminCustomThumbInput" accept="image/*" style="display:none;" onchange="handleAdminCustomThumbPick(this)">
+              </label>
             </div>
           </div>
         </div>
@@ -3055,10 +3072,10 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-  <script src="/js/auth.js?v=6.1"></script>
-  <script src="/js/upload.js?v=6.1"></script>
-  <script src="/js/vip.js?v=6.1"></script>
-  <script src="/js/app.js?v=6.1"></script>
+  <script src="/js/auth.js?v=6.4"></script>
+  <script src="/js/upload.js?v=6.4"></script>
+  <script src="/js/vip.js?v=6.4"></script>
+  <script src="/js/app.js?v=6.4"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">
