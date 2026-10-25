@@ -68,7 +68,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=6.0">
+  <link rel="stylesheet" href="/css/style.css?v=6.6">
   <script>
     // Vérification immédiate anti-clignotement (1h de validité)
     (function() {
@@ -1696,7 +1696,7 @@
 
           <!-- Video Player Container (Cinema Format) -->
           <div class="player-container watch-player-container">
-            <video id="modalVideoPlayer" controls autoplay playsinline webkit-playsinline preload="auto" ondblclick="toggleVideoFit()" title="Double-cliquez pour basculer le cadrage"></video>
+            <video id="modalVideoPlayer" controls autoplay playsinline webkit-playsinline preload="auto" ondblclick="toggleVideoFit()"></video>
             
             <!-- Floating VIP Teaser Pill -->
             <div id="vipTeaserBadge" class="vip-teaser-badge hidden" style="position:absolute;top:16px;left:16px;z-index:10;background:rgba(11,17,32,0.85);backdrop-filter:blur(8px);border:1px solid #f59e0b;color:#fbbf24;padding:8px 16px;border-radius:999px;font-size:0.82rem;font-weight:700;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,0.6);">
@@ -1751,6 +1751,11 @@
                 <button type="button" id="modalFavBtn" class="video-action-pill btn-action-fav" onclick="toggleFavorite(currentPlayingVideo?.id)" title="Ajouter aux favoris">
                   <svg class="action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                   <span class="action-text">Favori</span>
+                </button>
+
+                <button type="button" id="modalFitBtn" class="video-action-pill" onclick="toggleVideoFit()" title="Ajuster le format (Adapté / Plein cadre)">
+                  <svg class="action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                  <span class="action-text">Cadrage</span>
                 </button>
 
                 <button type="button" id="modalShareBtn" class="video-action-pill btn-action-share" onclick="shareCurrentVideo()" title="Partager la vidéo">
@@ -3072,10 +3077,10 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-  <script src="/js/auth.js?v=6.5"></script>
-  <script src="/js/upload.js?v=6.5"></script>
-  <script src="/js/vip.js?v=6.5"></script>
-  <script src="/js/app.js?v=6.5"></script>
+  <script src="/js/auth.js?v=6.6"></script>
+  <script src="/js/upload.js?v=6.6"></script>
+  <script src="/js/vip.js?v=6.6"></script>
+  <script src="/js/app.js?v=6.6"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">

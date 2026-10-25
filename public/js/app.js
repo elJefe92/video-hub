@@ -1861,17 +1861,25 @@ async function openVideoPlayerModal(videoId) {
     player.style.display = 'block';
     player.poster = video.thumbnail || '';
 
-    const container = player.closest('.player-container');
+    const container = player.closest('.watch-player-container') || player.closest('.player-container');
     if (container) {
       container.classList.remove('portrait-mode', 'fit-cover');
     }
 
+    const fitBtn = document.getElementById('modalFitBtn');
+    if (fitBtn) {
+      fitBtn.classList.remove('active');
+      const fitText = fitBtn.querySelector('.action-text');
+      if (fitText) fitText.textContent = 'Cadrage';
+    }
+
     const checkOrientation = () => {
-      if (container && player.videoHeight && player.videoWidth) {
+      const parentContainer = player.closest('.watch-player-container') || player.closest('.player-container');
+      if (parentContainer && player.videoHeight && player.videoWidth) {
         if (player.videoHeight > player.videoWidth) {
-          container.classList.add('portrait-mode');
+          parentContainer.classList.add('portrait-mode');
         } else {
-          container.classList.remove('portrait-mode');
+          parentContainer.classList.remove('portrait-mode');
         }
       }
     };
@@ -1884,6 +1892,9 @@ async function openVideoPlayerModal(videoId) {
         teaserSeeked = true;
       }
     };
+    player.onloadeddata = checkOrientation;
+    player.onresize = checkOrientation;
+    player.onplay = checkOrientation;
 
     player.ontimeupdate = () => {
       if (!isVipTeaserActive) return;
@@ -1921,21 +1932,32 @@ async function openVideoPlayerModal(videoId) {
     player.style.display = 'block';
     player.poster = video.thumbnail || '';
 
-    const container = player.closest('.player-container');
+    const container = player.closest('.watch-player-container') || player.closest('.player-container');
     if (container) {
       container.classList.remove('portrait-mode', 'fit-cover');
     }
 
+    const fitBtn = document.getElementById('modalFitBtn');
+    if (fitBtn) {
+      fitBtn.classList.remove('active');
+      const fitText = fitBtn.querySelector('.action-text');
+      if (fitText) fitText.textContent = 'Cadrage';
+    }
+
     const checkOrientation = () => {
-      if (container && player.videoHeight && player.videoWidth) {
+      const parentContainer = player.closest('.watch-player-container') || player.closest('.player-container');
+      if (parentContainer && player.videoHeight && player.videoWidth) {
         if (player.videoHeight > player.videoWidth) {
-          container.classList.add('portrait-mode');
+          parentContainer.classList.add('portrait-mode');
         } else {
-          container.classList.remove('portrait-mode');
+          parentContainer.classList.remove('portrait-mode');
         }
       }
     };
     player.onloadedmetadata = checkOrientation;
+    player.onloadeddata = checkOrientation;
+    player.onresize = checkOrientation;
+    player.onplay = checkOrientation;
 
     let playUrl = video.videoUrl;
     if (playUrl && /\.mov$/i.test(playUrl)) {
@@ -2974,15 +2996,6 @@ function closeVideoModal(e) {
 
 const openWatchPage = openVideoPlayerModal;
 
-function toggleVideoFit() {
-  const player = document.getElementById('modalVideoPlayer');
-  if (!player) return;
-  const container = player.closest('.player-container');
-  if (!container) return;
-  const isContain = container.classList.toggle('fit-contain');
-  showToast(isContain ? 'Format original' : 'Plein cadre (bords recouverts)');
-}
-
 function shareCurrentVideo() {
   if (!currentPlayingVideo) return;
   const video = currentPlayingVideo;
@@ -3072,7 +3085,7 @@ function sendVideoViaDirectMessage() {
 window.sendVideoViaDirectMessage = sendVideoViaDirectMessage;
 
 function toggleVideoFit() {
-  const container = document.querySelector('.player-container');
+  const container = document.querySelector('.watch-player-container') || document.querySelector('.player-container');
   if (!container) return;
   const isCover = container.classList.toggle('fit-cover');
   const btn = document.getElementById('modalFitBtn');
@@ -3080,11 +3093,12 @@ function toggleVideoFit() {
     btn.classList.toggle('active', isCover);
     const btnText = btn.querySelector('.action-text');
     if (btnText) {
-      btnText.textContent = isCover ? 'Adapté' : 'Format';
+      btnText.textContent = isCover ? 'Plein cadre' : 'Cadrage';
     }
   }
-  showToast(isCover ? 'Format plein écran actif' : 'Format adapté (16:9)');
+  showToast(isCover ? 'Plein cadre actif (zoomé pour remplir)' : 'Format d\'origine adapté (complet, sans zoom)');
 }
+window.toggleVideoFit = toggleVideoFit;
 
 async function likeCurrentVideo() {
   if (!currentPlayingVideo) return;
