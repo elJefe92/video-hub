@@ -3493,6 +3493,10 @@ async function previewCurrentEmailTemplate() {
       if (res.ok && data.template) {
         if (subjectPreviewEl) subjectPreviewEl.textContent = data.template.subject;
         if (previewBox) previewBox.innerHTML = data.template.html;
+        const nameInput = document.getElementById('emailHubNameInput');
+        if (nameInput && (!nameInput.value || !nameInput.value.trim() || nameInput.value === 'Alexandre')) {
+          if (data.resolvedUsername) nameInput.value = data.resolvedUsername;
+        }
       }
     } catch (e) {
       if (previewBox) previewBox.innerHTML = '<p style="color:#ef4444;text-align:center;padding:20px;">Erreur lors du chargement de l\'aperçu.</p>';
@@ -3500,13 +3504,34 @@ async function previewCurrentEmailTemplate() {
   }, 250);
 }
 
+function handleTargetEmailChange() {
+  const emailInput = document.getElementById('emailHubTargetInput');
+  const nameInput = document.getElementById('emailHubNameInput');
+  if (!emailInput || !nameInput) return;
+  const val = emailInput.value.trim().toLowerCase();
+
+  if (AUTH.user && AUTH.user.email && AUTH.user.email.toLowerCase() === val) {
+    nameInput.value = AUTH.user.username || '';
+  } else if (window.adminUsersList && Array.isArray(window.adminUsersList)) {
+    const found = window.adminUsersList.find(u => u.email && u.email.toLowerCase() === val);
+    if (found && found.username) {
+      nameInput.value = found.username;
+    }
+  }
+  previewCurrentEmailTemplate();
+}
+
 function useAdminEmailForTarget() {
   const target = document.getElementById('emailHubTargetInput');
-  if (target) {
-    target.value = (AUTH.user && AUTH.user.email) ? AUTH.user.email : 'ia.project.pro2k26@gmail.com';
-    previewCurrentEmailTemplate();
-    showToast('Adresse e-mail administrateur appliquée.');
-  }
+  const nameInput = document.getElementById('emailHubNameInput');
+  const adminEmail = (AUTH.user && AUTH.user.email) ? AUTH.user.email : 'ia.project.pro2k26@gmail.com';
+  const adminUsername = (AUTH.user && AUTH.user.username) ? AUTH.user.username : 'Administrateur';
+
+  if (target) target.value = adminEmail;
+  if (nameInput) nameInput.value = adminUsername;
+
+  previewCurrentEmailTemplate();
+  showToast('Adresse et pseudo administrateur appliqués.');
 }
 
 async function sendCurrentEmailTemplate() {
@@ -3575,13 +3600,18 @@ async function sendCurrentEmailTemplate() {
 function initAdminEmailTester() {
   const input = document.getElementById('adminTestEmailTargetInput');
   const hubTarget = document.getElementById('emailHubTargetInput');
+  const hubName = document.getElementById('emailHubNameInput');
   const adminEmail = (AUTH.user && AUTH.user.email) ? AUTH.user.email : 'ia.project.pro2k26@gmail.com';
+  const adminUsername = (AUTH.user && AUTH.user.username) ? AUTH.user.username : 'Administrateur';
 
   if (input && (!input.value || !input.value.trim())) {
     input.value = adminEmail;
   }
   if (hubTarget && (!hubTarget.value || !hubTarget.value.trim())) {
     hubTarget.value = adminEmail;
+  }
+  if (hubName && (!hubName.value || !hubName.value.trim() || hubName.value === 'Alexandre')) {
+    hubName.value = adminUsername;
   }
 
   selectEmailSuggestion(window.currentSelectedEmailTpl || 'welcome');

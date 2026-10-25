@@ -3144,7 +3144,7 @@ app.post('/api/admin/email-preview', requireAdmin, (req, res) => {
   const {
     templateKey = 'welcome',
     toEmail = 'ia.project.pro2k26@gmail.com',
-    username = 'Alexandre',
+    username,
     customSubject,
     customMessage,
     heading,
@@ -3156,8 +3156,14 @@ app.post('/api/admin/email-preview', requireAdmin, (req, res) => {
   } = req.body;
 
   try {
+    const db = loadDb();
+    const existingUser = (db.users || []).find(u => u.email && u.email.toLowerCase() === (toEmail || '').trim().toLowerCase());
+    const finalUsername = (username && username.trim() && username !== 'Alexandre' && username !== 'Membre')
+      ? username.trim()
+      : (existingUser ? existingUser.username : (req.user?.username || 'Membre'));
+
     const template = generateEmailTemplate(templateKey, {
-      username: username || 'Alexandre',
+      username: finalUsername,
       toEmail: toEmail || 'contact@revedeq.fr',
       subject: customSubject,
       customMessage: customMessage,
@@ -3165,7 +3171,7 @@ app.post('/api/admin/email-preview', requireAdmin, (req, res) => {
       videoTitle: videoTitle,
       videoCategory: videoCategory,
       reason: reason,
-      senderName: 'Alex Créateur',
+      senderName: 'Rêve de Q Support',
       messagePreview: customMessage || 'Bonjour, voici un aperçu de message officiel.',
       replyText: customMessage || 'Bonjour, nous faisons suite à votre demande.',
       originalMessage: 'Ceci est un exemple de message reçu de la part du visiteur.',
@@ -3178,6 +3184,7 @@ app.post('/api/admin/email-preview', requireAdmin, (req, res) => {
 
     res.json({
       success: true,
+      resolvedUsername: finalUsername,
       template: {
         key: templateKey,
         name: template.name,
@@ -3196,7 +3203,7 @@ app.post('/api/admin/send-single-email', requireAdmin, async (req, res) => {
   const {
     templateKey = 'welcome',
     toEmail,
-    username = 'Membre',
+    username,
     customSubject,
     customMessage,
     heading,
@@ -3212,8 +3219,14 @@ app.post('/api/admin/send-single-email', requireAdmin, async (req, res) => {
   }
 
   try {
+    const db = loadDb();
+    const existingUser = (db.users || []).find(u => u.email && u.email.toLowerCase() === toEmail.trim().toLowerCase());
+    const finalUsername = (username && username.trim() && username !== 'Alexandre' && username !== 'Membre')
+      ? username.trim()
+      : (existingUser ? existingUser.username : (req.user?.username || 'Membre'));
+
     const template = generateEmailTemplate(templateKey, {
-      username: username.trim(),
+      username: finalUsername,
       toEmail: toEmail.trim(),
       subject: customSubject ? customSubject.trim() : undefined,
       customMessage: customMessage,
