@@ -231,6 +231,114 @@ async function handleVideoUpload(e) {
     btnSubmit.innerHTML = 'Envoi en cours...';
   }
 
+  const headers = {};
+  if (AUTH && AUTH.token) {
+    headers['Authorization'] = `Bearer ${AUTH.token}`;
+  }
+
+  // 1. Priorité Bunny Stream : Téléversement direct client -> Bunny CDN (contourne la limite 4.5 Mo de Vercel)
+  try {
+    const initRes = await fetch('/api/videos/bunny-init', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers
+      },
+      body: JSON.stringify({ title: title || `Vidéo (${region})` })
+    });
+
+    if (initRes.ok) {
+      const bunnyData = await initRes.json();
+      if (bunnyData && bunnyData.uploadUrl && bunnyData.apiKey) {
+        btnSubmit.innerHTML = 'Envoi vers Bunny Stream (0%)...';
+
+        await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open('PUT', bunnyData.uploadUrl, true);
+          xhr.setRequestHeader('AccessKey', bunnyData.apiKey);
+          xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+
+          xhr.upload.onprogress = (ev) => {
+            if (ev.lengthComputable) {
+              const pct = Math.round((ev.loaded / ev.total) * 100);
+              btnSubmit.innerHTML = `Envoi vers Bunny Stream (${pct}%)...`;
+            }
+          };
+
+          xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve(xhr.response);
+            } else {
+              reject(new Error(`Échec du transfert Bunny (${xhr.status})`));
+            }
+          };
+
+          xhr.onerror = () => reject(new Error('Erreur de connexion vers Bunny Stream.'));
+          xhr.send(videoFileInput.files[0]);
+        });
+
+        btnSubmit.innerHTML = 'Finalisation de la publication...';
+
+        // Extract thumbnail base64 if selected
+        let customThumbnailBase64 = null;
+        if (selectedCapturedThumbnailBlob) {
+          customThumbnailBase64 = await new Promise(r => {
+            const reader = new FileReader();
+            reader.onloadend = () => r(reader.result);
+            reader.readAsDataURL(selectedCapturedThumbnailBlob);
+          });
+        } else if (thumbFileInput && thumbFileInput.files && thumbFileInput.files[0]) {
+          customThumbnailBase64 = await new Promise(r => {
+            const reader = new FileReader();
+            reader.onloadend = () => r(reader.result);
+            reader.readAsDataURL(thumbFileInput.files[0]);
+          });
+        }
+
+        const completeRes = await fetch('/api/videos/bunny-complete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...headers
+          },
+          body: JSON.stringify({
+            videoId: bunnyData.videoId,
+            title: title || `Vidéo (${region})`,
+            description,
+            email,
+            uploaderEmail: email,
+            region,
+            uploaderRegion: region,
+            category: selectedCategories[0],
+            categories: selectedCategories,
+            customThumbnailBase64,
+            directPlayUrl: bunnyData.directPlayUrl,
+            iframeUrl: bunnyData.iframeUrl,
+            thumbnailUrl: bunnyData.thumbnailUrl,
+            previewAnimationUrl: bunnyData.previewAnimationUrl
+          })
+        });
+
+        const completeData = await completeRes.json();
+        if (!completeRes.ok) {
+          showToast(completeData.error || 'Erreur lors de la finalisation');
+          return;
+        }
+
+        showToast(completeData.message || 'Votre vidéo a bien été reçue et transcodée.');
+        document.getElementById('uploadForm').reset();
+        if (typeof autoFillUserCredentials === 'function') autoFillUserCredentials();
+        removeVideoFile(e);
+        await loadVideos();
+        if (typeof loadExplorerData === 'function') loadExplorerData();
+        switchTab('accueil');
+        return;
+      }
+    }
+  } catch (bunnyErr) {
+    console.warn('Téléversement direct Bunny indisponible, tentative de secours...', bunnyErr);
+  }
+
   const formData = new FormData();
   formData.append('videoFile', videoFileInput.files[0]);
 
@@ -249,11 +357,6 @@ async function handleVideoUpload(e) {
   formData.append('description', description);
   formData.append('category', selectedCategories[0]);
   formData.append('categories', JSON.stringify(selectedCategories));
-
-  const headers = {};
-  if (AUTH && AUTH.token) {
-    headers['Authorization'] = `Bearer ${AUTH.token}`;
-  }
 
   try {
     const res = await fetch('/api/videos/upload', {

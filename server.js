@@ -1842,6 +1842,162 @@ const uploadVideoMiddleware = (req, res, next) => {
   });
 };
 
+// Direct Bunny Stream Ingestion (Bypasses Vercel 4.5MB payload limit completely)
+app.post('/api/videos/bunny-init', optionalAuthenticate, async (req, res) => {
+  if (!isBunnyConfigured()) {
+    return res.status(503).json({ error: 'Bunny Stream non configuré.' });
+  }
+
+  const libraryId = (process.env.BUNNY_STREAM_LIBRARY_ID || '').trim();
+  const apiKey = (process.env.BUNNY_STREAM_API_KEY || '').trim();
+  const title = (req.body.title || 'Vidéo ' + new Date().toISOString()).slice(0, 150);
+
+  try {
+    const createRes = await fetch(`https://video.bunnycdn.com/library/${libraryId}/videos`, {
+      method: 'POST',
+      headers: {
+        'AccessKey': apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ title })
+    });
+
+    if (!createRes.ok) {
+      const errTxt = await createRes.text();
+      console.error('[Bunny Init Error]:', createRes.status, errTxt);
+      return res.status(500).json({ error: 'Échec de création sur Bunny Stream: ' + errTxt });
+    }
+
+    const videoData = await createRes.json();
+    const videoGuid = videoData.guid;
+    const customCdn = (process.env.BUNNY_STREAM_CDN_HOSTNAME || '').trim();
+    const hlsHost = customCdn || `vz-${libraryId}.b-cdn.net`;
+
+    res.json({
+      success: true,
+      libraryId,
+      videoId: videoGuid,
+      uploadUrl: `https://video.bunnycdn.com/library/${libraryId}/videos/${videoGuid}`,
+      apiKey,
+      directPlayUrl: `https://${hlsHost}/${videoGuid}/playlist.m3u8`,
+      iframeUrl: `https://iframe.mediadelivery.net/embed/${libraryId}/${videoGuid}?autoplay=false&preload=true`,
+      thumbnailUrl: `https://${hlsHost}/${videoGuid}/thumbnail.jpg`,
+      previewAnimationUrl: `https://${hlsHost}/${videoGuid}/preview.webp`
+    });
+  } catch (err) {
+    console.error('[Bunny Init Exception]:', err);
+    res.status(500).json({ error: 'Erreur lors de l\'initialisation Bunny: ' + err.message });
+  }
+});
+
+app.post('/api/videos/bunny-complete', optionalAuthenticate, async (req, res) => {
+  const {
+    videoId,
+    title,
+    description,
+    category,
+    categories,
+    email,
+    uploaderEmail,
+    region,
+    uploaderRegion,
+    customThumbnailBase64,
+    directPlayUrl,
+    iframeUrl,
+    thumbnailUrl,
+    previewAnimationUrl
+  } = req.body;
+
+  if (!videoId) {
+    return res.status(400).json({ error: 'Identifiant vidéo Bunny manquant.' });
+  }
+
+  const resolvedEmail = (req.user ? req.user.email : (uploaderEmail || email || '')).trim().toLowerCase();
+  const resolvedRegion = (region || uploaderRegion || 'Île-de-France').trim();
+
+  if (!resolvedEmail) {
+    return res.status(400).json({ error: 'L\'adresse e-mail est obligatoire pour finaliser le dépôt.' });
+  }
+
+  // Parse categories
+  let parsedCategories = [];
+  if (categories) {
+    try {
+      parsedCategories = typeof categories === 'string' ? JSON.parse(categories) : categories;
+    } catch (e) {
+      parsedCategories = [categories];
+    }
+  }
+  if (!Array.isArray(parsedCategories)) {
+    parsedCategories = [category || 'tech'];
+  }
+  parsedCategories = parsedCategories.filter(c => c && c !== 'all');
+  if (parsedCategories.length === 0 && category && category !== 'all') {
+    parsedCategories = [category];
+  }
+  if (parsedCategories.length === 0) {
+    parsedCategories = ['tech'];
+  }
+
+  const finalTitle = (title || '').trim() || `Vidéo partagée depuis ${resolvedRegion}`;
+
+  let thumbnail = thumbnailUrl;
+  if (customThumbnailBase64 && customThumbnailBase64.startsWith('data:')) {
+    const uploadedThumb = await uploadBase64ToSupabaseStorage('thumbnails', customThumbnailBase64, 'thumb_' + videoId);
+    if (uploadedThumb) thumbnail = uploadedThumb;
+  }
+
+  await syncDbFromCloud();
+  const db = loadDb();
+  const isAdminUser = req.user && (req.user.role === 'admin' || req.user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com');
+  const authorName = req.user ? req.user.username : resolvedEmail.split('@')[0];
+  const authorAvatar = req.user ? req.user.avatar : `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(authorName)}`;
+
+  const libraryId = (process.env.BUNNY_STREAM_LIBRARY_ID || '').trim();
+  const customCdn = (process.env.BUNNY_STREAM_CDN_HOSTNAME || '').trim();
+  const hlsHost = customCdn || `vz-${libraryId}.b-cdn.net`;
+
+  const newVideo = {
+    id: 'vid_' + Date.now(),
+    title: finalTitle,
+    description: (description || '').trim(),
+    videoUrl: directPlayUrl || `https://${hlsHost}/${videoId}/playlist.m3u8`,
+    thumbnail: thumbnail || `https://${hlsHost}/${videoId}/thumbnail.jpg`,
+    isBunnyStream: true,
+    bunnyVideoId: videoId,
+    iframeUrl: iframeUrl || `https://iframe.mediadelivery.net/embed/${libraryId}/${videoId}?autoplay=false&preload=true`,
+    previewAnimationUrl: previewAnimationUrl || `https://${hlsHost}/${videoId}/preview.webp`,
+    authorId: req.user ? req.user.id : 'guest_' + Date.now(),
+    authorName,
+    authorEmail: resolvedEmail,
+    authorAvatar,
+    region: resolvedRegion,
+    isGuest: !req.user,
+    isVipAuthor: Boolean(req.user && req.user.isVip),
+    category: parsedCategories[0],
+    categories: parsedCategories,
+    status: isAdminUser ? 'approved' : 'pending',
+    views: 1,
+    likes: 0,
+    duration: "0:30",
+    createdAt: new Date().toISOString()
+  };
+
+  db.videos.unshift(newVideo);
+  saveDb(db);
+  await syncDbToCloud(db);
+
+  addLog('Dépôt Vidéo Bunny Stream', `Vidéo "${newVideo.title}" (${newVideo.region}) téléversée sur Bunny par ${resolvedEmail}`);
+
+  res.status(201).json({
+    message: isAdminUser 
+      ? 'Votre vidéo a été mise en ligne et transcodée avec succès sur Bunny Stream !' 
+      : 'Votre vidéo a été envoyée avec succès sur nos serveurs de streaming ! Elle sera vérifiée et validée très rapidement.',
+    video: newVideo
+  });
+});
+
 app.post('/api/videos/upload', optionalAuthenticate, uploadVideoMiddleware, async (req, res) => {
   const { title, description, category, categories, email, uploaderEmail, region, uploaderRegion, externalVideoUrl, customThumbnailUrl } = req.body;
 
