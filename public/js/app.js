@@ -3523,7 +3523,7 @@ async function handleAdminDeleteReport(reportId) {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${AUTH.token}` }
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       allAdminReports = previous;
       renderAdminReports();
@@ -3531,8 +3531,14 @@ async function handleAdminDeleteReport(reportId) {
       return;
     }
     showToast('Signalement supprimé définitivement.');
-    await loadAdminReports();
-    await loadAdminStats();
+    if (Array.isArray(data.reports)) {
+      allAdminReports = data.reports;
+      renderAdminReports();
+    }
+    const badge = document.getElementById('adminReportsCountText');
+    if (badge) badge.textContent = allAdminReports.filter(r => r.status !== 'resolved' && r.status !== 'dismissed').length;
+    const statEl = document.getElementById('statPendingReports');
+    if (statEl) statEl.textContent = allAdminReports.filter(r => r.status !== 'resolved' && r.status !== 'dismissed').length;
   } catch (e) {
     allAdminReports = previous;
     renderAdminReports();
@@ -3540,6 +3546,41 @@ async function handleAdminDeleteReport(reportId) {
   }
 }
 window.handleAdminDeleteReport = handleAdminDeleteReport;
+
+async function handleAdminDeleteAllReports() {
+  if (!allAdminReports || allAdminReports.length === 0) {
+    showToast('Aucun signalement à supprimer.');
+    return;
+  }
+  if (!confirm('Supprimer TOUS les signalements ? Cette action est irréversible.')) return;
+  const previous = [...allAdminReports];
+  allAdminReports = [];
+  renderAdminReports();
+
+  try {
+    const res = await fetch('/api/admin/reports', {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      allAdminReports = previous;
+      renderAdminReports();
+      showToast(data.error || 'Erreur lors de la suppression.');
+      return;
+    }
+    showToast('Tous les signalements ont été supprimés.');
+    const badge = document.getElementById('adminReportsCountText');
+    if (badge) badge.textContent = 0;
+    const statEl = document.getElementById('statPendingReports');
+    if (statEl) statEl.textContent = 0;
+  } catch (e) {
+    allAdminReports = previous;
+    renderAdminReports();
+    showToast('Erreur de communication.');
+  }
+}
+window.handleAdminDeleteAllReports = handleAdminDeleteAllReports;
 
 // ---------------- ADMIN MESSAGES MANAGEMENT ----------------
 function renderAdminMessages(messages) {
@@ -3714,16 +3755,64 @@ async function handleAdminDeleteMessage(msgId) {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${AUTH.token}` }
     });
-    if (!res.ok) throw new Error('Erreur');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      window.adminMessagesList = previousList;
+      renderAdminMessages(window.adminMessagesList);
+      showToast(data.error || 'Erreur lors de la suppression.');
+      return;
+    }
     showToast('Message supprimé.');
-    await loadAdminStats();
-    await loadAdminMessages();
+    if (Array.isArray(data.messages)) {
+      window.adminMessagesList = data.messages;
+      renderAdminMessages(window.adminMessagesList);
+    }
+    const badgeEl = document.getElementById('adminMessagesCountText');
+    if (badgeEl) badgeEl.textContent = window.adminMessagesList.length;
+    const statEl = document.getElementById('statTotalMessages');
+    if (statEl) statEl.textContent = window.adminMessagesList.length;
   } catch (e) {
     window.adminMessagesList = previousList;
     renderAdminMessages(window.adminMessagesList);
     showToast('Erreur lors de la suppression.');
   }
 }
+window.handleAdminDeleteMessage = handleAdminDeleteMessage;
+
+async function handleAdminDeleteAllMessages() {
+  if (!window.adminMessagesList || window.adminMessagesList.length === 0) {
+    showToast('Aucun message à supprimer.');
+    return;
+  }
+  if (!confirm('Supprimer TOUS les messages de contact ? Cette action est irréversible.')) return;
+  const previousList = [...(window.adminMessagesList || [])];
+  window.adminMessagesList = [];
+  renderAdminMessages([]);
+
+  try {
+    const res = await fetch('/api/admin/messages', {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      window.adminMessagesList = previousList;
+      renderAdminMessages(window.adminMessagesList);
+      showToast(data.error || 'Erreur lors de la suppression.');
+      return;
+    }
+    showToast('Tous les messages ont été supprimés.');
+    const badgeEl = document.getElementById('adminMessagesCountText');
+    if (badgeEl) badgeEl.textContent = 0;
+    const statEl = document.getElementById('statTotalMessages');
+    if (statEl) statEl.textContent = 0;
+  } catch (e) {
+    window.adminMessagesList = previousList;
+    renderAdminMessages(window.adminMessagesList);
+    showToast('Erreur lors de la suppression.');
+  }
+}
+window.handleAdminDeleteAllMessages = handleAdminDeleteAllMessages;
 
 // ---------------- ADMIN REVIEWS MANAGEMENT ----------------
 async function loadAdminReviews() {

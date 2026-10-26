@@ -1301,7 +1301,8 @@
                 <p style="font-size:0.82rem; color:var(--text-muted); margin:4px 0 0;">Traitement prioritaire des signalements et demandes de retrait de contenu.</p>
               </div>
               <div style="display:flex; gap:8px; align-items:center;">
-                <button class="btn btn-sm btn-secondary" onclick="loadAdminReports(); loadAdminStats();">Actualiser les signalements</button>
+                <button class="btn btn-sm btn-secondary" onclick="loadAdminReports(); loadAdminStats();">Actualiser</button>
+                <button class="btn btn-sm btn-danger-outline" onclick="handleAdminDeleteAllReports()" style="border:1px solid #ef4444;color:#ef4444;background:transparent;">Tout supprimer</button>
               </div>
             </div>
 
@@ -1333,7 +1334,10 @@
                 </h3>
                 <p style="font-size:0.82rem; color:var(--text-muted); margin:4px 0 0;">Messages envoyés par les visiteurs et membres via le formulaire de contact.</p>
               </div>
-              <button class="btn btn-sm btn-secondary" onclick="loadAdminMessages(); loadAdminStats();">Actualiser</button>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <button class="btn btn-sm btn-secondary" onclick="loadAdminMessages(); loadAdminStats();">Actualiser</button>
+                <button class="btn btn-sm btn-danger-outline" onclick="handleAdminDeleteAllMessages()" style="border:1px solid #ef4444;color:#ef4444;background:transparent;">Tout supprimer</button>
+              </div>
             </div>
 
             <div id="adminMessagesList" style="display:flex; flex-direction:column; gap:12px;">
@@ -3084,10 +3088,10 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-  <script src="/js/auth.js?v=7.0"></script>
-  <script src="/js/upload.js?v=7.0"></script>
-  <script src="/js/vip.js?v=7.0"></script>
-  <script src="/js/app.js?v=7.0"></script>
+  <script src="/js/auth.js?v=7.1"></script>
+  <script src="/js/upload.js?v=7.1"></script>
+  <script src="/js/vip.js?v=7.1"></script>
+  <script src="/js/app.js?v=7.1"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">

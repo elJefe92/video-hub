@@ -224,6 +224,10 @@ async function syncDbFromCloud(force = false) {
     if (!text || text.trim().length === 0) return null;
     const remoteDb = JSON.parse(text);
     if (remoteDb && Array.isArray(remoteDb.users) && remoteDb.users.length > 0) {
+      // Guard against stale CDN cache overwriting newer in-memory local modifications
+      if (memoryDb && memoryDb._updatedAt && remoteDb._updatedAt && remoteDb._updatedAt < memoryDb._updatedAt) {
+        return memoryDb;
+      }
       memoryDb = normalizeData(remoteDb);
       lastCloudDownload = Date.now();
       const targetPath = getDbPath();
@@ -241,6 +245,7 @@ async function syncDbFromCloud(force = false) {
 async function syncDbToCloud(data) {
   if (!supabase || !data) return;
   try {
+    data._updatedAt = Date.now();
     memoryDb = normalizeData(data);
     lastCloudDownload = Date.now();
     const targetPath = getDbPath();
@@ -251,6 +256,7 @@ async function syncDbToCloud(data) {
     const jsonStr = JSON.stringify(memoryDb, null, 2);
     const { error } = await supabase.storage.from('thumbnails').upload('videohub_db_state.json', jsonStr, {
       contentType: 'application/json',
+      cacheControl: '0',
       upsert: true
     });
     if (error) {

@@ -3240,7 +3240,21 @@ app.delete('/api/admin/reports/:id', requireAdmin, async (req, res) => {
 
   addLog('Suppression Signalement', `Signalement #${repId} supprimé définitivement par Admin`);
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-  res.json({ success: true, message: 'Signalement supprimé définitivement.' });
+  res.json({ success: true, message: 'Signalement supprimé définitivement.', reports: db.reports });
+});
+
+// Purger tous les signalements
+app.delete('/api/admin/reports', requireAdmin, async (req, res) => {
+  await syncDbFromCloud(true);
+  const db = loadDb();
+  const count = (db.reports || []).length;
+  db.reports = [];
+  saveDb(db);
+  await syncDbToCloud(db);
+
+  addLog('Purger Signalements', `${count} signalement(s) purgé(s) par Admin`);
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.json({ success: true, message: 'Tous les signalements ont été supprimés.', reports: [] });
 });
 
 app.post('/api/admin/reports/:id/resolve', requireAdmin, async (req, res) => {
@@ -3334,7 +3348,20 @@ app.delete('/api/admin/messages/:id', requireAdmin, async (req, res) => {
   saveDb(db);
   await syncDbToCloud(db);
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-  res.json({ success: true, message: 'Message supprimé avec succès.' });
+  res.json({ success: true, message: 'Message supprimé avec succès.', messages: db.contactMessages });
+});
+
+// Purger tous les messages de contact
+app.delete('/api/admin/messages', requireAdmin, async (req, res) => {
+  await syncDbFromCloud(true);
+  const db = loadDb();
+  const count = (db.contactMessages || []).length;
+  db.contactMessages = [];
+  saveDb(db);
+  await syncDbToCloud(db);
+  addLog('Purger Messages', `${count} message(s) supprimé(s) par Admin`);
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.json({ success: true, message: 'Tous les messages ont été supprimés.', messages: [] });
 });
 
 // Purger l'historique des logs admin
