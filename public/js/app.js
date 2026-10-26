@@ -1104,7 +1104,7 @@ function renderVideoCard(v) {
 
         <div class="video-card-pub-row">
           <span>${formattedDate ? 'Publiée le ' + formattedDate : 'Récemment'}</span>
-          <span>${(v.views || 0).toLocaleString()} vues · Note ${(v.rating || 5.0).toFixed(1)}/5</span>
+          <span>${(v.views || 0).toLocaleString()} ${(v.views || 0) > 1 ? 'vues' : 'vue'} · Note ${(v.rating || 5.0).toFixed(1)}/5</span>
         </div>
 
         <div class="video-stats-footer">
@@ -1679,6 +1679,35 @@ function attachVideoSource(player, playUrl) {
   }
 }
 
+async function recordVideoView(videoId) {
+  if (!videoId) return;
+  const sid = getVoterSessionId();
+  try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (AUTH && AUTH.token) headers['Authorization'] = `Bearer ${AUTH.token}`;
+    const res = await fetch(`/api/videos/${encodeURIComponent(videoId)}/view`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ sessionId: sid })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.views !== undefined) {
+        if (currentPlayingVideo && currentPlayingVideo.id === videoId) {
+          currentPlayingVideo.views = data.views;
+          const viewsEl = document.getElementById('modalVideoViews');
+          if (viewsEl) {
+            viewsEl.textContent = `${data.views.toLocaleString()} ${data.views > 1 ? 'vues' : 'vue'}`;
+          }
+        }
+        const v = (allVideosList || []).find(item => item.id === videoId);
+        if (v) v.views = data.views;
+      }
+    }
+  } catch (e) {}
+}
+window.recordVideoView = recordVideoView;
+
 async function openVideoPlayerModal(videoId) {
   let video = (allVideosList || []).find(v => v.id === videoId);
   if (!video && window.adminVideosList) {
@@ -1995,6 +2024,16 @@ async function openVideoPlayerModal(videoId) {
       });
     }
   }
+
+  const triggerViewCount = () => {
+    recordVideoView(video.id);
+  };
+  player.addEventListener('play', triggerViewCount, { once: true });
+  setTimeout(() => {
+    if (player && !player.paused && currentPlayingVideo && currentPlayingVideo.id === video.id) {
+      recordVideoView(video.id);
+    }
+  }, 2500);
 
   if (modal) modal.classList.remove('hidden');
   document.body.style.overflow = '';

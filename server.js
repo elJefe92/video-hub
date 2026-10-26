@@ -2160,11 +2160,60 @@ app.post('/api/videos/upload', optionalAuthenticate, uploadVideoMiddleware, asyn
   });
 });
 
-app.post('/api/videos/:id/like', (req, res) => {
+// In-memory cooldown map for video views: `${videoId}_${viewerKey}` -> timestamp
+const videoViewCooldowns = new Map();
+const VIEW_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes between counted views per viewer
+
+app.post('/api/videos/:id/view', optionalAuthenticate, async (req, res) => {
+  const videoId = req.params.id;
+  const db = loadDb();
+  const video = (db.videos || []).find(v => v.id === videoId);
+  if (!video) {
+    return res.status(404).json({ error: 'Video introuvable.' });
+  }
+
+  // Determine viewer key (user ID, session ID, or IP)
+  const sessionId = (req.body?.sessionId || req.query.sessionId || '').toString().trim().slice(0, 64);
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  const viewerKey = req.user ? `u_${req.user.id}` : (sessionId ? `s_${sessionId}` : `ip_${clientIp}`);
+  const cooldownKey = `${videoId}_${viewerKey}`;
+
+  const now = Date.now();
+  const lastViewTime = videoViewCooldowns.get(cooldownKey) || 0;
+
+  if (now - lastViewTime < VIEW_COOLDOWN_MS) {
+    return res.json({ success: true, views: video.views || 1, counted: false });
+  }
+
+  videoViewCooldowns.set(cooldownKey, now);
+
+  if (videoViewCooldowns.size > 10000) {
+    for (const [k, ts] of videoViewCooldowns.entries()) {
+      if (now - ts > VIEW_COOLDOWN_MS) videoViewCooldowns.delete(k);
+    }
+  }
+
+  video.views = (video.views || 0) + 1;
+
+  if (video.authorId) {
+    computeCreatorBadge(video.authorId, db);
+  }
+
+  saveDb(db);
+  await syncDbToCloud(db);
+
+  res.json({
+    success: true,
+    views: video.views,
+    counted: true
+  });
+});
+
+app.post('/api/videos/:id/like', optionalAuthenticate, async (req, res) => {
   const db = loadDb();
   const video = db.videos.find(v => v.id === req.params.id);
   if (!video) {
-    return res.status(404).json({ error: 'Vidéo non trouvée.' });
+    return res.status(404).json({ error: 'Video non trouvee.' });
   }
   video.likes = (video.likes || 0) + 1;
 
@@ -2174,7 +2223,7 @@ app.post('/api/videos/:id/like', (req, res) => {
   if (video.likes >= VIP_LIKE_THRESHOLD && !video.isVipExclusive) {
     video.isVipExclusive = true;
     convertedToVip = true;
-    addLog('Conversion VIP Automatique', `La vidéo "${video.title}" a atteint ${video.likes} mentions J'aime et est automatiquement passée en Contenu Exclusif VIP.`);
+    addLog('Conversion VIP Automatique', `La video "${video.title}" a atteint ${video.likes} mentions J'aime et est automatiquement passee en Contenu Exclusif VIP.`);
   }
 
   // Notify author of the like (if different user)
@@ -2190,6 +2239,8 @@ app.post('/api/videos/:id/like', (req, res) => {
   if (video.authorId) computeCreatorBadge(video.authorId, db);
 
   saveDb(db);
+  await syncDbToCloud(db);
+
   res.json({
     likes: video.likes,
     isVipExclusive: !!video.isVipExclusive,
