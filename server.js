@@ -1756,15 +1756,21 @@ app.get('/api/videos', async (req, res) => {
       }
     }
 
-    scored.sort((a, b) => b.score - a.score);
+    if (req.query.sort === 'views') {
+      scored.sort((a, b) => ((b.video.views || 0) - (a.video.views || 0)) || (b.score - a.score));
+    } else if (req.query.sort === 'likes') {
+      scored.sort((a, b) => ((b.video.likes || 0) - (a.video.likes || 0)) || (b.score - a.score));
+    } else {
+      scored.sort((a, b) => b.score - a.score);
+    }
     list = scored.map(item => item.video);
   } else {
     // Sort: recent (default), views, likes (when no search query is specified)
     const sort = req.query.sort || 'recent';
     if (sort === 'views') {
-      list.sort((a, b) => (b.views || 0) - (a.views || 0));
+      list.sort((a, b) => ((b.views || 0) - (a.views || 0)) || (new Date(b.createdAt) - new Date(a.createdAt)));
     } else if (sort === 'likes') {
-      list.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+      list.sort((a, b) => ((b.likes || 0) - (a.likes || 0)) || (new Date(b.createdAt) - new Date(a.createdAt)));
     } else {
       // Default: VIP authors first, then by date
       list.sort((a, b) => {

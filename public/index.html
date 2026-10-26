@@ -1833,7 +1833,7 @@
 
               <!-- Meta info (Vues, Région, Note, HD) -->
               <div class="modal-meta-row">
-                <span class="modal-meta-pill">
+                <span class="modal-meta-pill" id="modalVideoViewsPill">
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   <span id="modalVideoViews">0 vues</span>
                 </span>
@@ -2850,7 +2850,7 @@
             <div id="publicProfileVideosCount" style="font-size: 1.2rem; font-weight: 800; color: var(--primary);">0</div>
             <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Vidéos</div>
           </div>
-          <div style="background: var(--bg-subtle); border: 1px solid var(--border-color); padding: 12px 8px; border-radius: 10px;">
+          <div id="publicProfileViewsBox" style="background: var(--bg-subtle); border: 1px solid var(--border-color); padding: 12px 8px; border-radius: 10px;">
             <div id="publicProfileViewsCount" style="font-size: 1.2rem; font-weight: 800; color: var(--text-main);">0</div>
             <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Vues totales</div>
           </div>
@@ -3084,10 +3084,10 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-  <script src="/js/auth.js?v=6.9"></script>
-  <script src="/js/upload.js?v=6.9"></script>
-  <script src="/js/vip.js?v=6.9"></script>
-  <script src="/js/app.js?v=6.9"></script>
+  <script src="/js/auth.js?v=7.0"></script>
+  <script src="/js/upload.js?v=7.0"></script>
+  <script src="/js/vip.js?v=7.0"></script>
+  <script src="/js/app.js?v=7.0"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">

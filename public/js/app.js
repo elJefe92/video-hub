@@ -673,8 +673,13 @@ function filterByCategory(catId, shouldPushHistory = true) {
 
   const heading = document.getElementById('feedHeading');
   const found = (allCategoriesList || []).find(c => c.id === catId);
-  if (heading && found) {
-    heading.textContent = `${found.name}`;
+  const currentSort = document.getElementById('filterSort')?.value || 'recent';
+  if (heading) {
+    if (found) {
+      heading.textContent = currentSort === 'views' ? `${found.name} - Plus vues` : found.name;
+    } else {
+      heading.textContent = currentSort === 'views' ? 'Vidéos les plus vues' : 'Vidéos récentes';
+    }
   }
 
   if (shouldPushHistory) {
@@ -890,6 +895,28 @@ function handleSearchInput() {
 
 function applyAdvancedFilters() {
   currentFeedPage = 1;
+  const sort = document.getElementById('filterSort')?.value || 'recent';
+  const heading = document.getElementById('feedHeading');
+  if (heading) {
+    const foundCat = (allCategoriesList || []).find(c => c.id === activeCategory);
+    if (activeCategory && activeCategory !== 'all' && foundCat) {
+      if (sort === 'views') {
+        heading.textContent = `${foundCat.name} - Plus vues`;
+      } else if (sort === 'likes') {
+        heading.textContent = `${foundCat.name} - Plus aimées`;
+      } else {
+        heading.textContent = `${foundCat.name}`;
+      }
+    } else {
+      if (sort === 'views') {
+        heading.textContent = 'Vidéos les plus vues';
+      } else if (sort === 'likes') {
+        heading.textContent = 'Vidéos les plus aimées';
+      } else {
+        heading.textContent = 'Vidéos récentes';
+      }
+    }
+  }
   loadVideos();
 }
 
@@ -900,16 +927,22 @@ function resetAdvancedFilters() {
   if (s) s.value = '';
   if (r) r.value = '';
   if (so) so.value = 'recent';
+  const heading = document.getElementById('feedHeading');
+  if (heading) {
+    const foundCat = (allCategoriesList || []).find(c => c.id === activeCategory);
+    heading.textContent = (activeCategory && activeCategory !== 'all' && foundCat) ? foundCat.name : 'Vidéos récentes';
+  }
   currentFeedPage = 1;
   loadVideos();
 }
 
 function getAdvancedFilterParams(cat) {
+  const currentCat = cat !== undefined ? cat : activeCategory;
   const params = new URLSearchParams();
   const q = document.getElementById('searchInput')?.value?.trim();
   const region = document.getElementById('filterRegion')?.value;
   const sort = document.getElementById('filterSort')?.value || 'recent';
-  if (cat && cat !== 'all') params.set('category', cat);
+  if (currentCat && currentCat !== 'all') params.set('category', currentCat);
   if (q) params.set('q', q);
   if (region) params.set('region', region);
   params.set('sort', sort);
@@ -938,7 +971,7 @@ function renderSkeletonCards(containerId = 'videoGrid', count = 8) {
   container.innerHTML = cards.join('');
 }
 
-async function loadVideos(cat = 'all', searchQuery = '') {
+async function loadVideos(cat = activeCategory, searchQuery = '') {
   try {
     const grid = document.getElementById('videoGrid');
     if (grid && (!allVideosList || allVideosList.length === 0)) {
@@ -1104,7 +1137,7 @@ function renderVideoCard(v) {
 
         <div class="video-card-pub-row">
           <span>${formattedDate ? 'Publiée le ' + formattedDate : 'Récemment'}</span>
-          <span>${(v.views || 0).toLocaleString()} ${(v.views || 0) > 1 ? 'vues' : 'vue'} · Note ${(v.rating || 5.0).toFixed(1)}/5</span>
+          <span>${(typeof AUTH !== 'undefined' && AUTH.isAdmin && AUTH.isAdmin()) ? `<strong style="color:var(--primary);font-weight:700;">${(v.views || 0).toLocaleString()} ${(v.views || 0) > 1 ? 'vues' : 'vue'}</strong> · ` : ''}Note ${(v.rating || 5.0).toFixed(1)}/5</span>
         </div>
 
         <div class="video-stats-footer">
@@ -1266,7 +1299,7 @@ function handleCategorySearch(val) {
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="var(--primary)" stroke="var(--primary)" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
                 ${highlightSearchMatch(v.title, query)}
               </span>
-              <span class="cat-suggestion-count">${(v.views || 0)} vues</span>
+              <span class="cat-suggestion-count">${(typeof AUTH !== 'undefined' && AUTH.isAdmin && AUTH.isAdmin()) ? `${(v.views || 0)} vues` : (v.duration || 'Vidéo')}</span>
             </div>
           `).join('');
         }
@@ -1696,8 +1729,8 @@ async function recordVideoView(videoId) {
         if (currentPlayingVideo && currentPlayingVideo.id === videoId) {
           currentPlayingVideo.views = data.views;
           const viewsEl = document.getElementById('modalVideoViews');
-          if (viewsEl) {
-            viewsEl.textContent = `${data.views.toLocaleString()} ${data.views > 1 ? 'vues' : 'vue'}`;
+          if (viewsEl && typeof AUTH !== 'undefined' && AUTH.isAdmin && AUTH.isAdmin()) {
+            viewsEl.textContent = `${data.views.toLocaleString()} ${data.views > 1 ? 'vues' : 'vue'} (Admin)`;
           }
         }
         const v = (allVideosList || []).find(item => item.id === videoId);
@@ -1814,9 +1847,19 @@ async function openVideoPlayerModal(videoId) {
   if (dateEl) {
     dateEl.textContent = formatTimeAgo(video.createdAt);
   }
-  if (viewsEl) {
+  const viewsPill = document.getElementById('modalVideoViewsPill') || (viewsEl ? viewsEl.closest('.modal-meta-pill') : null);
+  if (viewsPill) {
+    if (typeof AUTH !== 'undefined' && AUTH.isAdmin && AUTH.isAdmin()) {
+      viewsPill.classList.remove('hidden');
+      viewsPill.style.display = 'inline-flex';
+    } else {
+      viewsPill.classList.add('hidden');
+      viewsPill.style.display = 'none';
+    }
+  }
+  if (viewsEl && typeof AUTH !== 'undefined' && AUTH.isAdmin && AUTH.isAdmin()) {
     const vCount = video.views || 1;
-    viewsEl.textContent = `${vCount.toLocaleString()} ${vCount > 1 ? 'vues' : 'vue'}`;
+    viewsEl.textContent = `${vCount.toLocaleString()} ${vCount > 1 ? 'vues' : 'vue'} (Admin)`;
   }
   if (regionEl) {
     regionEl.textContent = `${video.region || 'France'}`;
@@ -2336,7 +2379,7 @@ async function loadSimilarVideos(videoId) {
         </div>
         <div class="similar-info-body">
           <span class="similar-title" title="${v.title}">${v.title}</span>
-          <span class="similar-author">${v.authorName} • ${v.views || 1}</span>
+          <span class="similar-author">${escapeHtml(v.authorName || 'Anonyme')}${(typeof AUTH !== 'undefined' && AUTH.isAdmin && AUTH.isAdmin()) ? ` • ${(v.views || 0).toLocaleString()} vues` : ''}</span>
         </div>
       </div>
     `).join('');
@@ -5208,6 +5251,11 @@ async function openPublicUserProfile(userIdOrUsername) {
     }
 
 
+    const canSeeViews = typeof AUTH !== 'undefined' && ((AUTH.isAdmin && AUTH.isAdmin()) || (AUTH.user && AUTH.user.id === profile.id));
+    const viewsBox = document.getElementById('publicProfileViewsBox');
+    if (viewsBox) {
+      viewsBox.style.display = canSeeViews ? 'block' : 'none';
+    }
     if (videosCountEl) videosCountEl.textContent = profile.videosCount || 0;
     if (viewsCountEl) viewsCountEl.textContent = (profile.totalViews || 0).toLocaleString();
     if (memberSinceEl) {
@@ -5223,8 +5271,8 @@ async function openPublicUserProfile(userIdOrUsername) {
           <div style="cursor:pointer; border-radius:8px; overflow:hidden; background:var(--bg-subtle); border:1px solid var(--border-color);" onclick="closeUserProfileModal(); openVideoPlayerModal('${v.id}')">
             <img src="${v.thumbnail || 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300'}" style="width:100%; height:75px; object-fit:cover; display:block;">
             <div style="padding:6px 8px;">
-              <div style="font-size:0.76rem; font-weight:700; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${v.title}</div>
-              <div style="font-size:0.68rem; color:var(--text-muted);">${v.views || 0} vues</div>
+              <div style="font-size:0.76rem; font-weight:700; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(v.title)}</div>
+              <div style="font-size:0.68rem; color:var(--text-muted);">${canSeeViews ? `${(v.views || 0).toLocaleString()} vues` : (v.duration || '0:30')}</div>
             </div>
           </div>
         `).join('');
