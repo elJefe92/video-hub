@@ -2957,16 +2957,20 @@ app.delete('/api/admin/videos/:id', requireAdmin, async (req, res) => {
 });
 
 app.put('/api/admin/videos/:id', requireAdmin, async (req, res) => {
-  const { title, description, category, categories, thumbnail, isVipExclusive, vipPreviewStart, vipPreviewDuration } = req.body;
+  const { title, description, category, categories, thumbnail, isVipExclusive, vipPreviewStart, vipPreviewDuration, views } = req.body;
   await syncDbFromCloud(true);
   const db = loadDb();
   const video = db.videos.find(v => v.id === req.params.id);
   if (!video) {
-    return res.status(404).json({ error: 'Vidéo introuvable.' });
+    return res.status(404).json({ error: 'Video introuvable.' });
   }
 
   if (title) video.title = title.trim();
   if (description !== undefined) video.description = description.trim();
+  if (views !== undefined && !isNaN(parseInt(views, 10))) {
+    video.views = Math.max(0, parseInt(views, 10));
+    if (video.authorId) computeCreatorBadge(video.authorId, db);
+  }
   
   if (isVipExclusive !== undefined) {
     video.isVipExclusive = Boolean(isVipExclusive);

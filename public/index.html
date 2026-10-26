@@ -2597,6 +2597,12 @@
           <textarea id="editVideoDesc" class="form-textarea" rows="3"></textarea>
         </div>
 
+        <div class="form-group">
+          <label for="editVideoViews" class="form-label">Nombre de vues</label>
+          <input type="number" id="editVideoViews" class="form-input" min="0" placeholder="1" style="max-width:200px;">
+          <small style="color:var(--text-muted);font-size:0.75rem;">Ajustez manuellement le compteur de vues de cette vidéo.</small>
+        </div>
+
         <!-- VIP Teaser Configuration -->
         <div class="form-group" style="background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:14px;margin-top:12px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -3078,10 +3084,10 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-  <script src="/js/auth.js?v=6.8"></script>
-  <script src="/js/upload.js?v=6.8"></script>
-  <script src="/js/vip.js?v=6.8"></script>
-  <script src="/js/app.js?v=6.8"></script>
+  <script src="/js/auth.js?v=6.9"></script>
+  <script src="/js/upload.js?v=6.9"></script>
+  <script src="/js/vip.js?v=6.9"></script>
+  <script src="/js/app.js?v=6.9"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">

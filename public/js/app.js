@@ -4720,6 +4720,8 @@ async function openAdminEditModal(videoId) {
   document.getElementById('editVideoId').value = v.id;
   document.getElementById('editVideoTitle').value = v.title;
   document.getElementById('editVideoDesc').value = v.description || '';
+  const viewsEl = document.getElementById('editVideoViews');
+  if (viewsEl) viewsEl.value = v.views !== undefined ? v.views : 1;
 
   const isVipExEl = document.getElementById('editVideoIsVipExclusive');
   const vipStartEl = document.getElementById('editVideoVipPreviewStart');
@@ -4981,6 +4983,8 @@ async function saveAdminVideoEdit(e) {
   const isVipExclusive = Boolean(document.getElementById('editVideoIsVipExclusive')?.checked);
   const vipPreviewStart = Math.max(0, parseInt(document.getElementById('editVideoVipPreviewStart')?.value, 10) || 0);
   const vipPreviewDuration = Math.max(5, parseInt(document.getElementById('editVideoVipPreviewDuration')?.value, 10) || 15);
+  const viewsVal = document.getElementById('editVideoViews')?.value;
+  const views = viewsVal !== '' ? parseInt(viewsVal, 10) : undefined;
 
   const selectedCheckboxes = document.querySelectorAll('#editVideoCategoriesMultiSelect input[type="checkbox"]:checked');
   const categories = Array.from(selectedCheckboxes).map(cb => cb.value);
@@ -5005,7 +5009,8 @@ async function saveAdminVideoEdit(e) {
         thumbnail,
         isVipExclusive,
         vipPreviewStart,
-        vipPreviewDuration
+        vipPreviewDuration,
+        views
       })
     });
 
