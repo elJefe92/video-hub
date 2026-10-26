@@ -1342,7 +1342,7 @@ app.get('/api/user/favorites', authenticate, async (req, res) => {
   const db = loadDb();
   const userRecord = db.users.find(u => u.id === user.id);
   const favoriteIds = userRecord?.favorites || [];
-  const favoriteVideos = (db.videos || []).filter(v => favoriteIds.includes(v.id));
+  const favoriteVideos = (db.videos || []).filter(v => favoriteIds.includes(v.id)).map(v => resolveVideoThumbnail(v));
   res.json({ favorites: favoriteIds, videos: favoriteVideos });
 });
 
@@ -2289,6 +2289,7 @@ app.post('/api/videos/:id/rate', optionalAuthenticate, async (req, res) => {
   const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
   const rawSession = (req.body.sessionId || req.headers['x-voter-session'] || '').toString().trim().slice(0, 64);
   const voterKey = req.user ? ('u_' + req.user.id) : (rawSession ? ('s_' + rawSession) : ('ip_' + clientIp));
+  const ipKey = clientIp && clientIp !== 'unknown' ? ('ip_' + clientIp) : null;
 
   if (!video.ratings || typeof video.ratings !== 'object') {
     video.ratings = {};
@@ -2299,6 +2300,11 @@ app.post('/api/videos/:id/rate', optionalAuthenticate, async (req, res) => {
   if (existingRating === undefined && req.user && video.ratings[req.user.id] !== undefined) {
     existingRating = video.ratings[req.user.id];
     legacyKey = req.user.id;
+  }
+  // IP protection: prevent user from bypassing vote limits by clearing session or private browsing
+  if (existingRating === undefined && ipKey && video.ratings[ipKey] !== undefined) {
+    existingRating = video.ratings[ipKey];
+    legacyKey = ipKey;
   }
 
   if (existingRating !== undefined) {
@@ -2318,6 +2324,9 @@ app.post('/api/videos/:id/rate', optionalAuthenticate, async (req, res) => {
       delete video.ratings[legacyKey];
     }
     video.ratings[voterKey] = ratingValue;
+    if (ipKey) {
+      video.ratings[ipKey] = ratingValue;
+    }
     const currentSum = (typeof video.ratingSum === 'number' && !isNaN(video.ratingSum))
       ? video.ratingSum
       : (video.rating ? video.rating * (video.ratingCount || 1) : oldRating);
@@ -2338,8 +2347,11 @@ app.post('/api/videos/:id/rate', optionalAuthenticate, async (req, res) => {
     });
   }
 
-  // First vote by this session / user on this video
+  // First vote by this session / IP / user on this video
   video.ratings[voterKey] = ratingValue;
+  if (ipKey) {
+    video.ratings[ipKey] = ratingValue;
+  }
   video.ratingCount = (video.ratingCount || 0) + 1;
   const currentSum = (typeof video.ratingSum === 'number' && !isNaN(video.ratingSum))
     ? video.ratingSum
@@ -2751,7 +2763,9 @@ app.get('/api/videos/:id/similar', (req, res) => {
     (video.categories || [video.category]).filter(Boolean).map(c => c.toLowerCase())
   );
 
-  const approved = (db.videos || []).filter(v => v.status === 'approved' && v.id !== video.id);
+  const approved = (db.videos || [])
+    .filter(v => v.status === 'approved' && v.id !== video.id)
+    .map(v => resolveVideoThumbnail(v));
 
   const scored = approved.map(v => {
     let score = 0;

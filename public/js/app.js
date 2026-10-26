@@ -2190,7 +2190,7 @@ function updateRatingUI(rating, count, videoId, ratingsMap = null, directUserRat
   const feedbackEl = document.getElementById('modalRatingFeedback');
   if (feedbackEl) {
     if (userVote !== null) {
-      feedbackEl.textContent = `Votre note attribuée : ${userVote}/5. (Cliquez pour modifier)`;
+      feedbackEl.textContent = `Votre note enregistrée : ${userVote}/5 (1 seul vote par personne).`;
       feedbackEl.classList.add('visible');
     } else {
       feedbackEl.textContent = '';
@@ -2285,7 +2285,7 @@ async function rateCurrentVideo(val) {
   }
 
   if (currentVote === val) {
-    showToast(`Vous avez déjà attribué la note de ${val}/5 à cette vidéo.`);
+    showToast(`Votre note de ${val}/5 est déjà enregistrée. Chaque visiteur ne peut voter qu'une seule fois.`);
     return;
   }
 
@@ -2341,7 +2341,7 @@ async function rateCurrentVideo(val) {
 
     const feedbackEl = document.getElementById('modalRatingFeedback');
     if (feedbackEl) {
-      feedbackEl.textContent = data.message || `Votre note de ${val}/5 a été enregistrée avec succès !`;
+      feedbackEl.textContent = data.message || `Votre note de ${val}/5 est enregistrée (1 seul vote par personne) !`;
       feedbackEl.classList.add('visible');
     }
 
@@ -2371,18 +2371,27 @@ async function loadSimilarVideos(videoId) {
       return;
     }
 
-    grid.innerHTML = similar.map(v => `
-      <div class="similar-video-card" onclick="openVideoPlayerModal('${v.id}')">
-        <div class="similar-thumb-wrap">
-          <img src="${v.thumbnail}" alt="${v.title}" class="similar-thumb-img" loading="lazy">
-          <span class="video-duration-badge">${v.duration || '0:30'}</span>
+    grid.innerHTML = similar.map(v => {
+      let thumb = v.thumbnail;
+      if ((!thumb || thumb.startsWith('/uploads/')) && v.bunnyVideoId) {
+        thumb = `https://vz-26486efc-bfb.b-cdn.net/${v.bunnyVideoId}/thumbnail.jpg`;
+      }
+      if (!thumb || thumb.startsWith('/uploads/')) {
+        thumb = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300';
+      }
+      return `
+        <div class="similar-video-card" onclick="openVideoPlayerModal('${v.id}')">
+          <div class="similar-thumb-wrap">
+            <img src="${thumb}" alt="${escapeHtml(v.title)}" class="similar-thumb-img" loading="lazy" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300'">
+            <span class="video-duration-badge">${v.duration || '0:30'}</span>
+          </div>
+          <div class="similar-info-body">
+            <span class="similar-title" title="${escapeHtml(v.title)}">${escapeHtml(v.title)}</span>
+            <span class="similar-author">${escapeHtml(v.authorName || 'Anonyme')}${(typeof AUTH !== 'undefined' && AUTH.isAdmin && AUTH.isAdmin()) ? ` • ${(v.views || 0).toLocaleString()} vues` : ''}</span>
+          </div>
         </div>
-        <div class="similar-info-body">
-          <span class="similar-title" title="${v.title}">${v.title}</span>
-          <span class="similar-author">${escapeHtml(v.authorName || 'Anonyme')}${(typeof AUTH !== 'undefined' && AUTH.isAdmin && AUTH.isAdmin()) ? ` • ${(v.views || 0).toLocaleString()} vues` : ''}</span>
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   } catch (err) {
     grid.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;grid-column:1/-1;">Impossible de charger les vidéos similaires.</div>';
   }
