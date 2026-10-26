@@ -1058,7 +1058,7 @@ function renderVideoCard(v) {
   const isFav = isFavorite(v.id);
   let thumbSrc = v.thumbnail;
   if ((!thumbSrc || thumbSrc.startsWith('/uploads/')) && v.bunnyVideoId) {
-    thumbSrc = `https://vz-789547.b-cdn.net/${v.bunnyVideoId}/thumbnail.jpg`;
+    thumbSrc = `https://vz-26486efc-bfb.b-cdn.net/${v.bunnyVideoId}/thumbnail.jpg`;
   }
   if (!thumbSrc) {
     thumbSrc = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=640';
@@ -1643,6 +1643,18 @@ function attachVideoSource(player, playUrl) {
 
   const isHls = /\.m3u8($|\?)/i.test(playUrl);
 
+  const fallbackToMp4 = () => {
+    if (playUrl && playUrl.includes('/playlist.m3u8')) {
+      const mp4Url = playUrl.replace('/playlist.m3u8', '/play_720p.mp4');
+      if (player.src !== mp4Url) {
+        console.log('Basculement automatique vers la source MP4 Bunny:', mp4Url);
+        player.src = mp4Url;
+        player.load();
+        player.play().catch(() => {});
+      }
+    }
+  };
+
   if (isHls && !player.canPlayType('application/vnd.apple.mpegurl') && window.Hls && window.Hls.isSupported()) {
     const hls = new window.Hls({
       enableWorker: true,
@@ -1650,9 +1662,19 @@ function attachVideoSource(player, playUrl) {
     });
     hls.loadSource(playUrl);
     hls.attachMedia(player);
+    hls.on(window.Hls.Events.ERROR, (event, data) => {
+      if (data.fatal) {
+        console.warn('HLS Fatal Error, fallback MP4:', data);
+        fallbackToMp4();
+      }
+    });
     window._currentHlsInstance = hls;
   } else {
     player.src = playUrl;
+    player.onerror = () => {
+      console.warn('Erreur lecture native Safari, tentative MP4 direct...');
+      fallbackToMp4();
+    };
     player.load();
   }
 }
@@ -3744,7 +3766,7 @@ function renderAdminOnlineVideos(videos) {
   container.innerHTML = videos.map(v => {
     let thumb = v.thumbnail;
     if ((!thumb || thumb.startsWith('/uploads/')) && v.bunnyVideoId) {
-      thumb = `https://vz-789547.b-cdn.net/${v.bunnyVideoId}/thumbnail.jpg`;
+      thumb = `https://vz-26486efc-bfb.b-cdn.net/${v.bunnyVideoId}/thumbnail.jpg`;
     }
     if (!thumb) thumb = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300';
 
@@ -4369,7 +4391,7 @@ async function loadAdminVideos() {
     listContainer.innerHTML = list.map(v => {
       let thumb = v.thumbnail;
       if ((!thumb || thumb.startsWith('/uploads/')) && v.bunnyVideoId) {
-        thumb = `https://vz-789547.b-cdn.net/${v.bunnyVideoId}/thumbnail.jpg`;
+        thumb = `https://vz-26486efc-bfb.b-cdn.net/${v.bunnyVideoId}/thumbnail.jpg`;
       }
       if (!thumb) thumb = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300';
       const cats = (v.categories && Array.isArray(v.categories) && v.categories.length > 0) ? v.categories : [v.category];
@@ -4403,7 +4425,7 @@ async function loadAdminVideos() {
 
           <div class="pending-actions">
             ${v.status === 'pending' ? `
-              <button class="btn btn-sm btn-success" onclick="approveVideo('${v.id}')">Valider</button>
+              <button class="btn btn-sm btn-success" onclick="approveVideo('${v.id}', event)">Valider</button>
             ` : ''}
             <button class="btn btn-sm ${v.isDailyFeatured ? 'btn-warning' : 'btn-secondary'}" onclick="toggleDailyFeatured('${v.id}')" title="Mettre en avant sur la page d'accueil">
               ${v.isDailyFeatured ? 'Retirer du Jour' : 'Sélection du Jour'}
@@ -4458,8 +4480,8 @@ async function toggleDailyFeatured(id) {
   }
 }
 
-async function approveVideo(id) {
-  const btn = window.event?.target || document.querySelector(`button[onclick*="approveVideo('${id}')"]`);
+async function approveVideo(id, evt) {
+  const btn = evt?.target || (typeof event !== 'undefined' ? event?.target : null) || document.querySelector(`button[onclick*="approveVideo('${id}')"]`);
   let originalHtml = '';
   if (btn) {
     originalHtml = btn.innerHTML;
@@ -4485,17 +4507,14 @@ async function approveVideo(id) {
       return;
     }
 
-    showToast(data.message || 'Vidéo validée et publiée sur le site !');
+    showToast(data.message || 'Video validee et publiee sur le site !');
 
     // Optimistically update card in UI
     const card = btn?.closest('.pending-card');
     if (card) {
-      const badge = card.querySelector('.badge-status-pill');
-      if (badge) {
-        badge.textContent = 'Validé';
-        badge.className = 'badge-status-pill approved';
-      }
-      if (btn) btn.remove();
+      card.style.opacity = '0.4';
+      card.style.transition = 'opacity 0.3s ease';
+      setTimeout(() => { if (card && card.parentNode) card.remove(); }, 350);
     }
 
     await loadAdminStats();
@@ -4673,7 +4692,7 @@ async function openAdminEditModal(videoId) {
   // Setup current thumbnail preview
   let curThumb = v.thumbnail;
   if ((!curThumb || curThumb.startsWith('/uploads/')) && v.bunnyVideoId) {
-    curThumb = `https://vz-789547.b-cdn.net/${v.bunnyVideoId}/thumbnail.jpg`;
+    curThumb = `https://vz-26486efc-bfb.b-cdn.net/${v.bunnyVideoId}/thumbnail.jpg`;
   }
   if (!curThumb) curThumb = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300';
 
@@ -4749,21 +4768,52 @@ function closeAdminEditModal(e) {
   if (modal) modal.classList.add('hidden');
 }
 
-function handleAdminCustomThumbPick(input) {
+function compressImageToDataUrl(file, maxWidth = 1280, maxHeight = 720, quality = 0.82) {
+  return new Promise((resolve) => {
+    if (!file) return resolve(null);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(e.target.result);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleAdminCustomThumbPick(input) {
   if (!input.files || !input.files[0]) return;
   const file = input.files[0];
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const dataUrl = e.target.result;
-    const thumbHiddenInput = document.getElementById('editVideoSelectedThumbnail');
-    const thumbPreviewImg = document.getElementById('adminCurrentThumbPreview');
-    const thumbStatusBadge = document.getElementById('adminThumbStatusBadge');
-    if (thumbHiddenInput) thumbHiddenInput.value = dataUrl;
-    if (thumbPreviewImg) thumbPreviewImg.src = dataUrl;
-    if (thumbStatusBadge) thumbStatusBadge.textContent = 'Image personnalisée importée';
-    showToast('Miniature sélectionnée depuis votre appareil.');
-  };
-  reader.readAsDataURL(file);
+  const thumbStatusBadge = document.getElementById('adminThumbStatusBadge');
+  if (thumbStatusBadge) thumbStatusBadge.textContent = 'Optimisation de la miniature...';
+
+  const dataUrl = await compressImageToDataUrl(file, 1280, 720, 0.82);
+  if (!dataUrl) {
+    showToast('Erreur lors de la lecture de l\'image.');
+    return;
+  }
+  const thumbHiddenInput = document.getElementById('editVideoSelectedThumbnail');
+  const thumbPreviewImg = document.getElementById('adminCurrentThumbPreview');
+  if (thumbHiddenInput) thumbHiddenInput.value = dataUrl;
+  if (thumbPreviewImg) thumbPreviewImg.src = dataUrl;
+  if (thumbStatusBadge) thumbStatusBadge.textContent = 'Image personnalisee prete';
+  showToast('Miniature optimisee et selectionnee.');
 }
 window.handleAdminCustomThumbPick = handleAdminCustomThumbPick;
 

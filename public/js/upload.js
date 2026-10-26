@@ -2,7 +2,37 @@
 
 let selectedCapturedThumbnailBlob = null;
 let customThumbnailFile = null;
+window._compressedCustomThumbnailBase64 = null;
 window._videoSnapshotsList = [];
+
+function compressImageToDataUrl(file, maxWidth = 1280, maxHeight = 720, quality = 0.82) {
+  return new Promise((resolve) => {
+    if (!file) return resolve(null);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth || height > maxHeight) {
+          const ratio = Math.min(maxWidth / width, maxHeight / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(e.target.result);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
 
 function previewVideoFile(input) {
   const file = input.files[0];
@@ -49,6 +79,7 @@ function removeVideoFile(e) {
 
   selectedCapturedThumbnailBlob = null;
   customThumbnailFile = null;
+  window._compressedCustomThumbnailBase64 = null;
   window._videoSnapshotsList = [];
 }
 
@@ -161,19 +192,28 @@ function selectThumbnailSnapshot(idx) {
   }
 }
 
-function handleCustomThumbnailPick(input) {
+async function handleCustomThumbnailPick(input) {
   if (!input.files || !input.files[0]) return;
-  customThumbnailFile = input.files[0];
+  const file = input.files[0];
+  customThumbnailFile = file;
   selectedCapturedThumbnailBlob = null;
+
+  const nameDisplay = document.getElementById('customThumbNameDisplay');
+  if (nameDisplay) {
+    nameDisplay.textContent = 'Optimisation de la miniature...';
+    nameDisplay.style.color = 'var(--primary)';
+  }
+
+  const compressed = await compressImageToDataUrl(file, 1280, 720, 0.82);
+  window._compressedCustomThumbnailBase64 = compressed;
 
   document.querySelectorAll('.thumb-snap-item').forEach(el => {
     el.classList.remove('active');
     el.querySelector('.thumb-snap-badge').textContent = 'Choisir';
   });
 
-  const nameDisplay = document.getElementById('customThumbNameDisplay');
   if (nameDisplay) {
-    nameDisplay.textContent = `Image personnalisée : ${customThumbnailFile.name}`;
+    nameDisplay.textContent = `Image personnalisee : ${file.name}`;
     nameDisplay.style.color = '#10b981';
   }
 }
@@ -281,18 +321,16 @@ async function handleVideoUpload(e) {
 
         // Extract thumbnail base64 if selected
         let customThumbnailBase64 = null;
-        if (selectedCapturedThumbnailBlob) {
+        if (window._compressedCustomThumbnailBase64) {
+          customThumbnailBase64 = window._compressedCustomThumbnailBase64;
+        } else if (selectedCapturedThumbnailBlob) {
           customThumbnailBase64 = await new Promise(r => {
             const reader = new FileReader();
             reader.onloadend = () => r(reader.result);
             reader.readAsDataURL(selectedCapturedThumbnailBlob);
           });
         } else if (thumbFileInput && thumbFileInput.files && thumbFileInput.files[0]) {
-          customThumbnailBase64 = await new Promise(r => {
-            const reader = new FileReader();
-            reader.onloadend = () => r(reader.result);
-            reader.readAsDataURL(thumbFileInput.files[0]);
-          });
+          customThumbnailBase64 = await compressImageToDataUrl(thumbFileInput.files[0], 1280, 720, 0.82);
         }
 
         const completeRes = await fetch('/api/videos/bunny-complete', {
@@ -303,7 +341,7 @@ async function handleVideoUpload(e) {
           },
           body: JSON.stringify({
             videoId: bunnyData.videoId,
-            title: title || `Vidéo (${region})`,
+            title: title || `Video (${region})`,
             description,
             email,
             uploaderEmail: email,
@@ -322,13 +360,22 @@ async function handleVideoUpload(e) {
         const completeData = await completeRes.json();
         if (!completeRes.ok) {
           showToast(completeData.error || 'Erreur lors de la finalisation');
+          if (btnSubmit) {
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = originalText;
+          }
           return;
         }
 
-        showToast(completeData.message || 'Votre vidéo a bien été reçue et transcodée.');
+        showToast(completeData.message || 'Votre video a bien ete mise en ligne et publiee sur le site !');
         document.getElementById('uploadForm').reset();
+        window._compressedCustomThumbnailBase64 = null;
         if (typeof autoFillUserCredentials === 'function') autoFillUserCredentials();
         removeVideoFile(e);
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = originalText;
+        }
         await loadVideos();
         if (typeof loadExplorerData === 'function') loadExplorerData();
         switchTab('accueil');

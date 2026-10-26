@@ -655,16 +655,21 @@ const upload = multer({
 });
 
 // Middleware for Auth
-function authenticate(req, res, next) {
+async function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Non authentifié. Veuillez vous connecter.' });
+    return res.status(401).json({ error: 'Non authentifie. Veuillez vous connecter.' });
   }
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    const db = loadDb();
-    const user = db.users.find(u => u.id === decoded.userId);
+    let db = loadDb();
+    let user = db.users.find(u => u.id === decoded.userId);
+    if (!user) {
+      await syncDbFromCloud(true);
+      db = loadDb();
+      user = db.users.find(u => u.id === decoded.userId);
+    }
     if (!user) {
       return res.status(401).json({ error: 'Utilisateur introuvable.' });
     }
@@ -676,19 +681,24 @@ function authenticate(req, res, next) {
     req.user = user;
     next();
   } catch (err) {
-    return res.status(401).json({ error: 'Session expirée ou jeton invalide.' });
+    return res.status(401).json({ error: 'Session expiree ou jeton invalide.' });
   }
 }
 
 // Optional Auth Helper (extracts user if valid Bearer token provided)
-function optionalAuthenticate(req, res, next) {
+async function optionalAuthenticate(req, res, next) {
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.split(' ')[1];
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
-      const db = loadDb();
-      const user = db.users.find(u => u.id === decoded.userId);
+      let db = loadDb();
+      let user = db.users.find(u => u.id === decoded.userId);
+      if (!user) {
+        await syncDbFromCloud(true);
+        db = loadDb();
+        user = db.users.find(u => u.id === decoded.userId);
+      }
       if (user) {
         if (user.email && user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') {
           user.role = 'admin';
@@ -702,10 +712,10 @@ function optionalAuthenticate(req, res, next) {
 }
 
 // Middleware for Admin only
-function requireAdmin(req, res, next) {
-  authenticate(req, res, () => {
+async function requireAdmin(req, res, next) {
+  await authenticate(req, res, () => {
     if (req.user.role !== 'admin' && req.user.email.toLowerCase() !== 'ia.project.pro2k26@gmail.com') {
-      return res.status(403).json({ error: 'Accès strictement réservé aux administrateurs.' });
+      return res.status(403).json({ error: 'Acces strictement reserve aux administrateurs.' });
     }
     next();
   });
@@ -1996,7 +2006,8 @@ app.post('/api/videos/bunny-complete', optionalAuthenticate, async (req, res) =>
     isVipAuthor: Boolean(req.user && req.user.isVip),
     category: parsedCategories[0],
     categories: parsedCategories,
-    status: isAdminUser ? 'approved' : 'pending',
+    status: (isAdminUser || !db.settings?.requireVideoModeration) ? 'approved' : 'pending',
+    publishedAt: (isAdminUser || !db.settings?.requireVideoModeration) ? new Date().toISOString() : null,
     views: 1,
     likes: 0,
     duration: "0:30",
@@ -2007,12 +2018,13 @@ app.post('/api/videos/bunny-complete', optionalAuthenticate, async (req, res) =>
   saveDb(db);
   await syncDbToCloud(db);
 
-  addLog('Dépôt Vidéo Bunny Stream', `Vidéo "${newVideo.title}" (${newVideo.region}) téléversée sur Bunny par ${resolvedEmail}`);
+  addLog('Depot Video Bunny Stream', `Video "${newVideo.title}" (${newVideo.region}) televersee sur Bunny par ${resolvedEmail}`);
 
+  const isApproved = newVideo.status === 'approved';
   res.status(201).json({
-    message: isAdminUser 
-      ? 'Votre vidéo a été mise en ligne et transcodée avec succès sur Bunny Stream !' 
-      : 'Votre vidéo a été envoyée avec succès sur nos serveurs de streaming ! Elle sera vérifiée et validée très rapidement.',
+    message: isApproved
+      ? 'Votre video a ete mise en ligne et publiee avec succes ! Le transcodage HD est en cours de finalisation.'
+      : 'Votre video a ete envoyee avec succes sur nos serveurs de streaming ! Elle sera verifiee et validee tres rapidement.',
     video: newVideo
   });
 });
@@ -2125,7 +2137,8 @@ app.post('/api/videos/upload', optionalAuthenticate, uploadVideoMiddleware, asyn
     isVipAuthor: Boolean(req.user && req.user.isVip),
     category: parsedCategories[0],
     categories: parsedCategories,
-    status: isAdminUser ? 'approved' : 'pending',
+    status: (isAdminUser || !db.settings?.requireVideoModeration) ? 'approved' : 'pending',
+    publishedAt: (isAdminUser || !db.settings?.requireVideoModeration) ? new Date().toISOString() : null,
     views: 1,
     likes: 0,
     duration: "0:30",
@@ -2136,12 +2149,13 @@ app.post('/api/videos/upload', optionalAuthenticate, uploadVideoMiddleware, asyn
   saveDb(db);
   await syncDbToCloud(db);
 
-  addLog('Dépôt Vidéo (Sans connexion)', `Vidéo "${newVideo.title}" (${newVideo.region}) déposée par ${resolvedEmail}`);
+  addLog('Depot Video', `Video "${newVideo.title}" (${newVideo.region}) deposee par ${resolvedEmail}`);
 
+  const isApproved = newVideo.status === 'approved';
   res.status(201).json({
-    message: isAdminUser 
-      ? 'Votre vidéo a été publiée directement ! ' 
-      : 'Votre vidéo a été envoyée avec succès ! Elle sera vérifiée et mise en ligne très rapidement par notre équipe. ',
+    message: isApproved 
+      ? 'Votre video a ete mise en ligne et publiee avec succes !' 
+      : 'Votre video a ete envoyee avec succes ! Elle sera verifiee et mise en ligne tres rapidement.',
     video: newVideo
   });
 });

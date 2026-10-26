@@ -59,12 +59,18 @@ const defaultData = {
       question: "Que contient l'abonnement VIP à 9,99€ ?",
       answer: "L'accès VIP à 9,99€ vous octroie : la publication en ultra haute définition (4K/HD), le badge VIP officiel, la mise en avant de vos vidéos en tête de flux et une navigation sans publicité."
     }
-  ]
+  ],
+  settings: {
+    requireVideoModeration: false
+  }
 };
 
 function normalizeData(db) {
   if (!db || typeof db !== 'object') {
     db = JSON.parse(JSON.stringify(defaultData));
+  }
+  if (!db.settings || typeof db.settings !== 'object') {
+    db.settings = { requireVideoModeration: false };
   }
   if (!Array.isArray(db.users)) db.users = [];
   if (!Array.isArray(db.categories)) db.categories = [];
