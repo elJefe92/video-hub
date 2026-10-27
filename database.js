@@ -113,6 +113,17 @@ function normalizeData(db) {
     if (!v.categories || !Array.isArray(v.categories)) {
       v.categories = v.category ? [v.category] : [];
     }
+    // Fix legacy placeholder 'tech' category
+    if (v.category === 'tech' || v.categories.includes('tech')) {
+      const lowerTitle = (v.title || '').toLowerCase();
+      if (lowerTitle.includes('renoi') || lowerTitle.includes('cul')) {
+        v.categories = ['gros_cul', 'snap', 'black', 'amateur_francais'];
+        v.category = 'gros_cul';
+      } else {
+        v.categories = ['amateur'];
+        v.category = 'amateur';
+      }
+    }
   });
 
   // Centralize all comments into db.comments and sync with videos

@@ -257,11 +257,18 @@ async function handleVideoUpload(e) {
     return;
   }
 
-  // Get selected categories from multi-select checkboxes
+  // Get selected categories from multi-select checkboxes (MANDATORY: 1 to 5 tags)
   const selectedCatCheckboxes = document.querySelectorAll('#uploadCategoriesMultiSelect input[type="checkbox"]:checked');
-  let selectedCategories = Array.from(selectedCatCheckboxes).map(cb => cb.value);
+  let selectedCategories = Array.from(selectedCatCheckboxes).map(cb => cb.value).filter(c => c && c !== 'all');
   if (selectedCategories.length === 0) {
-    selectedCategories = ['all'];
+    showToast('Veuillez sélectionner au moins une catégorie ou un tag pour votre vidéo.');
+    const catContainer = document.getElementById('uploadCategoriesMultiSelect');
+    if (catContainer) {
+      catContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      catContainer.style.outline = '2px solid var(--primary)';
+      setTimeout(() => { if (catContainer) catContainer.style.outline = ''; }, 2500);
+    }
+    return;
   }
 
   const btnSubmit = document.getElementById('btnSubmitVideo');

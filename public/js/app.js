@@ -644,8 +644,44 @@ function updateCategorySelectionCounter(containerPrefix) {
         badge.style.background = 'rgba(249, 115, 22, 0.12)';
       }
     }
+  } else if (containerPrefix === 'editCat') {
+    const container = document.getElementById('editVideoCategoriesMultiSelect');
+    const badge = document.getElementById('editCatCountBadge');
+    if (container && badge) {
+      const count = container.querySelectorAll('input[type="checkbox"]:checked').length;
+      badge.textContent = `${count} sélectionné${count > 1 ? 's' : ''}`;
+    }
   }
 }
+
+function filterEditCategories(query) {
+  const term = (query || '').trim().toLowerCase();
+  const container = document.getElementById('editVideoCategoriesMultiSelect');
+  if (!container) return;
+  const items = container.querySelectorAll('.multi-cat-item');
+  items.forEach(item => {
+    const text = (item.textContent || '').toLowerCase();
+    const checkbox = item.querySelector('input[type="checkbox"]');
+    if (!term || text.includes(term) || (checkbox && checkbox.checked)) {
+      item.style.display = '';
+    } else {
+      item.style.display = 'none';
+    }
+  });
+}
+window.filterEditCategories = filterEditCategories;
+
+function isCatSelected(cat, list) {
+  if (!cat || !list || !Array.isArray(list)) return false;
+  const catId = (cat.id || '').toLowerCase().trim();
+  const catName = (cat.name || '').toLowerCase().trim();
+  return list.some(item => {
+    if (!item) return false;
+    const s = item.toString().toLowerCase().trim();
+    return s === catId || s === catName || s.replace(/[\s\-]/g, '_') === catId || catId.replace(/[\s\-]/g, '_') === s;
+  });
+}
+window.isCatSelected = isCatSelected;
 
 function filterUploadCategories(query) {
   const term = (query || '').trim().toLowerCase();
@@ -4574,7 +4610,11 @@ async function loadAdminVideos() {
         thumb = `https://vz-26486efc-bfb.b-cdn.net/${v.bunnyVideoId}/thumbnail.jpg`;
       }
       if (!thumb) thumb = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300';
-      const cats = (v.categories && Array.isArray(v.categories) && v.categories.length > 0) ? v.categories : [v.category];
+      const cats = (v.categories && Array.isArray(v.categories) && v.categories.length > 0) ? v.categories : (v.category ? [v.category] : []);
+      const getCatBadgeName = (c) => {
+        const found = (allCategoriesList || []).find(cat => cat.id === c || cat.name === c);
+        return found ? found.name : c;
+      };
       return `
         <div class="pending-card">
           <div class="pending-thumb-wrap" onclick="openAdminEditModal('${v.id}')" style="cursor:pointer;" title="Cliquer pour changer la miniature de cette vidéo">
@@ -4597,7 +4637,7 @@ async function loadAdminVideos() {
               <span>${v.region || 'France'}</span> • 
               <span style="color:var(--primary);font-weight:700;">${(v.views || 0).toLocaleString()} vues</span> • 
               <span>Note ${(v.rating || 5.0).toFixed(1)}/5</span> • 
-              <span>${cats.map(c => `#${c}`).join(', ')}</span> • 
+              <span>${cats.map(c => `<span style="background:rgba(249,115,22,0.12);color:var(--primary);padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:700;display:inline-block;margin:2px 4px 2px 0;">#${escapeHtml(getCatBadgeName(c))}</span>`).join('')}</span> • 
               <span>${new Date(v.createdAt).toLocaleDateString()}</span>
             </div>
             <p class="pending-desc">${v.description || 'Aucune description rédigée.'}</p>
@@ -4914,19 +4954,23 @@ async function openAdminEditModal(videoId) {
   generateAdminVideoThumbnails(v.videoUrl);
 
   const editCatsContainer = document.getElementById('editVideoCategoriesMultiSelect');
-  const availableCats = allCategoriesList.filter(c => c.id !== 'all');
-  const videoCats = (v.categories && Array.isArray(v.categories)) ? v.categories : [v.category];
+  const availableCats = (allCategoriesList || []).filter(c => c.id !== 'all');
+  const videoCats = (v.categories && Array.isArray(v.categories) && v.categories.length > 0) ? v.categories : (v.category ? [v.category] : []);
+
+  const searchEl = document.getElementById('editCatSearchInput');
+  if (searchEl) searchEl.value = '';
 
   if (editCatsContainer) {
     editCatsContainer.innerHTML = availableCats.map(cat => {
-      const isChecked = videoCats.includes(cat.id);
+      const isChecked = isCatSelected(cat, videoCats);
       return `
         <label class="multi-cat-item ${isChecked ? 'selected' : ''}" id="editCat_label_${cat.id}">
           <input type="checkbox" value="${cat.id}" ${isChecked ? 'checked' : ''} onchange="toggleCatCheckboxStyle(this, 'editCat')">
-          <span>${cat.name}</span>
+          <span>${escapeHtml(cat.name)}</span>
         </label>
       `;
     }).join('');
+    updateCategorySelectionCounter('editCat');
   }
 
   const modal = document.getElementById('adminEditVideoModal');
@@ -6767,7 +6811,7 @@ async function openAdminEditTagsModal(videoId) {
 
   if (container) {
     container.innerHTML = availableCats.map(cat => {
-      const isChecked = currentCats.includes(cat.id);
+      const isChecked = isCatSelected(cat, currentCats);
       return `
         <label class="multi-cat-item ${isChecked ? 'selected' : ''}" id="adminEditTag_label_${cat.id}">
           <input type="checkbox" value="${cat.id}" ${isChecked ? 'checked' : ''} onchange="toggleCatCheckboxStyle(this, 'adminEditTag')">

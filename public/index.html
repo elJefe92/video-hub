@@ -598,7 +598,7 @@
                 </div>
               </div>
               <div style="position:relative;margin-bottom:10px;">
-                <input type="text" id="uploadCatSearchInput" class="form-input" placeholder="Rechercher un tag ou une catégorie..." oninput="filterUploadCategories(this.value)" style="padding-left:36px;font-size:0.84rem;height:38px;">
+                <input type="text" id="uploadCatSearchInput" class="form-input" placeholder="Rechercher un tag ou une catégorie..." oninput="filterUploadCategories(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();}" style="padding-left:36px;font-size:0.84rem;height:38px;">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;">
                   <circle cx="11" cy="11" r="8"/>
                   <line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -2628,7 +2628,14 @@
         </div>
 
         <div class="form-group">
-          <label class="form-label">Catégories & Tags associés *</label>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <label class="form-label" style="margin:0;">Catégories & Tags associés *</label>
+            <span id="editCatCountBadge" style="font-size:0.75rem;font-weight:700;color:var(--primary);background:rgba(249,115,22,0.12);padding:2px 8px;border-radius:999px;">0 sélectionnés</span>
+          </div>
+          <div style="position:relative;margin-bottom:10px;">
+            <input type="text" id="editCatSearchInput" class="form-input" placeholder="Filtrer les tags..." oninput="filterEditCategories(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();}" style="padding-left:36px;font-size:0.84rem;height:36px;">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
           <div class="multi-cat-selector" id="editVideoCategoriesMultiSelect">
             <!-- Dynamic Category Checkboxes -->
           </div>
@@ -3129,10 +3136,10 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-  <script src="/js/auth.js?v=7.5"></script>
-  <script src="/js/upload.js?v=7.5"></script>
-  <script src="/js/vip.js?v=7.5"></script>
-  <script src="/js/app.js?v=7.5"></script>
+  <script src="/js/auth.js?v=7.6"></script>
+  <script src="/js/upload.js?v=7.6"></script>
+  <script src="/js/vip.js?v=7.6"></script>
+  <script src="/js/app.js?v=7.6"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">

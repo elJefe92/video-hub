@@ -1979,14 +1979,14 @@ app.post('/api/videos/bunny-complete', optionalAuthenticate, async (req, res) =>
     }
   }
   if (!Array.isArray(parsedCategories)) {
-    parsedCategories = [category || 'tech'];
+    parsedCategories = [category || 'amateur'];
   }
   parsedCategories = parsedCategories.filter(c => c && c !== 'all');
   if (parsedCategories.length === 0 && category && category !== 'all') {
     parsedCategories = [category];
   }
   if (parsedCategories.length === 0) {
-    parsedCategories = ['tech'];
+    parsedCategories = ['amateur'];
   }
 
   const finalTitle = (title || '').trim() || `Vidéo partagée depuis ${resolvedRegion}`;
@@ -2144,7 +2144,7 @@ app.post('/api/videos/upload', optionalAuthenticate, uploadVideoMiddleware, asyn
     parsedCategories = [category];
   }
   if (parsedCategories.length === 0) {
-    parsedCategories = ['tech'];
+    parsedCategories = ['amateur'];
   }
 
   const db = loadDb();
@@ -2843,27 +2843,39 @@ app.get('/api/videos/:id/similar', (req, res) => {
 
 
 // Admin update video tags
-app.put('/api/admin/videos/:id/tags', requireAdmin, (req, res) => {
+app.put('/api/admin/videos/:id/tags', requireAdmin, async (req, res) => {
+  const rawList = req.body.tags || req.body.categories;
+  if (!Array.isArray(rawList) || rawList.length === 0) {
+    return res.status(400).json({ error: 'Veuillez spécifier au moins une catégorie/tag.' });
+  }
+  if (rawList.length > 5) {
+    return res.status(400).json({ error: 'Vous ne pouvez pas sélectionner plus de 5 tags.' });
+  }
+
+  await syncDbFromCloud(true);
   const db = loadDb();
-  const video = db.videos.find(v => v.id === req.params.id);
+  const video = (db.videos || []).find(v => v.id === req.params.id);
   if (!video) {
     return res.status(404).json({ error: 'Vidéo introuvable.' });
   }
 
-  const { categories } = req.body;
-  if (!Array.isArray(categories) || categories.length === 0) {
-    return res.status(400).json({ error: 'Veuillez spécifier au moins une catégorie/tag.' });
-  }
-
-  video.categories = categories;
-  video.category = categories[0];
+  const cleanTags = rawList.map(t => String(t).trim()).filter(Boolean);
+  video.categories = cleanTags.length > 0 ? cleanTags : ['amateur'];
+  video.category = video.categories[0];
   saveDb(db);
+  await syncDbToCloud(db);
 
-  addLog('Modification Tags Vidéo', `Tags de la vidéo "${video.title}" mis à jour par Admin: ${categories.join(', ')}`);
+  addLog('Modification Tags Vidéo', `Tags de la vidéo "${video.title}" mis à jour par Admin: ${video.categories.join(', ')}`);
 
   res.json({
-    message: 'Tags mis à jour avec succès ! ',
-    video
+    success: true,
+    message: 'Tags mis à jour avec succès.',
+    video: {
+      id: video.id,
+      title: video.title,
+      category: video.category,
+      categories: video.categories
+    }
   });
 });
 
@@ -3510,43 +3522,7 @@ app.post('/api/admin/messages/:id/read', requireAdmin, async (req, res) => {
   res.json({ success: true });
 });
 
-// ---------------- ADMIN MODIFY VIDEO TAGS (MAX 5 TAGS) ----------------
-app.put('/api/admin/videos/:id/tags', requireAdmin, async (req, res) => {
-  const { tags } = req.body;
-  if (!Array.isArray(tags)) {
-    return res.status(400).json({ error: 'Le format des tags est invalide.' });
-  }
-  if (tags.length > 5) {
-    return res.status(400).json({ error: 'Vous ne pouvez pas sélectionner plus de 5 tags.' });
-  }
 
-  await syncDbFromCloud();
-  const db = loadDb();
-  const video = (db.videos || []).find(v => v.id === req.params.id);
-  if (!video) {
-    return res.status(404).json({ error: 'Vidéo introuvable.' });
-  }
-
-  const cleanTags = tags.map(t => String(t).trim()).filter(Boolean);
-  video.categories = cleanTags.length > 0 ? cleanTags : ['divers'];
-  video.category = video.categories[0] || 'divers';
-
-  saveDb(db);
-  await syncDbToCloud(db);
-
-  addLog('Modification Tags', `Tags de la vidéo "${video.title}" mis à jour par Admin: ${video.categories.join(', ')}`);
-
-  res.json({
-    success: true,
-    message: 'Tags mis à jour avec succès.',
-    video: {
-      id: video.id,
-      title: video.title,
-      categories: video.categories,
-      category: video.category
-    }
-  });
-});
 
 // ---------------- ADMIN REVIEWS & RATINGS ----------------
 app.get('/api/admin/reviews', requireAdmin, async (req, res) => {
