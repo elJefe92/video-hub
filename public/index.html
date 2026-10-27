@@ -2639,10 +2639,13 @@
           <textarea id="editVideoDesc" class="form-textarea" rows="3"></textarea>
         </div>
 
-        <div class="form-group">
-          <label for="editVideoViews" class="form-label">Nombre de vues</label>
-          <input type="number" id="editVideoViews" class="form-input" min="0" placeholder="1" style="max-width:200px;">
-          <small style="color:var(--text-muted);font-size:0.75rem;">Ajustez manuellement le compteur de vues de cette vidéo.</small>
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px;">Compteur de vues</label>
+          <div style="display:inline-flex;align-items:center;gap:8px;background:var(--bg-subtle);border:1px solid var(--border-color);padding:6px 12px;border-radius:6px;font-size:0.82rem;color:var(--text-muted);">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span id="editVideoViewsDisplay" style="font-weight:700;color:var(--text-main);">1 vue</span>
+            <span>(comptabilisation automatique)</span>
+          </div>
         </div>
 
         <!-- VIP Teaser Configuration -->
@@ -3126,10 +3129,10 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-  <script src="/js/auth.js?v=7.4"></script>
-  <script src="/js/upload.js?v=7.4"></script>
-  <script src="/js/vip.js?v=7.4"></script>
-  <script src="/js/app.js?v=7.4"></script>
+  <script src="/js/auth.js?v=7.5"></script>
+  <script src="/js/upload.js?v=7.5"></script>
+  <script src="/js/vip.js?v=7.5"></script>
+  <script src="/js/app.js?v=7.5"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">
