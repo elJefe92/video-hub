@@ -1869,6 +1869,22 @@ async function openVideoPlayerModal(videoId) {
     authorAvatar.onclick = () => openPublicUserProfile(video.authorId || video.authorName);
   }
   
+  const modalLikeBtn = document.getElementById('modalLikeBtn');
+  const modalLikesCount = document.getElementById('modalLikesCount');
+  if (modalLikeBtn) {
+    modalLikeBtn.setAttribute('data-like-btn', video.id);
+    const isLiked = Boolean(video.userLiked);
+    modalLikeBtn.classList.toggle('active', isLiked);
+    const likeSvg = modalLikeBtn.querySelector('svg');
+    if (likeSvg) {
+      likeSvg.setAttribute('fill', isLiked ? '#ef4444' : 'none');
+      likeSvg.setAttribute('stroke', isLiked ? '#ef4444' : 'currentColor');
+    }
+  }
+  if (modalLikesCount) {
+    modalLikesCount.textContent = (video.likes || 0).toLocaleString();
+  }
+
   const modalFavBtn = document.getElementById('modalFavBtn');
   if (modalFavBtn) {
     modalFavBtn.setAttribute('data-fav-btn', video.id);
@@ -3252,18 +3268,53 @@ window.toggleVideoFit = toggleVideoFit;
 async function likeCurrentVideo() {
   if (!currentPlayingVideo) return;
   try {
-    const res = await fetch(`/api/videos/${currentPlayingVideo.id}/like`, { method: 'POST' });
+    const sid = typeof getVoterSessionId === 'function' ? getVoterSessionId() : '';
+    const headers = { 'Content-Type': 'application/json' };
+    if (typeof AUTH !== 'undefined' && AUTH.isLoggedIn() && AUTH.token) {
+      headers['Authorization'] = `Bearer ${AUTH.token}`;
+    }
+    if (sid) {
+      headers['x-voter-session'] = sid;
+    }
+
+    const res = await fetch(`/api/videos/${encodeURIComponent(currentPlayingVideo.id)}/like`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ sessionId: sid })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'Erreur lors de l\'enregistrement du j\'aime.');
+      return;
+    }
+
+    const likesCount = typeof data.likes === 'number' ? data.likes : 0;
+    const isLiked = Boolean(data.liked);
+
+    currentPlayingVideo.likes = likesCount;
+    currentPlayingVideo.userLiked = isLiked;
+
     const likesEl = document.getElementById('modalLikesCount');
-    if (likesEl) likesEl.textContent = data.likes;
-    currentPlayingVideo.likes = data.likes;
+    if (likesEl) likesEl.textContent = likesCount.toLocaleString();
+
+    const likeBtn = document.getElementById('modalLikeBtn');
+    if (likeBtn) {
+      likeBtn.classList.toggle('active', isLiked);
+      const likeSvg = likeBtn.querySelector('svg');
+      if (likeSvg) {
+        likeSvg.setAttribute('fill', isLiked ? '#ef4444' : 'none');
+        likeSvg.setAttribute('stroke', isLiked ? '#ef4444' : 'currentColor');
+      }
+    }
 
     if (data.isVipExclusive) {
       currentPlayingVideo.isVipExclusive = true;
     }
-    
-    const found = allVideosList.find(v => v.id === currentPlayingVideo.id);
+
+    const found = (allVideosList || []).find(v => v.id === currentPlayingVideo.id);
     if (found) {
-      found.likes = data.likes;
+      found.likes = likesCount;
+      found.userLiked = isLiked;
       if (data.isVipExclusive) found.isVipExclusive = true;
     }
     renderVideoGrid(allVideosList);
@@ -3272,10 +3323,11 @@ async function likeCurrentVideo() {
       showToast("Cette vidéo a atteint 5 mentions J'aime et est désormais passée en Contenu Exclusif VIP !");
       openVideoPlayerModal(currentPlayingVideo.id);
     } else {
-      showToast('Mention J\'aime ajoutée !');
+      showToast(data.message || (isLiked ? 'Mention J\'aime ajoutée !' : 'Mention J\'aime retirée.'));
     }
   } catch (err) {
     console.error(err);
+    showToast('Erreur de communication.');
   }
 }
 

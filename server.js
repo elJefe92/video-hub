@@ -1834,6 +1834,8 @@ app.get('/api/videos/:id', optionalAuthenticate, async (req, res) => {
     }
   }
 
+  const userLiked = Boolean(Array.isArray(video.likedBy) && (video.likedBy.includes(voterKey) || (req.user && video.likedBy.includes(req.user.id))));
+
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
@@ -1841,6 +1843,7 @@ app.get('/api/videos/:id', optionalAuthenticate, async (req, res) => {
     video: {
       ...video,
       userRating,
+      userLiked,
       creatorBadge: author?.creatorBadge || video.creatorBadge || null
     }
   });
@@ -2258,29 +2261,50 @@ app.post('/api/videos/:id/view', optionalAuthenticate, async (req, res) => {
 });
 
 app.post('/api/videos/:id/like', optionalAuthenticate, async (req, res) => {
+  await syncDbFromCloud();
   const db = loadDb();
-  const video = db.videos.find(v => v.id === req.params.id);
+  const video = (db.videos || []).find(v => v.id === req.params.id);
   if (!video) {
     return res.status(404).json({ error: 'Video non trouvee.' });
   }
-  video.likes = (video.likes || 0) + 1;
 
-  let convertedToVip = false;
-  // Threshold: reaching 5 likes automatically converts free video to VIP Exclusive
-  const VIP_LIKE_THRESHOLD = 5;
-  if (video.likes >= VIP_LIKE_THRESHOLD && !video.isVipExclusive) {
-    video.isVipExclusive = true;
-    convertedToVip = true;
-    addLog('Conversion VIP Automatique', `La video "${video.title}" a atteint ${video.likes} mentions J'aime et est automatiquement passee en Contenu Exclusif VIP.`);
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  const rawSession = (req.body?.sessionId || req.query?.sessionId || req.headers['x-voter-session'] || '').toString().trim().slice(0, 64);
+  const voterKey = req.user ? ('u_' + req.user.id) : (rawSession ? ('s_' + rawSession) : ('ip_' + clientIp));
+
+  if (!Array.isArray(video.likedBy)) {
+    video.likedBy = [];
   }
 
-  // Notify author of the like (if different user)
-  if (video.authorId && video.authorId !== req.user?.id) {
-    addNotificationToUser(db, video.authorId, {
-      type: 'like',
-      message: `Votre video "${video.title.slice(0, 40)}" a recu un nouveau j'aime.`,
-      link: `/?video=${video.id}`
-    });
+  const alreadyLiked = video.likedBy.includes(voterKey) || (req.user && video.likedBy.includes(req.user.id));
+  let liked = false;
+
+  if (alreadyLiked) {
+    // Unlike toggle
+    video.likes = Math.max(0, (video.likes || 1) - 1);
+    video.likedBy = video.likedBy.filter(k => k !== voterKey && (!req.user || k !== req.user.id));
+    liked = false;
+  } else {
+    // Like
+    video.likes = (video.likes || 0) + 1;
+    video.likedBy.push(voterKey);
+    liked = true;
+
+    // Threshold: reaching 5 likes automatically converts free video to VIP Exclusive
+    const VIP_LIKE_THRESHOLD = 5;
+    if (video.likes >= VIP_LIKE_THRESHOLD && !video.isVipExclusive) {
+      video.isVipExclusive = true;
+      addLog('Conversion VIP Automatique', `La video "${video.title}" a atteint ${video.likes} mentions J'aime et est automatiquement passee en Contenu Exclusif VIP.`);
+    }
+
+    // Notify author of the like (if different user)
+    if (video.authorId && video.authorId !== req.user?.id) {
+      addNotificationToUser(db, video.authorId, {
+        type: 'like',
+        message: `Votre video "${video.title.slice(0, 40)}" a recu un nouveau j'aime.`,
+        link: `/?video=${video.id}`
+      });
+    }
   }
 
   // Recompute creator badge level
@@ -2291,9 +2315,10 @@ app.post('/api/videos/:id/like', optionalAuthenticate, async (req, res) => {
 
   res.json({
     likes: video.likes,
+    liked,
     isVipExclusive: !!video.isVipExclusive,
-    convertedToVip,
-    message: convertedToVip ? "Cette video populaire a atteint 5 mentions J'aime et est desormais passee en Contenu Exclusif VIP !" : null
+    convertedToVip: Boolean(video.isVipExclusive && video.likes >= 5),
+    message: alreadyLiked ? 'Mention J\'aime retiree.' : 'Mention J\'aime enregistree !'
   });
 });
 
