@@ -367,7 +367,7 @@ async function handleVideoUpload(e) {
           return;
         }
 
-        showToast(completeData.message || 'Votre video a bien ete mise en ligne et publiee sur le site !');
+        showToast(completeData.message || (completeData.isApproved ? 'Votre vidéo a bien été mise en ligne et publiée sur le site !' : 'Votre vidéo a bien été envoyée ! Elle sera vérifiée et validée par l\'administrateur avant sa publication.'));
         document.getElementById('uploadForm').reset();
         window._compressedCustomThumbnailBase64 = null;
         if (typeof autoFillUserCredentials === 'function') autoFillUserCredentials();
@@ -430,7 +430,7 @@ async function handleVideoUpload(e) {
       return;
     }
 
-    showToast(data.message || 'Votre vidéo a bien été reçue.');
+    showToast(data.message || (data.isApproved ? 'Votre vidéo a bien été mise en ligne et publiée sur le site !' : 'Votre vidéo a bien été envoyée ! Elle sera vérifiée et validée par l\'administrateur avant sa publication.'));
     
     // Reset form
     document.getElementById('uploadForm').reset();

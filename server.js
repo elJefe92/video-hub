@@ -2012,8 +2012,8 @@ app.post('/api/videos/bunny-complete', optionalAuthenticate, async (req, res) =>
     isVipAuthor: Boolean(req.user && req.user.isVip),
     category: parsedCategories[0],
     categories: parsedCategories,
-    status: (isAdminUser || !db.settings?.requireVideoModeration) ? 'approved' : 'pending',
-    publishedAt: (isAdminUser || !db.settings?.requireVideoModeration) ? new Date().toISOString() : null,
+    status: isAdminUser ? 'approved' : 'pending',
+    publishedAt: isAdminUser ? new Date().toISOString() : null,
     views: 1,
     likes: 0,
     duration: "0:30",
@@ -2027,11 +2027,25 @@ app.post('/api/videos/bunny-complete', optionalAuthenticate, async (req, res) =>
   addLog('Depot Video Bunny Stream', `Video "${newVideo.title}" (${newVideo.region}) televersee sur Bunny par ${resolvedEmail}`);
 
   const isApproved = newVideo.status === 'approved';
+  if (!isApproved) {
+    const adminUser = (db.users || []).find(u => u.role === 'admin' || (u.email && u.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') || (u.username && u.username.toLowerCase() === 'administrateur'));
+    if (adminUser) {
+      addNotificationToUser(db, adminUser.id, {
+        type: 'moderation',
+        message: `Nouvelle video en attente de validation : "${newVideo.title}" (${newVideo.authorName || resolvedEmail})`,
+        link: '/#admin'
+      });
+      saveDb(db);
+      await syncDbToCloud(db);
+    }
+  }
+
   res.status(201).json({
     message: isApproved
       ? 'Votre video a ete mise en ligne et publiee avec succes ! Le transcodage HD est en cours de finalisation.'
-      : 'Votre video a ete envoyee avec succes sur nos serveurs de streaming ! Elle sera verifiee et validee tres rapidement.',
-    video: newVideo
+      : 'Votre video a ete envoyee avec succes ! Elle a ete transmise au centre administrateur pour verification et validation avant sa publication.',
+    video: newVideo,
+    isApproved
   });
 });
 
@@ -2143,8 +2157,8 @@ app.post('/api/videos/upload', optionalAuthenticate, uploadVideoMiddleware, asyn
     isVipAuthor: Boolean(req.user && req.user.isVip),
     category: parsedCategories[0],
     categories: parsedCategories,
-    status: (isAdminUser || !db.settings?.requireVideoModeration) ? 'approved' : 'pending',
-    publishedAt: (isAdminUser || !db.settings?.requireVideoModeration) ? new Date().toISOString() : null,
+    status: isAdminUser ? 'approved' : 'pending',
+    publishedAt: isAdminUser ? new Date().toISOString() : null,
     views: 1,
     likes: 0,
     duration: "0:30",
@@ -2158,11 +2172,25 @@ app.post('/api/videos/upload', optionalAuthenticate, uploadVideoMiddleware, asyn
   addLog('Depot Video', `Video "${newVideo.title}" (${newVideo.region}) deposee par ${resolvedEmail}`);
 
   const isApproved = newVideo.status === 'approved';
+  if (!isApproved) {
+    const adminUser = (db.users || []).find(u => u.role === 'admin' || (u.email && u.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') || (u.username && u.username.toLowerCase() === 'administrateur'));
+    if (adminUser) {
+      addNotificationToUser(db, adminUser.id, {
+        type: 'moderation',
+        message: `Nouvelle video en attente de validation : "${newVideo.title}" (${newVideo.authorName || resolvedEmail})`,
+        link: '/#admin'
+      });
+      saveDb(db);
+      await syncDbToCloud(db);
+    }
+  }
+
   res.status(201).json({
     message: isApproved 
       ? 'Votre video a ete mise en ligne et publiee avec succes !' 
-      : 'Votre video a ete envoyee avec succes ! Elle sera verifiee et mise en ligne tres rapidement.',
-    video: newVideo
+      : 'Votre video a ete envoyee avec succes ! Elle a ete transmise au centre administrateur pour verification et validation avant sa publication.',
+    video: newVideo,
+    isApproved
   });
 });
 
@@ -2859,6 +2887,15 @@ app.post('/api/admin/videos/:id/approve', requireAdmin, async (req, res) => {
 
   video.status = 'approved';
   video.publishedAt = new Date().toISOString();
+
+  // Notify author if registered user
+  if (video.authorId) {
+    addNotificationToUser(db, video.authorId, {
+      type: 'moderation',
+      message: `Votre video "${video.title.slice(0, 40)}" a ete approuvee et publiee par l'administrateur !`,
+      link: `/?video=${video.id}`
+    });
+  }
 
   // Update creator badge level
   if (video.authorId) computeCreatorBadge(video.authorId, db);

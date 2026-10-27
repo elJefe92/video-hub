@@ -61,7 +61,7 @@ const defaultData = {
     }
   ],
   settings: {
-    requireVideoModeration: false
+    requireVideoModeration: true
   }
 };
 
@@ -70,7 +70,9 @@ function normalizeData(db) {
     db = JSON.parse(JSON.stringify(defaultData));
   }
   if (!db.settings || typeof db.settings !== 'object') {
-    db.settings = { requireVideoModeration: false };
+    db.settings = { requireVideoModeration: true };
+  } else {
+    db.settings.requireVideoModeration = true;
   }
   if (!Array.isArray(db.users)) db.users = [];
   if (!Array.isArray(db.categories)) db.categories = [];
