@@ -1293,6 +1293,10 @@ app.get('/api/users/:id/profile', async (req, res) => {
 
   const totalViews = userVideos.reduce((sum, v) => sum + (v.views || 0), 0);
   const totalLikes = userVideos.reduce((sum, v) => sum + (v.likes || 0), 0);
+  const ratedVideos = userVideos.filter(v => typeof v.rating === 'number' && v.rating > 0);
+  const avgRating = ratedVideos.length > 0
+    ? Number((ratedVideos.reduce((sum, v) => sum + v.rating, 0) / ratedVideos.length).toFixed(1))
+    : 5.0;
 
   // Recompute badge on profile fetch to keep it fresh
   computeCreatorBadge(user.id, db);
@@ -1310,6 +1314,7 @@ app.get('/api/users/:id/profile', async (req, res) => {
     videosCount: userVideos.length,
     totalViews,
     totalLikes,
+    avgRating,
     creatorBadge: user.creatorBadge || null,
     creatorBadgeLevel: user.creatorBadgeLevel || 0,
     videos: userVideos.map(v => ({
@@ -1772,19 +1777,19 @@ app.get('/api/videos', async (req, res) => {
 
     if (req.query.sort === 'views') {
       scored.sort((a, b) => ((b.video.views || 0) - (a.video.views || 0)) || (b.score - a.score));
-    } else if (req.query.sort === 'likes') {
-      scored.sort((a, b) => ((b.video.likes || 0) - (a.video.likes || 0)) || (b.score - a.score));
+    } else if (req.query.sort === 'rating' || req.query.sort === 'likes') {
+      scored.sort((a, b) => ((b.video.rating || 0) - (a.video.rating || 0)) || (b.score - a.score));
     } else {
       scored.sort((a, b) => b.score - a.score);
     }
     list = scored.map(item => item.video);
   } else {
-    // Sort: recent (default), views, likes (when no search query is specified)
+    // Sort: recent (default), views, rating
     const sort = req.query.sort || 'recent';
     if (sort === 'views') {
       list.sort((a, b) => ((b.views || 0) - (a.views || 0)) || (new Date(b.createdAt) - new Date(a.createdAt)));
-    } else if (sort === 'likes') {
-      list.sort((a, b) => ((b.likes || 0) - (a.likes || 0)) || (new Date(b.createdAt) - new Date(a.createdAt)));
+    } else if (sort === 'rating' || sort === 'likes') {
+      list.sort((a, b) => ((b.rating || 0) - (a.rating || 0)) || (new Date(b.createdAt) - new Date(a.createdAt)));
     } else {
       // Default: VIP authors first, then by date
       list.sort((a, b) => {

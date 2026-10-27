@@ -938,16 +938,16 @@ function applyAdvancedFilters() {
     if (activeCategory && activeCategory !== 'all' && foundCat) {
       if (sort === 'views') {
         heading.textContent = `${foundCat.name} - Plus vues`;
-      } else if (sort === 'likes') {
-        heading.textContent = `${foundCat.name} - Plus aimées`;
+      } else if (sort === 'rating') {
+        heading.textContent = `${foundCat.name} - Mieux notées`;
       } else {
         heading.textContent = `${foundCat.name}`;
       }
     } else {
       if (sort === 'views') {
         heading.textContent = 'Vidéos les plus vues';
-      } else if (sort === 'likes') {
-        heading.textContent = 'Vidéos les plus aimées';
+      } else if (sort === 'rating') {
+        heading.textContent = 'Vidéos les mieux notées';
       } else {
         heading.textContent = 'Vidéos récentes';
       }
@@ -1869,22 +1869,6 @@ async function openVideoPlayerModal(videoId) {
     authorAvatar.onclick = () => openPublicUserProfile(video.authorId || video.authorName);
   }
   
-  const modalLikeBtn = document.getElementById('modalLikeBtn');
-  const modalLikesCount = document.getElementById('modalLikesCount');
-  if (modalLikeBtn) {
-    modalLikeBtn.setAttribute('data-like-btn', video.id);
-    const isLiked = Boolean(video.userLiked);
-    modalLikeBtn.classList.toggle('active', isLiked);
-    const likeSvg = modalLikeBtn.querySelector('svg');
-    if (likeSvg) {
-      likeSvg.setAttribute('fill', isLiked ? '#ef4444' : 'none');
-      likeSvg.setAttribute('stroke', isLiked ? '#ef4444' : 'currentColor');
-    }
-  }
-  if (modalLikesCount) {
-    modalLikesCount.textContent = (video.likes || 0).toLocaleString();
-  }
-
   const modalFavBtn = document.getElementById('modalFavBtn');
   if (modalFavBtn) {
     modalFavBtn.setAttribute('data-fav-btn', video.id);
@@ -3265,70 +3249,8 @@ function toggleVideoFit() {
 }
 window.toggleVideoFit = toggleVideoFit;
 
-async function likeCurrentVideo() {
-  if (!currentPlayingVideo) return;
-  try {
-    const sid = typeof getVoterSessionId === 'function' ? getVoterSessionId() : '';
-    const headers = { 'Content-Type': 'application/json' };
-    if (typeof AUTH !== 'undefined' && AUTH.isLoggedIn() && AUTH.token) {
-      headers['Authorization'] = `Bearer ${AUTH.token}`;
-    }
-    if (sid) {
-      headers['x-voter-session'] = sid;
-    }
-
-    const res = await fetch(`/api/videos/${encodeURIComponent(currentPlayingVideo.id)}/like`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ sessionId: sid })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      showToast(data.error || 'Erreur lors de l\'enregistrement du j\'aime.');
-      return;
-    }
-
-    const likesCount = typeof data.likes === 'number' ? data.likes : 0;
-    const isLiked = Boolean(data.liked);
-
-    currentPlayingVideo.likes = likesCount;
-    currentPlayingVideo.userLiked = isLiked;
-
-    const likesEl = document.getElementById('modalLikesCount');
-    if (likesEl) likesEl.textContent = likesCount.toLocaleString();
-
-    const likeBtn = document.getElementById('modalLikeBtn');
-    if (likeBtn) {
-      likeBtn.classList.toggle('active', isLiked);
-      const likeSvg = likeBtn.querySelector('svg');
-      if (likeSvg) {
-        likeSvg.setAttribute('fill', isLiked ? '#ef4444' : 'none');
-        likeSvg.setAttribute('stroke', isLiked ? '#ef4444' : 'currentColor');
-      }
-    }
-
-    if (data.isVipExclusive) {
-      currentPlayingVideo.isVipExclusive = true;
-    }
-
-    const found = (allVideosList || []).find(v => v.id === currentPlayingVideo.id);
-    if (found) {
-      found.likes = likesCount;
-      found.userLiked = isLiked;
-      if (data.isVipExclusive) found.isVipExclusive = true;
-    }
-    renderVideoGrid(allVideosList);
-
-    if (data.convertedToVip) {
-      showToast("Cette vidéo a atteint 5 mentions J'aime et est désormais passée en Contenu Exclusif VIP !");
-      openVideoPlayerModal(currentPlayingVideo.id);
-    } else {
-      showToast(data.message || (isLiked ? 'Mention J\'aime ajoutée !' : 'Mention J\'aime retirée.'));
-    }
-  } catch (err) {
-    console.error(err);
-    showToast('Erreur de communication.');
-  }
+function likeCurrentVideo() {
+  // Les mentions J'aime ont été désactivées au profit de l'évaluation par étoiles
 }
 
 
@@ -6600,7 +6522,7 @@ async function loadCreatorDashboard() {
 
     const videos = profile.videos || [];
     const totalViews = profile.totalViews || 0;
-    const totalLikes = profile.totalLikes || 0;
+    const avgRating = typeof profile.avgRating === 'number' ? profile.avgRating : 5.0;
 
     container.innerHTML = `
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px;">
@@ -6613,8 +6535,8 @@ async function loadCreatorDashboard() {
           <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-top:4px;">Vues totales</div>
         </div>
         <div style="background:var(--bg-subtle);border:1px solid var(--border-color);border-radius:10px;padding:14px;text-align:center;">
-          <div style="font-size:1.4rem;font-weight:800;color:#ef4444;">${totalLikes.toLocaleString()}</div>
-          <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-top:4px;">Likes totaux</div>
+          <div style="font-size:1.4rem;font-weight:800;color:#f59e0b;">${avgRating.toFixed(1)} / 5</div>
+          <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-top:4px;">Note moyenne</div>
         </div>
       </div>
       <h4 style="font-size:0.9rem;font-weight:700;margin:0 0 10px;">Mes vidéos</h4>

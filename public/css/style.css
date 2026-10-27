@@ -3861,10 +3861,6 @@ body.theme-light #videoModal .author-name-link {
   transform: scale(0.96);
 }
 
-.video-action-pill.btn-action-like:hover,
-.video-action-pill.btn-action-like.active,
-#videoModal .video-action-pill.btn-action-like.active,
-.watch-action-bar .video-action-pill.btn-action-like.active,
 .video-action-pill.btn-action-fav:hover,
 .video-action-pill.btn-action-fav.active,
 #videoModal .video-action-pill.btn-action-fav.active,
@@ -3875,8 +3871,6 @@ body.theme-light #videoModal .author-name-link {
   box-shadow: 0 0 12px rgba(239, 68, 68, 0.3);
 }
 
-.video-action-pill.btn-action-like.active svg,
-.video-action-pill.btn-action-like:hover svg,
 .video-action-pill.btn-action-fav.active svg,
 .video-action-pill.btn-action-fav:hover svg {
   stroke: #ef4444 !important;
@@ -3943,9 +3937,6 @@ body.theme-light #tab-watch .video-action-pill:hover {
   transform: translateY(-1px);
 }
 
-body.theme-light .video-action-pill.btn-action-like.active,
-body.theme-light .video-action-pill.btn-action-like:hover,
-body.theme-light .watch-action-bar .video-action-pill.btn-action-like.active,
 body.theme-light .video-action-pill.btn-action-fav.active,
 body.theme-light .video-action-pill.btn-action-fav:hover,
 body.theme-light .watch-action-bar .video-action-pill.btn-action-fav.active {
@@ -3954,9 +3945,6 @@ body.theme-light .watch-action-bar .video-action-pill.btn-action-fav.active {
   color: #dc2626 !important;
 }
 
-body.theme-light .video-action-pill.btn-action-like.active svg,
-body.theme-light .video-action-pill.btn-action-like:hover svg,
-body.theme-light .watch-action-bar .video-action-pill.btn-action-like.active svg,
 body.theme-light .video-action-pill.btn-action-fav.active svg,
 body.theme-light .video-action-pill.btn-action-fav:hover svg,
 body.theme-light .watch-action-bar .video-action-pill.btn-action-fav.active svg {

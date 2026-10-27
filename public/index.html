@@ -69,7 +69,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=7.7">
+  <link rel="stylesheet" href="/css/style.css?v=7.8">
   <script>
     // Vérification immédiate anti-clignotement (1h de validité)
     (function() {
@@ -441,7 +441,7 @@
             <select id="filterSort" class="filter-select" onchange="applyAdvancedFilters()" aria-label="Trier par">
               <option value="recent">Plus récentes</option>
               <option value="views">Plus vues</option>
-              <option value="likes">Plus aimées</option>
+              <option value="rating">Mieux notées</option>
             </select>
             <button class="btn-reset-filters" onclick="resetAdvancedFilters()">Réinitialiser</button>
           </div>
@@ -929,8 +929,8 @@
                 <div class="stat-label">Vues cumulées</div>
               </div>
               <div class="profile-stat-card">
-                <div class="stat-value" id="profileStatLikes">0</div>
-                <div class="stat-label">J'aime reçus</div>
+                <div class="stat-value" id="profileStatRating">5.0 / 5</div>
+                <div class="stat-label">Note moyenne</div>
               </div>
               <div class="profile-stat-card">
                 <div class="stat-value" id="profileStatStatus">Membre Gratuit</div>
@@ -1751,13 +1751,8 @@
                 </button>
               </div>
 
-              <!-- Action Buttons (Like, Favori, Cadrage, Partager, Signaler, Modifier) -->
+              <!-- Action Buttons (Favori, Cadrage, Partager, Signaler, Modifier) -->
               <div class="watch-action-bar">
-                <button type="button" id="modalLikeBtn" class="video-action-pill btn-action-like" onclick="likeCurrentVideo()" title="J'aime cette vidéo">
-                  <svg class="action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
-                  <span class="action-text"><span id="modalLikesCount">0</span> J'aime</span>
-                </button>
-
                 <button type="button" id="modalFavBtn" class="video-action-pill btn-action-fav" onclick="toggleFavorite(currentPlayingVideo?.id)" title="Ajouter aux favoris">
                   <svg class="action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
                   <span class="action-text">Favori</span>
@@ -3141,10 +3136,10 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-  <script src="/js/auth.js?v=7.7"></script>
-  <script src="/js/upload.js?v=7.7"></script>
-  <script src="/js/vip.js?v=7.7"></script>
-  <script src="/js/app.js?v=7.7"></script>
+  <script src="/js/auth.js?v=7.8"></script>
+  <script src="/js/upload.js?v=7.8"></script>
+  <script src="/js/vip.js?v=7.8"></script>
+  <script src="/js/app.js?v=7.8"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">

@@ -516,7 +516,7 @@ async function loadMyVideos() {
   const grid = document.getElementById('myVideosGrid');
   const videosStatEl = document.getElementById('profileStatVideos');
   const viewsStatEl = document.getElementById('profileStatViews');
-  const likesStatEl = document.getElementById('profileStatLikes');
+  const ratingStatEl = document.getElementById('profileStatRating') || document.getElementById('profileStatLikes');
   const statusStatEl = document.getElementById('profileStatStatus');
   const countHeaderEl = document.getElementById('myVideosCountHeader');
 
@@ -532,11 +532,14 @@ async function loadMyVideos() {
     const myVideos = data.videos || [];
 
     const totalViews = myVideos.reduce((sum, v) => sum + (v.views || 0), 0);
-    const totalLikes = myVideos.reduce((sum, v) => sum + (v.likes || 0), 0);
+    const ratedVideos = myVideos.filter(v => typeof v.rating === 'number' && v.rating > 0);
+    const avgRating = ratedVideos.length > 0
+      ? (ratedVideos.reduce((sum, v) => sum + v.rating, 0) / ratedVideos.length).toFixed(1)
+      : '5.0';
 
     if (videosStatEl) videosStatEl.textContent = myVideos.length;
     if (viewsStatEl) viewsStatEl.textContent = totalViews.toLocaleString();
-    if (likesStatEl) likesStatEl.textContent = totalLikes.toLocaleString();
+    if (ratingStatEl) ratingStatEl.textContent = `${avgRating} / 5`;
     if (countHeaderEl) countHeaderEl.textContent = myVideos.length;
 
     if (myVideos.length === 0) {
