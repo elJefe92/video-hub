@@ -483,26 +483,29 @@ function generateEmailTemplate(type, data = {}) {
     case 'account_deleted':
       return {
         name: 'Suppression définitive de compte (RGPD)',
-        subject: 'Confirmation de suppression définitive de votre compte - Rêve de Q',
+        subject: 'Confirmation de clôture définitive de votre compte - Rêve de Q',
         html: baseHeader + `
-          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Compte supprimé définitivement</h2>
+          <h2 style="color: #ffffff; font-size: 20px; margin-top: 0;">Compte clôturé définitivement</h2>
           <p style="color: #cbd5e1; font-size: 15px;">
             Bonjour ${username},
           </p>
           <p style="color: #cbd5e1; font-size: 15px;">
-            Votre compte <strong>Rêve de Q</strong> (${toEmail}) ainsi que l'ensemble de vos données personnelles, vidéos associées et préférences ont été <strong>définitivement supprimés</strong> de notre plateforme, conformément au Règlement Général sur la Protection des Données (RGPD).
+            Votre compte <strong>Rêve de Q</strong> (${toEmail}) ainsi que vos identifiants de connexion, préférences et données personnelles de profil ont été <strong>définitivement supprimés</strong>, conformément au Règlement Général sur la Protection des Données (RGPD).
           </p>
-          <div style="background: #1e293b; border-radius: 8px; padding: 18px; margin: 20px 0; border: 1px solid #ef4444;">
-            <strong style="color: #ef4444; font-size: 14px;">Information importante de sécurité :</strong>
-            <p style="color: #cbd5e1; font-size: 13px; margin: 6px 0 0 0;">
-              Cette action est irréversible. Si vous n'êtes pas à l'origine de cette demande de suppression, contactez immédiatement l'équipe d'administration à support@revedeq.fr.
+          <div style="background: #1e293b; border-radius: 8px; padding: 18px; margin: 20px 0; border: 1px solid #f97316;">
+            <strong style="color: #f97316; font-size: 14px;">Information légale concernant vos vidéos publiées :</strong>
+            <p style="color: #cbd5e1; font-size: 13px; margin: 6px 0 0 0; line-height: 1.5;">
+              Conformément à l'article 5 de nos Conditions Générales d'Utilisation (CGU), les vidéos déjà mises en ligne et publiées restent hébergées sur la plateforme sous forme anonymisée afin de garantir la continuité du service communautaire.
+            </p>
+            <p style="color: #cbd5e1; font-size: 13px; margin: 8px 0 0 0; line-height: 1.5;">
+              <strong>Demande de retrait de vidéo :</strong> Si vous souhaitez obtenir le déréférencement ou la suppression d'une ou plusieurs de vos vidéos, il vous suffit d'adresser une demande expresse et motivée à notre équipe de modération par e-mail à <a href="mailto:ia.project.pro2k26@gmail.com" style="color:#f97316; text-decoration: underline;">ia.project.pro2k26@gmail.com</a> ou via la rubrique Réclamations du site.
             </p>
           </div>
           <p style="color: #cbd5e1; font-size: 14px;">
             Nous vous remercions pour le temps passé au sein de la communauté Rêve de Q.
           </p>
         ` + baseFooter,
-        text: `Compte supprimé définitivement\n\nBonjour ${username},\n\nVotre compte Rêve de Q (${toEmail}) et toutes vos données ont été définitivement supprimés, conformément au RGPD.\n\nRêve de Q Support : ${siteUrl}`
+        text: `Compte clôturé définitivement\n\nBonjour ${username},\n\nVotre compte Rêve de Q (${toEmail}) et vos données personnelles ont été supprimés.\n\nConformément à nos CGU, vos vidéos publiées restent hébergées. Pour demander le retrait d'une vidéo spécifique, formulez une demande à ia.project.pro2k26@gmail.com.\n\nRêve de Q Support : ${siteUrl}`
       };
 
     case 'custom_announcement':
@@ -1185,14 +1188,22 @@ app.delete('/api/user/account', authenticate, async (req, res) => {
     return true;
   });
   
-  // Remove user videos
-  const videoCount = (db.videos || []).filter(v => v.authorId === targetId || (targetEmail && v.authorEmail && v.authorEmail.toLowerCase() === targetEmail)).length;
-  db.videos = (db.videos || []).filter(v => v.authorId !== targetId && (!targetEmail || !v.authorEmail || v.authorEmail.toLowerCase() !== targetEmail));
+  // Retain user videos on the platform as per CGU article 5 (an explicit formal request is required for video removal)
+  // Anonymize user reference on videos to protect privacy while preserving published content
+  let retainedVideoCount = 0;
+  (db.videos || []).forEach(v => {
+    const isAuthor = v.authorId === targetId || (targetEmail && v.authorEmail && v.authorEmail.toLowerCase() === targetEmail);
+    if (isAuthor) {
+      v.authorId = null;
+      v.authorEmail = null;
+      retainedVideoCount += 1;
+    }
+  });
   
   saveDb(db);
   await syncDbToCloud(db);
   
-  addLog('Suppression Compte', `Compte supprime: ${user.username} (${user.email}) + ${videoCount} video(s)`);
+  addLog('Suppression Compte', `Compte supprime: ${user.username} (${user.email}). ${retainedVideoCount} video(s) conservees conformement aux CGU (demande formelle requise pour suppression).`);
 
   // Send farewell email
   try {
@@ -1209,7 +1220,10 @@ app.delete('/api/user/account', authenticate, async (req, res) => {
     });
   } catch (e) {}
 
-  res.json({ success: true, message: 'Votre compte a ete supprime definitvement.' });
+  res.json({ 
+    success: true, 
+    message: 'Votre compte a bien ete supprime. Conformement a nos CGU, vos videos publiees restent en ligne. Pour demander la suppression d\'une video specifique, vous devez formuler une demande a notre service juridique.' 
+  });
 });
 
 // Forgot Password - Request 6-digit Reset Code by Email
@@ -3625,12 +3639,22 @@ app.delete('/api/admin/users/:id', requireAdmin, async (req, res) => {
 
   const targetEmail = (targetUser.email || '').trim().toLowerCase();
   db.users = db.users.filter(u => u.id !== userId && (!targetEmail || !u.email || u.email.trim().toLowerCase() !== targetEmail));
-  db.videos = (db.videos || []).filter(v => v.authorId !== userId && (!targetEmail || !v.authorEmail || v.authorEmail.toLowerCase() !== targetEmail));
+  
+  // Retain published videos in catalog with anonymized author references as per CGU
+  let adminRetainedCount = 0;
+  (db.videos || []).forEach(v => {
+    const isAuthor = v.authorId === userId || (targetEmail && v.authorEmail && v.authorEmail.toLowerCase() === targetEmail);
+    if (isAuthor) {
+      v.authorId = null;
+      v.authorEmail = null;
+      adminRetainedCount += 1;
+    }
+  });
 
   saveDb(db);
   await syncDbToCloud(db);
 
-  addLog('Suppression Utilisateur Admin', `Utilisateur supprime par admin: ${targetUser.username} (${targetUser.email})`);
+  addLog('Suppression Utilisateur Admin', `Utilisateur supprime par admin: ${targetUser.username} (${targetUser.email}). ${adminRetainedCount} video(s) conservees en ligne.`);
   res.json({ success: true, message: 'Utilisateur supprime definitivement.' });
 });
 

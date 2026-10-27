@@ -5811,7 +5811,7 @@ async function handleDeleteAccount() {
       showToast(data.error || 'Erreur lors de la suppression.');
       return;
     }
-    showToast('Votre compte a été supprimé.');
+    showToast(data.message || 'Votre compte a été supprimé. Vos vidéos restent en ligne conformément aux CGU.');
     closeDeleteAccountModal();
     AUTH.logout();
   } catch (err) {
