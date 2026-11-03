@@ -1125,6 +1125,7 @@ function renderVideoCard(v) {
   const formattedDate = pubDate ? new Date(pubDate).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '';
   const avatarUrl = v.authorAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(v.authorName || 'Utilisateur')}`;
   const isFav = isFavorite(v.id);
+  const hasRating = Boolean(v.ratingCount && v.ratingCount > 0 && typeof v.rating === 'number' && !isNaN(v.rating));
   let thumbSrc = v.thumbnail;
   if ((!thumbSrc || thumbSrc.startsWith('/uploads/')) && v.bunnyVideoId) {
     thumbSrc = `https://vz-26486efc-bfb.b-cdn.net/${v.bunnyVideoId}/thumbnail.jpg`;
@@ -1140,10 +1141,12 @@ function renderVideoCard(v) {
         <div class="play-overlay-btn" aria-hidden="true">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
         </div>
+        ${hasRating ? `
         <span class="video-rating-pill-card">
           <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          ${(v.rating || 5.0).toFixed(1)}
+          ${Number(v.rating).toFixed(1)}
         </span>
+        ` : ''}
         <span class="video-duration-badge">${v.duration || '0:30'}</span>
         ${v.status === 'pending' ? '<span class="video-pending-badge">En attente</span>' : ''}
         ${v.isVipExclusive ? '<span class="vip-exclusive-badge">EXCLUSIF VIP</span>' : (v.isVipAuthor ? '<span class="vip-card-badge">VIP</span>' : '')}
@@ -1173,7 +1176,7 @@ function renderVideoCard(v) {
 
         <div class="video-card-pub-row">
           <span>${formattedDate ? 'Publiée le ' + formattedDate : 'Récemment'}</span>
-          <span>${(typeof AUTH !== 'undefined' && AUTH.isAdmin && AUTH.isAdmin()) ? `<strong style="color:var(--primary);font-weight:700;">${(v.views || 0).toLocaleString()} ${(v.views || 0) > 1 ? 'vues' : 'vue'}</strong> · ` : ''}Note ${(v.rating || 5.0).toFixed(1)}/5</span>
+          <span>${(typeof AUTH !== 'undefined' && AUTH.isAdmin && AUTH.isAdmin()) ? `<strong style="color:var(--primary);font-weight:700;">${(v.views || 0).toLocaleString()} ${(v.views || 0) > 1 ? 'vues' : 'vue'}</strong>` : ''}${hasRating ? `${(typeof AUTH !== 'undefined' && AUTH.isAdmin && AUTH.isAdmin()) ? ' · ' : ''}Note ${Number(v.rating).toFixed(1)}/5` : ''}</span>
         </div>
 
         <div class="video-stats-footer">
@@ -1937,8 +1940,8 @@ async function openVideoPlayerModal(videoId) {
   }
 
   // Update Star Rating Display
-  const currentRating = video.rating || 5.0;
-  const ratingCount = video.ratingCount || 1;
+  const currentRating = (typeof video.rating === 'number' && !isNaN(video.rating)) ? video.rating : null;
+  const ratingCount = (typeof video.ratingCount === 'number' && !isNaN(video.ratingCount)) ? video.ratingCount : 0;
   updateRatingUI(currentRating, ratingCount, video.id, video.ratings, video.userRating);
 
   // Render Tags
@@ -2187,14 +2190,30 @@ function updateRatingUI(rating, count, videoId, ratingsMap = null, directUserRat
   const scoreEl = document.getElementById('modalRatingScore');
   const countEl = document.getElementById('modalRatingCount');
   const metaRatingEl = document.getElementById('modalVideoRatingMeta');
+  const scoreBadgeEl = document.getElementById('modalRatingScoreBadge');
 
-  const numRating = (typeof rating === 'number' && !isNaN(rating)) ? rating : 5.0;
-  const numCount = (typeof count === 'number' && !isNaN(count)) ? count : 1;
-  const rounded = numRating.toFixed(1);
+  const hasRating = (typeof count === 'number' && count > 0 && typeof rating === 'number' && !isNaN(rating));
+  const rounded = hasRating ? rating.toFixed(1) : '-';
 
   if (scoreEl) scoreEl.textContent = rounded;
-  if (countEl) countEl.textContent = `(${numCount} avis)`;
-  if (metaRatingEl) metaRatingEl.textContent = `${rounded} / 5`;
+  if (countEl) countEl.textContent = hasRating ? `(${count} avis)` : '(0 avis)';
+  if (metaRatingEl) {
+    metaRatingEl.textContent = hasRating ? `${rounded} / 5` : 'Non notée';
+    const pillSvg = metaRatingEl.parentElement ? metaRatingEl.parentElement.querySelector('svg') : null;
+    if (pillSvg) {
+      pillSvg.setAttribute('fill', hasRating ? '#f59e0b' : '#64748b');
+      pillSvg.setAttribute('stroke', hasRating ? '#f59e0b' : '#64748b');
+    }
+  }
+  if (scoreBadgeEl) {
+    const starSvg = scoreBadgeEl.querySelector('.badge-star-icon');
+    if (starSvg) {
+      starSvg.setAttribute('fill', hasRating ? '#f59e0b' : '#64748b');
+      starSvg.setAttribute('stroke', hasRating ? '#f59e0b' : '#64748b');
+    }
+    const maxSpan = scoreBadgeEl.querySelector('.score-max');
+    if (maxSpan) maxSpan.style.display = hasRating ? 'inline' : 'none';
+  }
 
   let userVote = null;
   const sid = getVoterSessionId();
@@ -2374,6 +2393,37 @@ async function rateCurrentVideo(val) {
     }
 
     updateRatingUI(data.rating, data.ratingCount, videoId, currentPlayingVideo.ratings, val);
+
+    // Update video card badge and rating row in the feed if visible
+    try {
+      const cardEl = document.querySelector(`.video-card[onclick*="'${videoId}'"]`);
+      if (cardEl && data.ratingCount && data.ratingCount > 0 && typeof data.rating === 'number') {
+        const thumbWrap = cardEl.querySelector('.video-thumbnail-wrap');
+        let pill = thumbWrap ? thumbWrap.querySelector('.video-rating-pill-card') : null;
+        if (!pill && thumbWrap) {
+          pill = document.createElement('span');
+          pill.className = 'video-rating-pill-card';
+          const durBadge = thumbWrap.querySelector('.video-duration-badge');
+          if (durBadge) {
+            thumbWrap.insertBefore(pill, durBadge);
+          } else {
+            thumbWrap.appendChild(pill);
+          }
+        }
+        if (pill) {
+          pill.innerHTML = `
+            <svg viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+            ${Number(data.rating).toFixed(1)}
+          `;
+        }
+        const pubRowSpans = cardEl.querySelectorAll('.video-card-pub-row span');
+        if (pubRowSpans && pubRowSpans.length > 1) {
+          const isAdmin = (typeof AUTH !== 'undefined' && AUTH.isAdmin && AUTH.isAdmin());
+          const viewsPart = isAdmin ? (pubRowSpans[1].querySelector('strong') ? pubRowSpans[1].querySelector('strong').outerHTML + ' · ' : '') : '';
+          pubRowSpans[1].innerHTML = `${viewsPart}Note ${Number(data.rating).toFixed(1)}/5`;
+        }
+      }
+    } catch (e) {}
 
     const feedbackEl = document.getElementById('modalRatingFeedback');
     if (feedbackEl) {
@@ -3969,7 +4019,7 @@ function renderAdminOnlineVideos(videos) {
           <span>Par <strong>${v.authorName}</strong></span>
           <span>• ${v.region || 'France'}</span>
           <span>• ${(v.views||0).toLocaleString()} vues</span>
-          <span>• Note ${(v.rating||5.0).toFixed(1)}/5</span>
+          <span>• ${v.ratingCount && v.ratingCount > 0 && typeof v.rating === 'number' ? `Note ${v.rating.toFixed(1)}/5` : 'Non notée'}</span>
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -4610,7 +4660,7 @@ async function loadAdminVideos() {
               <span><strong>${v.authorEmail || v.authorName}</strong></span> • 
               <span>${v.region || 'France'}</span> • 
               <span style="color:var(--primary);font-weight:700;">${(v.views || 0).toLocaleString()} vues</span> • 
-              <span>Note ${(v.rating || 5.0).toFixed(1)}/5</span> • 
+              <span>${v.ratingCount && v.ratingCount > 0 && typeof v.rating === 'number' ? `Note ${v.rating.toFixed(1)}/5` : 'Non notée'}</span> • 
               <span>${cats.map(c => `<span style="background:rgba(249,115,22,0.12);color:var(--primary);padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:700;display:inline-block;margin:2px 4px 2px 0;">#${escapeHtml(getCatBadgeName(c))}</span>`).join('')}</span> • 
               <span>${new Date(v.createdAt).toLocaleDateString()}</span>
             </div>
@@ -6547,7 +6597,7 @@ async function loadCreatorDashboard() {
             <img src="${v.thumbnail || 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300'}" style="width:100%;height:75px;object-fit:cover;display:block;">
             <div style="padding:6px 8px;">
               <div style="font-size:0.75rem;font-weight:700;color:var(--text-main);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.title}</div>
-              <div style="font-size:0.68rem;color:var(--text-muted);">${(v.views||0).toLocaleString()} vues · Note ${(v.rating||5.0).toFixed(1)}/5</div>
+              <div style="font-size:0.68rem;color:var(--text-muted);">${(v.views||0).toLocaleString()} vues${v.ratingCount && v.ratingCount > 0 && typeof v.rating === 'number' ? ` · Note ${v.rating.toFixed(1)}/5` : ''}</div>
             </div>
           </div>
         `).join('')}</div>`
