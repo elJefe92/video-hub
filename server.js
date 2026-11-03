@@ -4113,8 +4113,8 @@ function renderSeoPage(req, res) {
     const siteUrl = SITE_URL;
     const db = loadDb();
 
-    let title = 'Rêve de Q - Vidéos Adultes Streaming HD/4K (18+)';
-    let description = 'Rêve de Q : Première plateforme française de streaming vidéo pour adultes (18+). Vidéos exclusives, amateur français, créateurs certifiés en HD et 4K.';
+    let title = 'Vidéo Porno Amateur 100% Gratuit - Rêve de Q | Porno Français (18+)';
+    let description = 'Regardez les meilleures vidéos porno amateur 100% gratuites sur Rêve de Q (revedeq.fr). Streaming porno français, sexe amateur, sextape et vidéos X exclusives sans inscription.';
     let canonical = `${siteUrl}${req.path === '/' ? '' : req.path}`;
     let ogImage = `${siteUrl}/revedeq-banner.png`;
     let extraSchema = '';
@@ -4130,15 +4130,15 @@ function renderSeoPage(req, res) {
     if (videoId) {
       const video = (db.videos || []).find(v => v.id === videoId);
       if (video) {
-        title = `${video.title || 'Vidéo Adulte'} - Vidéo Adulte HD/4K | Rêve de Q`;
-        description = (video.description || `Regardez la vidéo adulte "${video.title}" en streaming haute définition sur Rêve de Q.`).substring(0, 160);
+        title = `${video.title || 'Vidéo Porno'} - Porno Amateur 100% Gratuit | Rêve de Q`;
+        description = (video.description || `Regardez la vidéo porno "${video.title}" en streaming amateur 100% gratuit sur Rêve de Q.`).substring(0, 160);
         canonical = `${siteUrl}/video/${encodeURIComponent(video.id)}`;
         ogImage = video.thumbnail || ogImage;
 
         const videoSchema = {
           '@context': 'https://schema.org',
           '@type': 'VideoObject',
-          'name': video.title || 'Vidéo Adulte Rêve de Q',
+          'name': video.title || 'Vidéo Porno Amateur Rêve de Q',
           'description': video.description || description,
           'thumbnailUrl': [ogImage],
           'uploadDate': video.createdAt || new Date().toISOString(),
@@ -4156,8 +4156,8 @@ function renderSeoPage(req, res) {
       const username = decodeURIComponent(req.path.split('/')[2] || '');
       const user = (db.users || []).find(u => u.username && u.username.toLowerCase() === username.toLowerCase());
       if (user) {
-        title = `Profil de ${user.username} - Vidéos & Créateur Adulte | Rêve de Q`;
-        description = `Découvrez les publications et vidéos adultes exclusives de ${user.username} sur la plateforme Rêve de Q.`;
+        title = `Profil de ${user.username} - Vidéos Porno Amateur & Créateur X | Rêve de Q`;
+        description = `Découvrez les vidéos porno amateur et publications exclusives de ${user.username} sur la plateforme Rêve de Q.`;
         canonical = `${siteUrl}/profil/${encodeURIComponent(user.username)}`;
         ogImage = user.avatar || `${siteUrl}/revedeq-logo.png`;
         const profileSchema = {
@@ -4178,29 +4178,29 @@ function renderSeoPage(req, res) {
         c.id && (c.id.toLowerCase() === cleanSlug || c.id.toLowerCase().replace(/_/g, '-') === cleanSlug)
       );
       if (cat) {
-        title = `Vidéos ${cat.name} - Streaming Adulte Gratuit HD/4K (18+) | Rêve de Q`;
-        description = `Découvrez notre sélection exclusive de vidéos adultes dans la catégorie "${cat.name}". Streaming 100% anonyme en haute définition et 4K sur Rêve de Q.`;
+        title = `Vidéos Porno ${cat.name} Amateur 100% Gratuit (18+) | Rêve de Q`;
+        description = `Découvrez notre sélection de vidéos porno amateur dans la catégorie "${cat.name}". Streaming porno français 100% gratuit et sans inscription sur Rêve de Q.`;
         canonical = `${siteUrl}/categorie/${encodeURIComponent(cleanSlug)}`;
         const catSchema = {
           '@context': 'https://schema.org',
           '@type': 'CollectionPage',
-          'name': `Vidéos ${cat.name}`,
+          'name': `Vidéos Porno ${cat.name}`,
           'description': description,
           'url': canonical
         };
         extraSchema = `<script type="application/ld+json">${JSON.stringify(catSchema)}</script>`;
       }
     } else if (req.path === '/vip' || req.path === '/abonnement') {
-      title = 'Abonnement Club VIP Privé - Streaming 4K & Zéro Pub | Rêve de Q';
-      description = 'Rejoignez le Club VIP Rêve de Q (9,99€ / mois) : accès illimité aux vidéos exclusives, streaming 4K Ultra HD, messagerie illimitée et facturation 100% discrète.';
+      title = 'Abonnement Club VIP Privé - Contenus Exclusifs | Rêve de Q';
+      description = 'Rejoignez le Club VIP Rêve de Q (9,99€ / mois) : accès illimité aux vidéos exclusives, messagerie illimitée et facturation 100% discrète.';
       canonical = `${siteUrl}/vip`;
     } else if (req.path === '/upload' || req.path === '/deposer') {
-      title = 'Déposer une Vidéo Adulte - Partage Gratuit & Anonyme (18+) | Rêve de Q';
-      description = 'Partagez votre vidéo adulte gratuitement et en toute discrétion sur Rêve de Q. Mise en ligne rapide sans inscription obligatoire.';
+      title = 'Déposer une Vidéo Porno Amateur - Partage Gratuit & Anonyme (18+) | Rêve de Q';
+      description = 'Partagez votre vidéo porno amateur gratuitement et en toute discrétion sur Rêve de Q. Mise en ligne rapide sans inscription obligatoire.';
       canonical = `${siteUrl}/upload`;
     } else if (req.path === '/categories' || req.path === '/explorer') {
-      title = 'Toutes les Catégories de Vidéos Adultes HD & 4K | Rêve de Q';
-      description = 'Explorez l\'ensemble des catégories de vidéos pour adultes sur Rêve de Q : amateur français, levrette, gros cul, cougar, beurette, solo et duo.';
+      title = 'Toutes les Catégories Porno Amateur & Vidéos X Françaises | Rêve de Q';
+      description = 'Explorez l\'ensemble des catégories de porno amateur gratuit sur Rêve de Q : amateur français, levrette, gros cul, cougar, beurette, solo et duo.';
       canonical = `${siteUrl}/categories`;
     } else if (req.path.startsWith('/messages')) {
       title = 'Messagerie Privée & Tchat Entre Membres | Rêve de Q';
@@ -4212,7 +4212,7 @@ function renderSeoPage(req, res) {
       canonical = `${siteUrl}/profil`;
     } else if (req.path === '/faq') {
       title = 'Foire Aux Questions (FAQ) | Rêve de Q';
-      description = 'Toutes les réponses à vos questions : comment regarder, déposer une vidéo, s\'abonner au Club VIP et protéger votre anonymat sur Rêve de Q.';
+      description = 'Toutes les réponses à vos questions : comment regarder, déposer une vidéo porno amateur, s\'abonner au Club VIP et protéger votre anonymat sur Rêve de Q.';
       canonical = `${siteUrl}/faq`;
     }
 
@@ -4274,8 +4274,8 @@ app.get('/sitemap.xml', async (req, res) => {
     }
     fullThumb = escapeHtmlServer(fullThumb);
 
-    const cleanTitle = escapeHtmlServer(v.title || 'Vidéo Adulte Rêve de Q');
-    const cleanDesc = escapeHtmlServer((v.description || v.title || 'Vidéo adulte streaming HD sur Rêve de Q.').substring(0, 1000));
+    const cleanTitle = escapeHtmlServer(v.title || 'Vidéo Porno Amateur Rêve de Q');
+    const cleanDesc = escapeHtmlServer((v.description || v.title || 'Vidéo porno amateur streaming 100% gratuit sur Rêve de Q.').substring(0, 1000));
     const playerUrl = `${siteUrl}/video/${encodeURIComponent(v.id)}`;
 
     // Parse duration in seconds if available
