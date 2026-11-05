@@ -183,6 +183,11 @@ function handleUrlHash() {
 
   // 5. /vip or /abonnement
   if (pathParts[0] === 'vip' || pathParts[0] === 'abonnement') {
+    if (typeof AUTH === 'undefined' || !AUTH.isAdmin || !AUTH.isAdmin()) {
+      window.history.replaceState(null, '', '/');
+      switchTab('accueil', false);
+      return;
+    }
     switchTab('vip', false);
     return;
   }
@@ -365,6 +370,10 @@ function navigateToTab(tabName) {
     navigateToAdmin();
     return;
   }
+  if (tabName === 'vip' && (typeof AUTH === 'undefined' || !AUTH.isAdmin || !AUTH.isAdmin())) {
+    showToast("L'espace VIP est temporairement suspendu le temps de configurer le mode de paiement.");
+    return;
+  }
   switchTab(tabName, true);
   toggleSidebar(false);
 }
@@ -392,6 +401,16 @@ function switchTab(tabName, shouldPushHistory = true) {
     } else {
       if (shouldPushHistory && window.location.pathname !== '/admin') {
         window.history.pushState({ tab: 'admin' }, '', '/admin');
+      }
+    }
+  } else if (tabName === 'vip') {
+    if (!AUTH.isAdmin()) {
+      showToast("L'espace VIP est temporairement suspendu le temps de configurer le mode de paiement.");
+      window.history.replaceState(null, '', '/');
+      tabName = 'accueil';
+    } else {
+      if (shouldPushHistory && window.location.pathname !== '/vip') {
+        window.history.pushState({ tab: 'vip' }, '', '/vip');
       }
     }
   } else if (shouldPushHistory) {
@@ -1973,12 +1992,13 @@ async function openVideoPlayerModal(videoId) {
     if (commentForm) commentForm.classList.add('hidden');
   }
 
-  // Check VIP Exclusive paywall lock & Teaser preview
+  // Check VIP Exclusive paywall lock & Teaser preview (suspended while payment method is being resolved)
+  const isVipPublicActive = false;
   const hasVipAccess = AUTH.isVip() || AUTH.isAdmin();
   const teaserBadge = document.getElementById('vipTeaserBadge');
   const countdownEl = document.getElementById('vipTeaserCountdown');
 
-  if (video.isVipExclusive && !hasVipAccess) {
+  if (video.isVipExclusive && isVipPublicActive && !hasVipAccess) {
     // 15-20s Teaser Preview before paywall lock
     isVipTeaserActive = true;
     const teaserStart = Math.max(0, parseInt(video.vipPreviewStart, 10) || 0);
@@ -2901,7 +2921,11 @@ async function loadDedicatedConversationMessages(partnerUsername, isBackgroundPo
     const remaining = data.remaining !== undefined ? data.remaining : 2;
 
     if (quotaBar && quotaText) {
-      if (isVip) {
+      if (typeof AUTH === 'undefined' || !AUTH.isAdmin()) {
+        quotaBar.className = 'chat-quota-bar';
+        quotaText.textContent = 'Messagerie directe active';
+        if (upgradeBtn) upgradeBtn.classList.add('hidden');
+      } else if (isVip) {
         quotaBar.className = 'chat-quota-bar quota-vip';
         quotaText.textContent = 'Membre VIP · Messagerie 100% illimitée';
         if (upgradeBtn) upgradeBtn.classList.add('hidden');
@@ -2914,16 +2938,19 @@ async function loadDedicatedConversationMessages(partnerUsername, isBackgroundPo
         } else if (remaining === 1) {
           quotaBar.className = 'chat-quota-bar quota-warning';
           quotaText.textContent = '1 dernier message gratuit restant avec ce contact';
-          if (textInput) textInput.placeholder = 'Dernier message avant le Pass VIP...';
+          if (textInput) textInput.placeholder = 'Dernier message...';
         } else {
           quotaBar.className = 'chat-quota-bar quota-warning';
-          quotaText.textContent = 'Limite de 2 messages gratuits atteinte';
+          quotaText.textContent = 'Limite de messages atteinte';
         }
       }
     }
 
     if (paywallEl && sendForm) {
-      if (!canSend) {
+      if (typeof AUTH === 'undefined' || !AUTH.isAdmin()) {
+        paywallEl.classList.add('hidden');
+        sendForm.classList.remove('hidden');
+      } else if (!canSend) {
         paywallEl.classList.remove('hidden');
         sendForm.classList.add('hidden');
         if (paywallPartner) paywallPartner.textContent = partnerUsername;

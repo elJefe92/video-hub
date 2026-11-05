@@ -1,6 +1,13 @@
 // VIP 9,99€ Subscription & Stripe Manager
 
 async function openVipCheckoutModal() {
+  if (typeof AUTH === 'undefined' || !AUTH.isAdmin()) {
+    if (typeof showToast === 'function') {
+      showToast("L'espace VIP est temporairement suspendu le temps de configurer le mode de paiement.");
+    }
+    return;
+  }
+
   if (!AUTH.isLoggedIn()) {
     showToast('Connectez-vous ou créez un compte gratuit pour lier votre abonnement VIP.');
     switchTab('profil');
@@ -47,6 +54,11 @@ function closeVipModal(e) {
 }
 
 async function processVipSubscription() {
+  if (typeof AUTH === 'undefined' || !AUTH.isAdmin()) {
+    showToast("L'activation VIP est réservée à l'administrateur pendant la phase de test.");
+    return;
+  }
+
   if (!AUTH.isLoggedIn()) {
     showToast('Vous devez être connecté.');
     return;

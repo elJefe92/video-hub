@@ -2641,14 +2641,16 @@ app.get('/api/messages/with/:username', optionalAuthenticate, async (req, res) =
 
   const isVip = Boolean(req.user && (req.user.isVip || req.user.role === 'admin' || (req.user.email && req.user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') || (req.user.username && req.user.username.toLowerCase() === 'administrateur')));
   const sentCount = thread.filter(m => m.senderName && m.senderName.toLowerCase() === myUsername).length;
-  const freeLimit = 2;
-  const remaining = isVip ? 999 : Math.max(0, freeLimit - sentCount);
-  const canSend = isVip || sentCount < freeLimit;
+  // VIP paywall is temporarily suspended for non-admins while payment method is being resolved
+  const VIP_PAYWALL_SUSPENDED = true;
+  const freeLimit = VIP_PAYWALL_SUSPENDED ? 999 : 2;
+  const remaining = (isVip || VIP_PAYWALL_SUSPENDED) ? 999 : Math.max(0, freeLimit - sentCount);
+  const canSend = (isVip || VIP_PAYWALL_SUSPENDED) || sentCount < freeLimit;
 
   // Mask incoming messages if non-VIP has exhausted their free 2-message quota
   const processedThread = thread.map(m => {
     const isMe = m.senderName && m.senderName.toLowerCase() === myUsername;
-    if (!isVip && !canSend && !isMe) {
+    if (!VIP_PAYWALL_SUSPENDED && !isVip && !canSend && !isMe) {
       return {
         ...m,
         text: m.text ? m.text.replace(/[^\s]/g, '•') : '••••••••••••••••',
@@ -2703,7 +2705,8 @@ app.post('/api/messages/send', optionalAuthenticate, async (req, res) => {
     m.recipientName && m.recipientName.toLowerCase() === targetUsername.toLowerCase()
   ).length;
 
-  if (!isVip && sentCount >= 2) {
+  const VIP_PAYWALL_SUSPENDED = true;
+  if (!VIP_PAYWALL_SUSPENDED && !isVip && sentCount >= 2) {
     return res.status(403).json({
       error: 'Limite de 2 messages gratuits atteinte pour cette conversation. Passez Membre VIP pour débloquer la messagerie illimitée !',
       requiresVip: true,
@@ -3960,6 +3963,15 @@ app.post('/api/vip/create-checkout-session', authenticate, async (req, res) => {
   const user = req.user;
   const siteUrl = SITE_URL;
 
+  const isAdmin = user && (
+    (user.email && user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') ||
+    user.role === 'admin' ||
+    (user.username && user.username.toLowerCase() === 'administrateur')
+  );
+  if (!isAdmin) {
+    return res.status(403).json({ error: 'L\'accès VIP est temporairement suspendu pendant la configuration du paiement.' });
+  }
+
   if (!stripe) {
     // If Stripe is not configured with a secret key yet, allow simulation fallback
     return res.json({ simulation: true });
@@ -4045,6 +4057,15 @@ app.post('/api/vip/verify-session', authenticate, async (req, res) => {
 });
 
 app.post('/api/vip/subscribe', authenticate, (req, res) => {
+  const isAdmin = req.user && (
+    (req.user.email && req.user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') ||
+    req.user.role === 'admin' ||
+    (req.user.username && req.user.username.toLowerCase() === 'administrateur')
+  );
+  if (!isAdmin) {
+    return res.status(403).json({ error: 'L\'accès VIP est temporairement suspendu pendant la configuration du paiement.' });
+  }
+
   const { durationMonths } = req.body;
   const db = loadDb();
   const user = db.users.find(u => u.id === req.user.id);

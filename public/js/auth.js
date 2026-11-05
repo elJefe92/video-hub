@@ -43,6 +43,7 @@ const AUTH = {
     this.token = null;
     this.user = null;
     localStorage.removeItem('francevideo_token');
+    document.body.classList.remove('is-admin');
     this.updateUi();
     showToast('Vous avez été déconnecté.');
     switchTab('accueil');
@@ -79,12 +80,19 @@ const AUTH = {
     const sideAdminItem = document.getElementById('sideAdminItem');
     const btnAdminAccess = document.getElementById('btnAdminAccess');
 
+    const isAdmin = this.isAdmin();
+    if (isAdmin) {
+      document.body.classList.add('is-admin');
+    } else {
+      document.body.classList.remove('is-admin');
+    }
+
     if (this.user) {
       // Header status
       if (authBtn) {
         authBtn.innerHTML = `
           <img src="${this.user.avatar}" class="avatar-sm" style="border-radius:50%;width:24px;height:24px;object-fit:cover;">
-          <span class="header-auth-label">${this.user.username} ${this.user.isVip ? '(VIP)' : ''}</span>
+          <span class="header-auth-label">${this.user.username} ${isAdmin ? '(Admin)' : ''}</span>
         `;
       }
 
@@ -98,7 +106,7 @@ const AUTH = {
       autoFillUserCredentials(this.user);
 
       // Admin button in sidebar & profile ONLY for ia.project.pro2k26@gmail.com
-      if (this.isAdmin()) {
+      if (isAdmin) {
         if (sideAdminItem) sideAdminItem.classList.remove('hidden');
         if (btnAdminAccess) btnAdminAccess.classList.remove('hidden');
       } else {
@@ -121,20 +129,19 @@ const AUTH = {
         const roleBadge = document.getElementById('profileRoleBadge');
         const btnUpgrade = document.getElementById('btnUpgradeProfileVip');
 
-        if (this.isAdmin()) {
+        if (isAdmin) {
           if (roleBadge) roleBadge.classList.remove('hidden');
-        } else {
-          if (roleBadge) roleBadge.classList.add('hidden');
-        }
-
-        if (this.isVip()) {
           if (vipCrown) vipCrown.classList.remove('hidden');
           if (vipTag) vipTag.classList.remove('hidden');
           if (btnUpgrade) btnUpgrade.classList.add('hidden');
         } else {
+          if (roleBadge) roleBadge.classList.add('hidden');
           if (vipCrown) vipCrown.classList.add('hidden');
           if (vipTag) vipTag.classList.add('hidden');
-          if (btnUpgrade) btnUpgrade.classList.remove('hidden');
+          if (btnUpgrade) {
+            btnUpgrade.classList.add('hidden');
+            btnUpgrade.style.display = 'none';
+          }
         }
 
         // Account deletion button: completely forbidden and hidden for admin
@@ -521,7 +528,7 @@ async function loadMyVideos() {
   const countHeaderEl = document.getElementById('myVideosCountHeader');
 
   if (statusStatEl) {
-    statusStatEl.textContent = AUTH.isAdmin() ? 'Administrateur (VIP)' : (AUTH.isVip() ? 'VIP Certifié' : 'Membre Gratuit');
+    statusStatEl.textContent = AUTH.isAdmin() ? 'Administrateur (VIP)' : 'Membre';
   }
 
   if (!grid) return;

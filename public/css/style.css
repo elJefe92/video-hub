@@ -8896,4 +8896,41 @@ body.theme-light .watch-video-title {
   }
 }
 
+/* ==================== VIP ADMIN-ONLY VISIBILITY ==================== */
+/* Hidden by default for all visitors and non-admin members while payment method is being resolved */
+.vip-admin-only {
+  display: none !important;
+}
+
+/* Shown only when the authenticated administrator is logged in */
+body.is-admin .vip-admin-only {
+  display: revert !important;
+}
+
+body.is-admin a.vip-admin-only,
+body.is-admin .btn-header-vip-top.vip-admin-only {
+  display: inline-flex !important;
+}
+
+body.is-admin li.vip-admin-only {
+  display: list-item !important;
+}
+
+body.is-admin div.vip-admin-only,
+body.is-admin .sidebar-vip-card.vip-admin-only {
+  display: block !important;
+}
+
+body.is-admin section.tab-content.vip-admin-only.active {
+  display: block !important;
+}
+
+body.is-admin span.vip-admin-only {
+  display: inline !important;
+}
+
+body.is-admin button.vip-admin-only {
+  display: inline-flex !important;
+}
+
 

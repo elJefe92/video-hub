@@ -69,7 +69,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=8.0">
+  <link rel="stylesheet" href="/css/style.css?v=8.1">
   <script>
     // Vérification immédiate anti-clignotement (1h de validité)
     (function() {
@@ -171,7 +171,7 @@
           </svg>
         </button>
         <a href="/categories" class="btn-header-explore" onclick="navigateToTab('explorer'); return false;" title="Toutes les catégories" style="text-decoration:none;display:inline-flex;align-items:center;">Catégories</a>
-        <a href="/vip" class="btn-header-vip-top" onclick="navigateToTab('vip'); return false;" title="Accéder au Club VIP" style="text-decoration:none;display:inline-flex;align-items:center;">
+        <a href="/vip" class="btn-header-vip-top vip-admin-only" id="headerVipBtn" onclick="navigateToTab('vip'); return false;" title="Accéder au Club VIP" style="text-decoration:none;display:inline-flex;align-items:center;">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
           </svg>
@@ -272,7 +272,7 @@
                 <span class="badge-pending-count hidden" id="sidebarUnreadBadge" style="background:#ef4444; color:#fff; font-size:0.7rem; font-weight:700; padding:1px 6px; border-radius:999px; margin-left:auto;">0</span>
               </button>
             </li>
-            <li>
+            <li id="sideNavVipItem" class="vip-admin-only">
               <button class="sidebar-nav-item vip-sidebar-link" id="side-nav-vip" onclick="navigateToTab('vip')">
                 <span class="sidebar-item-icon" style="color:#fb923c;">
                   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
@@ -378,7 +378,7 @@
         <div class="sidebar-divider"></div>
 
         <!-- VIP Promo Box in Sidebar -->
-        <div class="sidebar-vip-card">
+        <div class="sidebar-vip-card vip-admin-only" id="sidebarVipCard">
           <div class="sidebar-vip-title">Pass VIP Club</div>
           <div class="sidebar-vip-price">9,99€ <small>/ mois</small></div>
           <p class="sidebar-vip-desc">Badge certifié, vidéos exclusives et accès prioritaire.</p>
@@ -628,7 +628,7 @@
       </section>
 
       <!-- ==================== TAB 3 : VIP SHOWCASE (9,99€) ==================== -->
-      <section id="tab-vip" class="tab-content">
+      <section id="tab-vip" class="tab-content vip-admin-only">
         <div class="vip-showcase-container">
           
           <!-- VIP Hero Banner Card -->
@@ -942,7 +942,7 @@
             <div class="profile-actions-bar">
               <button class="btn btn-primary" onclick="openEditProfileModal()">Modifier mon profil</button>
               <button id="btnAdminAccess" class="btn btn-secondary hidden" onclick="navigateToAdmin()">Espace Administration (URL: /admin)</button>
-              <button id="btnUpgradeProfileVip" class="btn btn-vip-pill" onclick="switchTab('vip')">Devenir VIP (9,99€)</button>
+              <button id="btnUpgradeProfileVip" class="btn btn-vip-pill vip-admin-only" onclick="switchTab('vip')">Devenir VIP (9,99€)</button>
               <button class="btn btn-secondary" onclick="handleLogout()">Se déconnecter</button>
               <button id="btnDeleteAccount" class="btn btn-danger-outline hidden" onclick="openDeleteAccountModal()" style="border:1px solid #ef4444;color:#ef4444;background:transparent;padding:8px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">Supprimer mon compte</button>
             </div>
@@ -1001,14 +1001,14 @@
                   <span class="perk-badge">Gratuit</span>
                   <span>2 messages offerts avec chaque contact</span>
                 </div>
-                <div class="perk-item">
+                <div class="perk-item vip-admin-only">
                   <span class="perk-badge perk-vip">VIP</span>
                   <span>Messagerie 100% illimitée sans aucune restriction</span>
                 </div>
               </div>
               <div class="messages-prompt-actions">
                 <button type="button" class="btn btn-primary" onclick="switchTab('profil')">Se connecter / S'inscrire</button>
-                <button type="button" class="btn btn-secondary" onclick="openVipCheckoutModal()">Découvrir le Pass VIP (9,99€)</button>
+                <button type="button" class="btn btn-secondary vip-admin-only" onclick="openVipCheckoutModal()">Découvrir le Pass VIP (9,99€)</button>
               </div>
             </div>
           </div>
@@ -1034,7 +1034,7 @@
                 </div>
 
                 <!-- VIP Indicator Pill / Banner -->
-                <div id="messagesVipStatusBanner" class="messages-vip-status-banner">
+                <div id="messagesVipStatusBanner" class="messages-vip-status-banner vip-admin-only">
                   <!-- Dynamically populated: VIP unlimited vs 2-free limit -->
                 </div>
 
@@ -1060,7 +1060,7 @@
                 </div>
                 <h4>Sélectionnez une discussion</h4>
                 <p>Choisissez un contact dans la liste à gauche ou contactez un créateur pour démarrer un échange direct.</p>
-                <div id="messagesEmptyVipTip" class="messages-empty-vip-tip">
+                <div id="messagesEmptyVipTip" class="messages-empty-vip-tip vip-admin-only">
                   <!-- Informational tip -->
                 </div>
               </div>
@@ -1098,7 +1098,7 @@
                 <!-- Chat Quota & VIP indicator Bar -->
                 <div id="dedicatedChatQuotaBar" class="chat-quota-bar">
                   <span id="dedicatedChatQuotaText">Chargement...</span>
-                  <button type="button" id="dedicatedChatVipUpgradeBtn" class="chat-vip-upgrade-pill hidden" onclick="openVipCheckoutModal()">Passer VIP</button>
+                  <button type="button" id="dedicatedChatVipUpgradeBtn" class="chat-vip-upgrade-pill hidden vip-admin-only" onclick="openVipCheckoutModal()">Passer VIP</button>
                 </div>
 
                 <!-- Chat Messages Body -->
@@ -1107,7 +1107,7 @@
                 </div>
 
                 <!-- VIP Paywall Notice (when free user reaches 2 messages) -->
-                <div id="dedicatedChatVipPaywall" class="chat-vip-paywall hidden">
+                <div id="dedicatedChatVipPaywall" class="chat-vip-paywall hidden vip-admin-only">
                   <div class="chat-vip-paywall-inner">
                     <div class="chat-vip-lock-pill">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -2498,7 +2498,7 @@
             <ul class="footer-links-list">
               <li><a href="/" onclick="navigateToTab('accueil'); return false;">Accueil & Récents</a></li>
               <li><a href="/categories" onclick="navigateToTab('explorer'); return false;">Explorer par Catégories</a></li>
-              <li><a href="/vip" onclick="navigateToTab('vip'); return false;">Vidéos Exclusives VIP</a></li>
+              <li class="vip-admin-only"><a href="/vip" onclick="navigateToTab('vip'); return false;">Vidéos Exclusives VIP</a></li>
               <li><a href="/upload" onclick="navigateToTab('upload'); return false;">Déposer une vidéo (Gratuit)</a></li>
             </ul>
           </div>
@@ -2511,7 +2511,7 @@
               <li><a href="/profil" onclick="navigateToTab('profil'); switchAuthMode('login'); return false;">Se connecter</a></li>
               <li><a href="/profil" onclick="navigateToTab('profil'); return false;">Mon Profil & Favoris</a></li>
               <li><a href="/messages" onclick="navigateToTab('messages'); return false;">Messagerie Privée</a></li>
-              <li><a href="/vip" onclick="navigateToTab('vip'); return false;">Pass VIP (9,99€ / mois)</a></li>
+              <li class="vip-admin-only"><a href="/vip" onclick="navigateToTab('vip'); return false;">Pass VIP (9,99€ / mois)</a></li>
             </ul>
           </div>
 
@@ -2546,7 +2546,7 @@
           <div class="strip-tags">
             <a href="/?cat=Amateur" onclick="filterVideosByCategory('Amateur'); return false;">Amateur</a> •
             <a href="/?cat=Beurettes" onclick="filterVideosByCategory('Beurettes'); return false;">Beurettes</a> •
-            <a href="/?cat=Exclusif+VIP" onclick="filterVideosByCategory('Exclusif VIP'); return false;">Exclusif VIP</a> •
+            <span class="vip-admin-only"><a href="/?cat=Exclusif+VIP" onclick="filterVideosByCategory('Exclusif VIP'); return false;">Exclusif VIP</a> • </span>
             <a href="/?cat=HD+1080p" onclick="filterVideosByCategory('HD 1080p'); return false;">HD 1080p</a> •
             <a href="/?cat=Français" onclick="filterVideosByCategory('Français'); return false;">Français</a> •
             <a href="/?cat=Tendances" onclick="filterVideosByCategory('Tendances'); return false;">Tendances</a>
@@ -2932,7 +2932,7 @@
 
 
   <!-- ==================== VIP CHECKOUT MODAL ==================== -->
-  <div id="vipModal" class="modal-overlay hidden" onclick="closeVipModal(event)">
+  <div id="vipModal" class="modal-overlay hidden vip-admin-only" onclick="closeVipModal(event)">
     <div class="modal-card modal-vip-checkout" onclick="event.stopPropagation()">
       <button class="modal-close-btn" onclick="closeVipModal()" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       
@@ -3019,7 +3019,7 @@
       <!-- Chat Quota & VIP Indicator Bar -->
       <div id="chatQuotaBar" class="chat-quota-bar">
         <span id="chatQuotaText">Chargement...</span>
-        <button type="button" id="chatVipQuickUpgradeBtn" class="chat-vip-upgrade-pill hidden" onclick="openVipCheckoutModal()">Passer VIP</button>
+        <button type="button" id="chatVipQuickUpgradeBtn" class="chat-vip-upgrade-pill hidden vip-admin-only" onclick="openVipCheckoutModal()">Passer VIP</button>
       </div>
 
       <!-- Messages Thread Area -->
@@ -3028,7 +3028,7 @@
       </div>
 
       <!-- VIP Paywall Box (when 2-message limit is reached) -->
-      <div id="chatVipPaywall" class="chat-vip-paywall hidden">
+      <div id="chatVipPaywall" class="chat-vip-paywall hidden vip-admin-only">
         <div class="chat-vip-paywall-inner">
           <div class="chat-vip-lock-pill">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -3136,10 +3136,10 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-  <script src="/js/auth.js?v=8.0"></script>
-  <script src="/js/upload.js?v=8.0"></script>
-  <script src="/js/vip.js?v=8.0"></script>
-  <script src="/js/app.js?v=8.0"></script>
+  <script src="/js/auth.js?v=8.1"></script>
+  <script src="/js/upload.js?v=8.1"></script>
+  <script src="/js/vip.js?v=8.1"></script>
+  <script src="/js/app.js?v=8.1"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">
