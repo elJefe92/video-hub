@@ -8904,7 +8904,15 @@ body.theme-light .watch-video-title {
 
 /* Shown only when the authenticated administrator is logged in */
 body.is-admin .vip-admin-only {
-  display: revert !important;
+  display: revert;
+}
+
+/* Ensure .hidden ALWAYS wins and completely hides the element */
+.hidden,
+.hidden.vip-admin-only,
+body.is-admin .hidden,
+body.is-admin .hidden.vip-admin-only {
+  display: none !important;
 }
 
 body.is-admin a.vip-admin-only,
@@ -8916,7 +8924,6 @@ body.is-admin li.vip-admin-only {
   display: list-item !important;
 }
 
-body.is-admin div.vip-admin-only,
 body.is-admin .sidebar-vip-card.vip-admin-only {
   display: block !important;
 }

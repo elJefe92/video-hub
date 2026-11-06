@@ -42,16 +42,34 @@ async function openVipCheckoutModal() {
     display.textContent = AUTH.user.username.toUpperCase();
   }
   const modal = document.getElementById('vipModal');
-  if (modal) modal.classList.remove('hidden');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.style.display = 'flex';
+  }
 }
 
 function closeVipModal(e) {
-  if (e && e.target && e.target !== e.currentTarget && !e.target.classList.contains('modal-close-btn')) {
-    return;
+  if (e && e.target) {
+    const isOverlayClick = (e.target === e.currentTarget);
+    const isCloseBtnClick = Boolean(e.target.closest && e.target.closest('.modal-close-btn'));
+    if (!isOverlayClick && !isCloseBtnClick) {
+      return;
+    }
   }
   const modal = document.getElementById('vipModal');
-  if (modal) modal.classList.add('hidden');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
 }
+window.closeVipModal = closeVipModal;
+
+// Keyboard Escape closes modal
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeVipModal();
+  }
+});
 
 async function processVipSubscription() {
   if (typeof AUTH === 'undefined' || !AUTH.isAdmin()) {

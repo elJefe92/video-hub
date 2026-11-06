@@ -69,7 +69,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=8.1">
+  <link rel="stylesheet" href="/css/style.css?v=8.2">
   <script>
     // Vérification immédiate anti-clignotement (1h de validité)
     (function() {
@@ -1098,7 +1098,7 @@
                 <!-- Chat Quota & VIP indicator Bar -->
                 <div id="dedicatedChatQuotaBar" class="chat-quota-bar">
                   <span id="dedicatedChatQuotaText">Chargement...</span>
-                  <button type="button" id="dedicatedChatVipUpgradeBtn" class="chat-vip-upgrade-pill hidden vip-admin-only" onclick="openVipCheckoutModal()">Passer VIP</button>
+                  <button type="button" id="dedicatedChatVipUpgradeBtn" class="chat-vip-upgrade-pill hidden" onclick="openVipCheckoutModal()">Passer VIP</button>
                 </div>
 
                 <!-- Chat Messages Body -->
@@ -1107,7 +1107,7 @@
                 </div>
 
                 <!-- VIP Paywall Notice (when free user reaches 2 messages) -->
-                <div id="dedicatedChatVipPaywall" class="chat-vip-paywall hidden vip-admin-only">
+                <div id="dedicatedChatVipPaywall" class="chat-vip-paywall hidden">
                   <div class="chat-vip-paywall-inner">
                     <div class="chat-vip-lock-pill">
                       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -2932,9 +2932,9 @@
 
 
   <!-- ==================== VIP CHECKOUT MODAL ==================== -->
-  <div id="vipModal" class="modal-overlay hidden vip-admin-only" onclick="closeVipModal(event)">
+  <div id="vipModal" class="modal-overlay hidden" onclick="closeVipModal(event)">
     <div class="modal-card modal-vip-checkout" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeVipModal()" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      <button class="modal-close-btn" onclick="closeVipModal(event)" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
       
       <div class="vip-checkout-header-new">
         <div class="vip-modal-badge">ABONNEMENT CLUB PRIVILÈGE</div>
@@ -3019,7 +3019,7 @@
       <!-- Chat Quota & VIP Indicator Bar -->
       <div id="chatQuotaBar" class="chat-quota-bar">
         <span id="chatQuotaText">Chargement...</span>
-        <button type="button" id="chatVipQuickUpgradeBtn" class="chat-vip-upgrade-pill hidden vip-admin-only" onclick="openVipCheckoutModal()">Passer VIP</button>
+        <button type="button" id="chatVipQuickUpgradeBtn" class="chat-vip-upgrade-pill hidden" onclick="openVipCheckoutModal()">Passer VIP</button>
       </div>
 
       <!-- Messages Thread Area -->
@@ -3028,7 +3028,7 @@
       </div>
 
       <!-- VIP Paywall Box (when 2-message limit is reached) -->
-      <div id="chatVipPaywall" class="chat-vip-paywall hidden vip-admin-only">
+      <div id="chatVipPaywall" class="chat-vip-paywall hidden">
         <div class="chat-vip-paywall-inner">
           <div class="chat-vip-lock-pill">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -3136,10 +3136,10 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-  <script src="/js/auth.js?v=8.1"></script>
-  <script src="/js/upload.js?v=8.1"></script>
-  <script src="/js/vip.js?v=8.1"></script>
-  <script src="/js/app.js?v=8.1"></script>
+  <script src="/js/auth.js?v=8.2"></script>
+  <script src="/js/upload.js?v=8.2"></script>
+  <script src="/js/vip.js?v=8.2"></script>
+  <script src="/js/app.js?v=8.2"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">
