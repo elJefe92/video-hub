@@ -1689,6 +1689,10 @@ function resolveVideoThumbnail(v) {
       copy.thumbnail = `https://${hlsHost}/${copy.bunnyVideoId}/thumbnail.jpg`;
     }
   }
+  if (copy.thumbnail && copy.updatedAt && !copy.thumbnail.includes('?v=') && !copy.thumbnail.includes('&v=')) {
+    const sep = copy.thumbnail.includes('?') ? '&' : '?';
+    copy.thumbnail = `${copy.thumbnail}${sep}v=${new Date(copy.updatedAt).getTime()}`;
+  }
   return copy;
 }
 
@@ -3112,11 +3116,18 @@ app.put('/api/admin/videos/:id', requireAdmin, async (req, res) => {
         const supabaseThumb = await uploadBase64ToSupabaseStorage('thumbnails', thumbnail, thumbFilename);
         if (supabaseThumb) {
           video.thumbnail = supabaseThumb;
-        } else if (video.bunnyVideoId) {
-          const customCdn = (process.env.BUNNY_STREAM_CDN_HOSTNAME || '').trim();
-          const libId = (process.env.BUNNY_STREAM_LIBRARY_ID || '').trim();
-          const hlsHost = customCdn || `vz-${libId}.b-cdn.net`;
-          video.thumbnail = `https://${hlsHost}/${video.bunnyVideoId}/thumbnail.jpg`;
+
+          // If Bunny Stream is configured for this video, update Bunny's thumbnail too
+          if (video.bunnyVideoId) {
+            const libraryId = (process.env.BUNNY_STREAM_LIBRARY_ID || '').trim();
+            const apiKey = (process.env.BUNNY_STREAM_API_KEY || '').trim();
+            if (libraryId && apiKey) {
+              fetch(`https://video.bunnycdn.com/library/${libraryId}/videos/${video.bunnyVideoId}/thumbnail?thumbnailUrl=${encodeURIComponent(supabaseThumb)}`, {
+                method: 'POST',
+                headers: { 'AccessKey': apiKey }
+              }).catch(err => console.error('[Bunny Set Thumbnail Error]:', err));
+            }
+          }
         } else {
           const matches = thumbnail.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
           if (matches && matches.length === 3) {
@@ -3135,13 +3146,14 @@ app.put('/api/admin/videos/:id', requireAdmin, async (req, res) => {
     }
   }
 
+  video.updatedAt = new Date().toISOString();
   saveDb(db);
   await syncDbToCloud(db);
   addLog('Modification Vidéo', `Métadonnées et miniature de "${video.title}" mises à jour par Admin`);
 
   const resolvedVideo = resolveVideoThumbnail(video);
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-  res.json({ message: 'Vidéo et miniature mises à jour avec succès ! ', video: resolvedVideo });
+  res.json({ message: 'Vidéo et miniature mises à jour avec succès !', video: resolvedVideo });
 });
 
 // ---------------- CONTENT ABUSE REPORTS (SIGNALEMENTS DE CONTENU ABUSIF / DMCA) ----------------

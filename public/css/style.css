@@ -6725,6 +6725,7 @@ body.theme-light .chat-vip-paywall {
   height: 100%;
   object-fit: cover;
   display: block;
+  pointer-events: none;
 }
 
 .admin-thumb-badge {
@@ -6737,6 +6738,7 @@ body.theme-light .chat-vip-paywall {
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 999px;
+  pointer-events: none;
 }
 
 .admin-thumb-item.active .admin-thumb-badge {

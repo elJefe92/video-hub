@@ -4972,6 +4972,8 @@ async function openAdminEditModal(videoId) {
   }
   if (!curThumb) curThumb = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300';
 
+  window._currentEditingVideo = v;
+
   const thumbHiddenInput = document.getElementById('editVideoSelectedThumbnail');
   const thumbPreviewImg = document.getElementById('adminCurrentThumbPreview');
   const thumbStatusBadge = document.getElementById('adminThumbStatusBadge');
@@ -4985,6 +4987,7 @@ async function openAdminEditModal(videoId) {
   // Load video player for frame grabbing (with HLS support)
   const scrubberVideo = document.getElementById('adminScrubVideoPlayer');
   if (scrubberVideo) {
+    scrubberVideo.crossOrigin = 'anonymous';
     if (window._adminHlsInstance) {
       window._adminHlsInstance.destroy();
       window._adminHlsInstance = null;
@@ -5027,6 +5030,7 @@ async function openAdminEditModal(videoId) {
   const modal = document.getElementById('adminEditVideoModal');
   if (modal) modal.classList.remove('hidden');
 }
+window.openAdminEditModal = openAdminEditModal;
 window.openEditVideoModal = openAdminEditModal;
 
 function closeAdminEditModal(e) {
@@ -5047,6 +5051,7 @@ function closeAdminEditModal(e) {
   if (customThumbInput) customThumbInput.value = '';
   if (modal) modal.classList.add('hidden');
 }
+window.closeAdminEditModal = closeAdminEditModal;
 
 function compressImageToDataUrl(file, maxWidth = 1280, maxHeight = 720, quality = 0.82) {
   return new Promise((resolve) => {
@@ -5136,50 +5141,87 @@ async function generateAdminVideoThumbnails(videoUrl) {
     window._adminExtractedSnapshots = snapshots;
 
     gallery.innerHTML = snapshots.map((s, idx) => `
-      <div class="admin-thumb-item" onclick="selectAdminSuggestedThumbnail(${idx})" id="adminSnapItem-${idx}">
-        <img src="${s.dataUrl}" alt="Capture ${idx + 1}" class="admin-thumb-img">
-        <span class="admin-thumb-badge">Capture ${idx + 1}</span>
+      <div class="admin-thumb-item" onclick="window.selectAdminSuggestedThumbnail(${idx})" id="adminSnapItem-${idx}" role="button" tabindex="0" style="cursor:pointer;">
+        <img src="${s.dataUrl}" alt="Capture ${idx + 1}" class="admin-thumb-img" style="pointer-events:none;">
+        <span class="admin-thumb-badge" style="pointer-events:none;">Capture ${idx + 1}</span>
       </div>
     `).join('');
   };
 }
+window.generateAdminVideoThumbnails = generateAdminVideoThumbnails;
 
 // Capture currently displayed frame on admin video scrubber
-function captureAdminVideoCurrentFrame() {
+async function captureAdminVideoCurrentFrame() {
   const video = document.getElementById('adminScrubVideoPlayer');
-  if (!video || !video.videoWidth) {
-    showToast('Lancez la lecture de la vidéo ou mettez-la sur pause pour capturer l\'image.');
+  if (!video) {
+    showToast('Lecteur vidéo non disponible.');
+    return;
+  }
+  const thumbStatusBadge = document.getElementById('adminThumbStatusBadge');
+  if (thumbStatusBadge) thumbStatusBadge.textContent = 'Capture en cours...';
+
+  let dataUrl = null;
+  const curTime = Math.max(0, video.currentTime || 0);
+
+  // 1. Try direct canvas capture from scrubber video element
+  if (video.videoWidth && video.videoHeight) {
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+    } catch (e) {
+      console.warn('[Admin Thumbnail] Direct canvas capture failed, attempting offscreen capture:', e);
+    }
+  }
+
+  // 2. If direct canvas extraction failed (e.g. CORS/tainted in Safari/HLS), capture via offscreen video
+  if (!dataUrl) {
+    const videoUrl = video.currentSrc || video.src || (window._currentEditingVideo && window._currentEditingVideo.videoUrl);
+    if (videoUrl) {
+      try {
+        const offVideo = document.createElement('video');
+        offVideo.crossOrigin = 'anonymous';
+        offVideo.muted = true;
+        offVideo.playsInline = true;
+        offVideo.preload = 'auto';
+        offVideo.src = videoUrl;
+        const frameData = await captureFrameAtTime(offVideo, curTime);
+        if (frameData && frameData.dataUrl) {
+          dataUrl = frameData.dataUrl;
+        }
+      } catch (e2) {
+        console.error('[Admin Thumbnail] Offscreen capture failed:', e2);
+      }
+    }
+  }
+
+  if (!dataUrl) {
+    if (thumbStatusBadge) thumbStatusBadge.textContent = 'Miniature actuelle';
+    showToast('Impossible de capturer cette image. Choisissez une capture suggérée ou importez une image.');
     return;
   }
 
-  try {
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+  const thumbHiddenInput = document.getElementById('editVideoSelectedThumbnail');
+  const thumbPreviewImg = document.getElementById('adminCurrentThumbPreview');
 
-    const thumbHiddenInput = document.getElementById('editVideoSelectedThumbnail');
-    const thumbPreviewImg = document.getElementById('adminCurrentThumbPreview');
-    const thumbStatusBadge = document.getElementById('adminThumbStatusBadge');
-
-    if (thumbHiddenInput) thumbHiddenInput.value = dataUrl;
-    if (thumbPreviewImg) thumbPreviewImg.src = dataUrl;
-    if (thumbStatusBadge) thumbStatusBadge.textContent = 'Nouvelle capture prête !';
-
-    document.querySelectorAll('.admin-thumb-item').forEach(el => el.classList.remove('active'));
-
-    const curTime = Math.floor(video.currentTime);
-    const min = Math.floor(curTime / 60);
-    const sec = curTime % 60;
-    const timeStr = `${min}:${sec < 10 ? '0' : ''}${sec}`;
-
-    showToast(`Capture d'écran effectuée avec succès à ${timeStr} !`);
-  } catch (e) {
-    showToast('Impossible de capturer cette image.');
+  if (thumbHiddenInput) thumbHiddenInput.value = dataUrl;
+  if (thumbPreviewImg) {
+    thumbPreviewImg.src = dataUrl;
+    thumbPreviewImg.style.display = 'block';
   }
+  if (thumbStatusBadge) thumbStatusBadge.textContent = 'Nouvelle capture prête !';
+
+  document.querySelectorAll('.admin-thumb-item').forEach(el => el.classList.remove('active'));
+
+  const min = Math.floor(curTime / 60);
+  const sec = Math.floor(curTime % 60);
+  const timeStr = `${min}:${sec < 10 ? '0' : ''}${sec}`;
+  showToast(`Capture d'écran effectuée avec succès à ${timeStr} !`);
 }
+window.captureAdminVideoCurrentFrame = captureAdminVideoCurrentFrame;
 
 // Select a suggested frame
 function selectAdminSuggestedThumbnail(idx) {
@@ -5191,8 +5233,11 @@ function selectAdminSuggestedThumbnail(idx) {
   const thumbStatusBadge = document.getElementById('adminThumbStatusBadge');
 
   if (thumbHiddenInput) thumbHiddenInput.value = snap.dataUrl;
-  if (thumbPreviewImg) thumbPreviewImg.src = snap.dataUrl;
-  if (thumbStatusBadge) thumbStatusBadge.textContent = `Capture ${idx + 1} sélectionnée `;
+  if (thumbPreviewImg) {
+    thumbPreviewImg.src = snap.dataUrl;
+    thumbPreviewImg.style.display = 'block';
+  }
+  if (thumbStatusBadge) thumbStatusBadge.textContent = `Capture ${idx + 1} sélectionnée`;
 
   document.querySelectorAll('.admin-thumb-item').forEach((el, i) => {
     if (i === idx) el.classList.add('active');
@@ -5201,6 +5246,7 @@ function selectAdminSuggestedThumbnail(idx) {
 
   showToast(`Miniature n°${idx + 1} sélectionnée !`);
 }
+window.selectAdminSuggestedThumbnail = selectAdminSuggestedThumbnail;
 
 function captureScrubberTimeForTeaser() {
   const scrubberVideo = document.getElementById('adminScrubVideoPlayer');
@@ -5231,6 +5277,13 @@ async function saveAdminVideoEdit(e) {
     return;
   }
 
+  const saveBtn = e.target.querySelector('button[type="submit"]');
+  const oldBtnText = saveBtn ? saveBtn.textContent : '';
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Enregistrement en cours...';
+  }
+
   try {
     const res = await fetch(`/api/admin/videos/${id}`, {
       method: 'PUT',
@@ -5252,12 +5305,30 @@ async function saveAdminVideoEdit(e) {
 
     const data = await res.json();
     if (!res.ok) {
-      showToast('' + (data.error || 'Erreur lors de la modification'));
+      showToast(data.error || 'Erreur lors de la modification');
       return;
     }
 
-    showToast('Modifications et miniature enregistrées !');
+    showToast('Modifications et miniature enregistrées avec succès !');
     closeAdminEditModal();
+
+    const updatedVideo = data.video;
+
+    // Update in memory cache immediately
+    if (updatedVideo) {
+      if (Array.isArray(allVideosList)) {
+        const idx = allVideosList.findIndex(x => x.id === id);
+        if (idx !== -1) allVideosList[idx] = { ...allVideosList[idx], ...updatedVideo };
+      }
+      if (Array.isArray(window.adminVideosList)) {
+        const idx = window.adminVideosList.findIndex(x => x.id === id);
+        if (idx !== -1) window.adminVideosList[idx] = { ...window.adminVideosList[idx], ...updatedVideo };
+      }
+      if (typeof allAdminOnlineVideos !== 'undefined' && Array.isArray(allAdminOnlineVideos)) {
+        const idx = allAdminOnlineVideos.findIndex(x => x.id === id);
+        if (idx !== -1) allAdminOnlineVideos[idx] = { ...allAdminOnlineVideos[idx], ...updatedVideo };
+      }
+    }
 
     // If currently playing in modal, update live view
     if (currentPlayingVideo && currentPlayingVideo.id === id) {
@@ -5281,10 +5352,16 @@ async function saveAdminVideoEdit(e) {
     }
 
     await loadAdminVideos();
+    if (typeof loadAdminOnlineVideos === 'function') await loadAdminOnlineVideos();
     await loadVideos();
     if (typeof loadExplorerData === 'function') loadExplorerData();
   } catch (err) {
     showToast('Erreur de sauvegarde.');
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = oldBtnText;
+    }
   }
 }
 window.saveAdminVideoEdit = saveAdminVideoEdit;
