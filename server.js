@@ -55,13 +55,9 @@ app.use((req, res, next) => {
 
 // Auto-sync clean cloud state on boot
 syncDbFromCloud(true).then((db) => {
-  if (db && Array.isArray(db.contactMessages)) {
-    const cleanList = db.contactMessages.filter(m => m.id !== 'contact_1793169279670_bnhy');
-    if (cleanList.length !== db.contactMessages.length) {
-      db.contactMessages = cleanList;
-      saveDb(db);
-      syncDbToCloud(db);
-    }
+  if (db) {
+    saveDb(db);
+    syncDbToCloud(db);
   }
 }).catch(() => {});
 

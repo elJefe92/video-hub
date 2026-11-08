@@ -246,12 +246,16 @@ async function syncDbFromCloud(force = false) {
       if (memoryDb && memoryDb._updatedAt && remoteDb._updatedAt && remoteDb._updatedAt < memoryDb._updatedAt) {
         return memoryDb;
       }
+      const remoteHadObsolete = Array.isArray(remoteDb.contactMessages) && remoteDb.contactMessages.some(m => m.id === 'contact_1793169279670_bnhy');
       memoryDb = normalizeData(remoteDb);
       lastCloudDownload = Date.now();
       const targetPath = getDbPath();
       try {
         fs.writeFileSync(targetPath, JSON.stringify(memoryDb, null, 2), 'utf-8');
       } catch (e) {}
+      if (remoteHadObsolete) {
+        syncDbToCloud(memoryDb).catch(() => {});
+      }
       return memoryDb;
     }
   } catch (err) {
