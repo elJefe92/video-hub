@@ -100,6 +100,11 @@ function normalizeData(db) {
     return true;
   });
 
+  // Purge obsolete/resolved contact messages
+  if (Array.isArray(db.contactMessages)) {
+    db.contactMessages = db.contactMessages.filter(m => m.id !== 'contact_1793169279670_bnhy');
+  }
+
   const seen = new Set();
   db.categories = db.categories.filter(c => {
     const key = (c.name || '').trim().toLowerCase();

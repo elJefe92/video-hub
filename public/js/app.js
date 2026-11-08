@@ -3867,6 +3867,7 @@ async function handleAdminDeleteMessage(msgId) {
     if (badgeEl) badgeEl.textContent = window.adminMessagesList.length;
     const statEl = document.getElementById('statTotalMessages');
     if (statEl) statEl.textContent = window.adminMessagesList.length;
+    if (typeof loadAdminStats === 'function') loadAdminStats();
   } catch (e) {
     window.adminMessagesList = previousList;
     renderAdminMessages(window.adminMessagesList);
@@ -3902,6 +3903,7 @@ async function handleAdminDeleteAllMessages() {
     if (badgeEl) badgeEl.textContent = 0;
     const statEl = document.getElementById('statTotalMessages');
     if (statEl) statEl.textContent = 0;
+    if (typeof loadAdminStats === 'function') loadAdminStats();
   } catch (e) {
     window.adminMessagesList = previousList;
     renderAdminMessages(window.adminMessagesList);
