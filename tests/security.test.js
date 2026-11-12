@@ -32,6 +32,7 @@ test('server.js sets Content-Security-Policy and restricts CORS origins', () => 
 });
 
 test('Bunny Stream upload uses signed TUS without exposing apiKey to browser', () => {
+  assert.match(serverSrc, /function getClientIp\(req\)/);
   const initBlockMatch = serverSrc.match(/app\.post\('\/api\/videos\/bunny-init'[\s\S]*?^\}\);/m);
   assert.ok(initBlockMatch, 'bunny-init route should exist');
   const initBlock = initBlockMatch[0];

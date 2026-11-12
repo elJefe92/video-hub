@@ -327,6 +327,11 @@ const registerAttempts = new Map();
 const resetPwdAttempts = new Map();
 const contactAttempts = new Map();
 
+// Rate limiting & Client IP resolution
+function getClientIp(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+}
+
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const RATE_LIMIT_LOCK_MS = 15 * 60 * 1000; // 15 minutes lock
