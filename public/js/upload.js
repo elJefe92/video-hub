@@ -418,7 +418,15 @@ async function handleVideoUpload(e) {
       }
     }
   } catch (bunnyErr) {
-    console.warn('Téléversement direct Bunny indisponible, tentative de secours...', bunnyErr);
+    console.warn('Téléversement direct Bunny indisponible:', bunnyErr);
+    if (videoFileInput.files[0] && videoFileInput.files[0].size > 4 * 1024 * 1024) {
+      showToast(bunnyErr.message || 'Erreur lors de l\'envoi direct vers Bunny Stream.');
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = originalText;
+      }
+      return;
+    }
   }
 
   const formData = new FormData();
