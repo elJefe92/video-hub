@@ -296,14 +296,42 @@ async function handleVideoUpload(e) {
 
     if (initRes.ok) {
       const bunnyData = await initRes.json();
-      if (bunnyData && bunnyData.uploadUrl && bunnyData.apiKey) {
+      if (bunnyData && bunnyData.tusUploadUrl && bunnyData.tusSignature && bunnyData.videoId) {
+        const fileToUpload = videoFileInput.files[0];
         btnSubmit.innerHTML = 'Envoi vers Bunny Stream (0%)...';
+
+        const tusHeaders = {
+          'Tus-Resumable': '1.0.0',
+          'AuthorizationSignature': bunnyData.tusSignature,
+          'AuthorizationExpire': String(bunnyData.tusExpiration),
+          'VideoId': bunnyData.videoId,
+          'LibraryId': String(bunnyData.libraryId)
+        };
+
+        const createTusRes = await fetch(bunnyData.tusUploadUrl, {
+          method: 'POST',
+          headers: {
+            ...tusHeaders,
+            'Upload-Length': String(fileToUpload.size)
+          }
+        });
+
+        if (!createTusRes.ok) {
+          throw new Error(`Échec initialisation TUS Bunny (${createTusRes.status})`);
+        }
+
+        const rawLocation = createTusRes.headers.get('Location');
+        if (!rawLocation) {
+          throw new Error('En-tête Location TUS manquant dans la réponse Bunny.');
+        }
+        const patchUrl = new URL(rawLocation, bunnyData.tusUploadUrl).toString();
 
         await new Promise((resolve, reject) => {
           const xhr = new XMLHttpRequest();
-          xhr.open('PUT', bunnyData.uploadUrl, true);
-          xhr.setRequestHeader('AccessKey', bunnyData.apiKey);
-          xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+          xhr.open('PATCH', patchUrl, true);
+          Object.entries(tusHeaders).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+          xhr.setRequestHeader('Upload-Offset', '0');
+          xhr.setRequestHeader('Content-Type', 'application/offset+octet-stream');
 
           xhr.upload.onprogress = (ev) => {
             if (ev.lengthComputable) {
@@ -321,7 +349,7 @@ async function handleVideoUpload(e) {
           };
 
           xhr.onerror = () => reject(new Error('Erreur de connexion vers Bunny Stream.'));
-          xhr.send(videoFileInput.files[0]);
+          xhr.send(fileToUpload);
         });
 
         btnSubmit.innerHTML = 'Finalisation de la publication...';

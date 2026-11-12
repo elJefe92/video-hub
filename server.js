@@ -4,6 +4,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
@@ -15,7 +16,10 @@ const stripe = stripeSecret ? require('stripe')(stripeSecret) : null;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'ia_project_video_hub_secret_2026';
+const JWT_SECRET = process.env.JWT_SECRET || (() => {
+  console.error('[SECURITY WARNING] JWT_SECRET manquant dans les variables d\'environnement.');
+  return 'ia_project_video_hub_secret_2026';
+})();
 const RAW_SITE_URL = process.env.SITE_URL || 'https://www.revedeq.fr';
 const SITE_URL = RAW_SITE_URL.replace('://revedeq.fr', '://www.revedeq.fr');
 
@@ -29,13 +33,48 @@ app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader(
+    'Content-Security-Policy',
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+      "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net",
+      "img-src 'self' data: blob: https:",
+      "media-src 'self' data: blob: https://*.b-cdn.net https://*.supabase.co https://video.bunnycdn.com",
+      "connect-src 'self' https://*.supabase.co https://video.bunnycdn.com https://*.b-cdn.net https://cdn.jsdelivr.net",
+      "frame-src 'self' https://iframe.mediadelivery.net",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "frame-ancestors 'self'"
+    ].join('; ')
+  );
   if (req.secure || req.headers['x-forwarded-proto'] === 'https') {
     res.setHeader('Strict-Transport-Security', 'max-age=63072000; includeSubDomains; preload');
   }
   next();
 });
 
-app.use(cors());
+const ALLOWED_ORIGINS = new Set([
+  'https://www.revedeq.fr',
+  'https://revedeq.fr',
+  SITE_URL.replace(/\/$/, '')
+]);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (
+      ALLOWED_ORIGINS.has(origin) ||
+      /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin) ||
+      /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)
+    ) {
+      return callback(null, true);
+    }
+    return callback(new Error('Origine non autorisée par CORS'));
+  },
+  credentials: true
+}));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
@@ -115,19 +154,17 @@ async function uploadBase64ToSupabaseStorage(bucket, base64Data, filename) {
   }
 }
 
-app.get('/api/debug-supabase', async (req, res) => {
+app.get('/api/debug-supabase', requireAdmin, async (req, res) => {
   if (!supabase) {
     return res.json({ supabaseConfigured: false, envUrl: !!process.env.SUPABASE_URL, envKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY });
   }
   try {
     const { data: buckets, error: bErr } = await supabase.storage.listBuckets();
-    const testUpload = await supabase.storage.from('thumbnails').upload('test_ping.json', JSON.stringify({ ping: Date.now() }), { upsert: true, contentType: 'application/json' });
-    const { data: dlData, error: dlErr } = await supabase.storage.from('thumbnails').download('videohub_db_state.json');
+    const { data: dlData, error: dlErr } = await supabase.storage.from('private-state').download('videohub_db_state.json');
     res.json({
       supabaseConfigured: true,
-      buckets: buckets || [],
+      buckets: (buckets || []).map(b => ({ id: b.id, name: b.name, public: b.public })),
       bucketError: bErr ? bErr.message : null,
-      testUploadError: testUpload.error ? testUpload.error.message : null,
       downloadError: dlErr ? dlErr.message : null,
       hasStateFile: !!dlData
     });
@@ -146,7 +183,12 @@ function getMailTransporter() {
   const smtpPort = parseInt(process.env.SMTP_PORT || '465', 10);
   const smtpSecure = process.env.SMTP_SECURE !== undefined ? (process.env.SMTP_SECURE === 'true') : (smtpPort === 465);
   const smtpUser = process.env.SMTP_USER || process.env.EMAIL_USER || 'ia.project.pro2k26@gmail.com';
-  const smtpPass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD || 'rxcqdfrtywmzzaym').replace(/\s+/g, '');
+  const smtpPass = (process.env.SMTP_PASS || process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
+
+  if (!smtpPass) {
+    console.warn('[Mailer Warning] SMTP_PASS / GMAIL_APP_PASSWORD manquant, envoi d\'e-mail désactivé.');
+    return null;
+  }
 
   if (smtpHost) {
     mailTransporter = nodemailer.createTransport({
@@ -179,6 +221,7 @@ async function sendRobustEmail({ to, subject, html, text, replyTo, category }) {
   if (!to) return false;
   const senderAddress = process.env.SMTP_FROM || process.env.SMTP_USER || 'ia.project.pro2k26@gmail.com';
   const transporter = getMailTransporter();
+  if (!transporter) return false;
   const domainPart = senderAddress.includes('@') ? senderAddress.split('@')[1] : 'revedeq.fr';
   const cleanId = `rdq-${Date.now()}-${Math.random().toString(36).substring(2, 7)}@${domainPart}`;
 
@@ -207,15 +250,16 @@ async function sendRobustEmail({ to, subject, html, text, replyTo, category }) {
     return true;
   } catch (err) {
     console.error(`[Email Delivery Error] Failed sending to ${to}:`, err.message);
-    // Automatic fallback to backup transporter if primary SMTP fails
-    if (process.env.SMTP_HOST) {
+    // Automatic fallback to backup transporter only if GMAIL_APP_PASSWORD is configured
+    const backupPass = (process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
+    if (process.env.SMTP_HOST && backupPass) {
       console.log(`[Email Fallback] Retrying delivery via backup transporter...`);
       try {
         const fallbackTransporter = nodemailer.createTransport({
           service: 'gmail',
           auth: {
-            user: 'ia.project.pro2k26@gmail.com',
-            pass: 'rxcqdfrtywmzzaym'
+            user: process.env.SMTP_USER || process.env.EMAIL_USER || 'ia.project.pro2k26@gmail.com',
+            pass: backupPass
           }
         });
         await fallbackTransporter.sendMail({
@@ -1912,7 +1956,16 @@ const uploadVideoMiddleware = (req, res, next) => {
 };
 
 // Direct Bunny Stream Ingestion (Bypasses Vercel 4.5MB payload limit completely)
+const bunnyInitAttempts = new Map();
+
 app.post('/api/videos/bunny-init', optionalAuthenticate, async (req, res) => {
+  const clientIp = getClientIp(req);
+  const limitCheck = checkIpRateLimit(bunnyInitAttempts, clientIp, 15, 15 * 60 * 1000, 15 * 60 * 1000);
+  if (!limitCheck.allowed) {
+    return res.status(429).json({ error: 'Trop de requêtes d\'upload. Réessayez dans quelques minutes.' });
+  }
+  recordIpAttempt(bunnyInitAttempts, clientIp, 15, 15 * 60 * 1000);
+
   if (!isBunnyConfigured()) {
     return res.status(503).json({ error: 'Bunny Stream non configuré.' });
   }
@@ -1935,7 +1988,7 @@ app.post('/api/videos/bunny-init', optionalAuthenticate, async (req, res) => {
     if (!createRes.ok) {
       const errTxt = await createRes.text();
       console.error('[Bunny Init Error]:', createRes.status, errTxt);
-      return res.status(500).json({ error: 'Échec de création sur Bunny Stream: ' + errTxt });
+      return res.status(500).json({ error: 'Échec de création sur Bunny Stream.' });
     }
 
     const videoData = await createRes.json();
@@ -1943,12 +1996,20 @@ app.post('/api/videos/bunny-init', optionalAuthenticate, async (req, res) => {
     const customCdn = (process.env.BUNNY_STREAM_CDN_HOSTNAME || '').trim();
     const hlsHost = customCdn || `vz-${libraryId}.b-cdn.net`;
 
+    // Generate short-lived TUS upload signature so apiKey is never exposed to the browser
+    const tusExpiration = Math.floor(Date.now() / 1000) + 3600;
+    const tusSignature = crypto
+      .createHash('sha256')
+      .update(`${libraryId}${apiKey}${tusExpiration}${videoGuid}`)
+      .digest('hex');
+
     res.json({
       success: true,
       libraryId,
       videoId: videoGuid,
-      uploadUrl: `https://video.bunnycdn.com/library/${libraryId}/videos/${videoGuid}`,
-      apiKey,
+      tusUploadUrl: 'https://video.bunnycdn.com/tusupload',
+      tusSignature,
+      tusExpiration,
       directPlayUrl: `https://${hlsHost}/${videoGuid}/playlist.m3u8`,
       iframeUrl: `https://iframe.mediadelivery.net/embed/${libraryId}/${videoGuid}?autoplay=false&preload=true`,
       thumbnailUrl: `https://${hlsHost}/${videoGuid}/thumbnail.jpg`,
@@ -1956,7 +2017,7 @@ app.post('/api/videos/bunny-init', optionalAuthenticate, async (req, res) => {
     });
   } catch (err) {
     console.error('[Bunny Init Exception]:', err);
-    res.status(500).json({ error: 'Erreur lors de l\'initialisation Bunny: ' + err.message });
+    res.status(500).json({ error: 'Erreur lors de l\'initialisation Bunny.' });
   }
 });
 

@@ -1,7 +1,12 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { supabase } = require('./supabase');
+
+const PRIVATE_STATE_BUCKET = 'private-state';
+const LEGACY_PUBLIC_BUCKET = 'thumbnails';
+const STATE_FILE_NAME = 'videohub_db_state.json';
 
 const LOCAL_DB_PATH = path.join(__dirname, 'data.json');
 const TMP_DB_PATH = path.join('/tmp', 'data.json');
@@ -19,7 +24,7 @@ const defaultData = {
       id: "user_admin_main",
       username: "Administrateur",
       email: "ia.project.pro2k26@gmail.com",
-      passwordHash: bcrypt.hashSync("admin123", 10),
+      passwordHash: bcrypt.hashSync(process.env.DEFAULT_ADMIN_PASSWORD || crypto.randomBytes(24).toString('hex'), 10),
       role: "admin",
       isVip: true,
       vipExpiry: "2030-01-01",
@@ -225,6 +230,36 @@ function mergeDbStates(local, remote) {
 
 let memoryDb = null;
 let lastCloudDownload = 0;
+let privateBucketReady = false;
+let cleanedLegacyPublicState = false;
+
+async function ensurePrivateBucket() {
+  if (!supabase || privateBucketReady) return true;
+  try {
+    const { data, error } = await supabase.storage.getBucket(PRIVATE_STATE_BUCKET);
+    if (data && !error) {
+      if (data.public) {
+        await supabase.storage.updateBucket(PRIVATE_STATE_BUCKET, { public: false });
+      }
+      privateBucketReady = true;
+      return true;
+    }
+    const { error: createErr } = await supabase.storage.createBucket(PRIVATE_STATE_BUCKET, { public: false });
+    if (!createErr || /already exists/i.test(createErr.message || '')) {
+      privateBucketReady = true;
+      return true;
+    }
+  } catch (e) {}
+  return false;
+}
+
+async function cleanupLegacyPublicState() {
+  if (!supabase || cleanedLegacyPublicState) return;
+  cleanedLegacyPublicState = true;
+  try {
+    await supabase.storage.from(LEGACY_PUBLIC_BUCKET).remove([STATE_FILE_NAME, 'test_ping.json']);
+  } catch (e) {}
+}
 
 async function syncDbFromCloud(force = false) {
   if (!supabase) return null;
@@ -233,10 +268,19 @@ async function syncDbFromCloud(force = false) {
     return memoryDb;
   }
   try {
-    const { data, error } = await supabase.storage.from('thumbnails').download('videohub_db_state.json');
+    await ensurePrivateBucket();
+    let { data, error } = await supabase.storage.from(PRIVATE_STATE_BUCKET).download(STATE_FILE_NAME);
+    let migratedFromLegacy = false;
+
     if (error || !data) {
-      return null;
+      const legacyRes = await supabase.storage.from(LEGACY_PUBLIC_BUCKET).download(STATE_FILE_NAME);
+      if (legacyRes.error || !legacyRes.data) {
+        return null;
+      }
+      data = legacyRes.data;
+      migratedFromLegacy = true;
     }
+
     const buf = Buffer.from(await data.arrayBuffer());
     const text = buf.toString('utf-8');
     if (!text || text.trim().length === 0) return null;
@@ -253,9 +297,10 @@ async function syncDbFromCloud(force = false) {
       try {
         fs.writeFileSync(targetPath, JSON.stringify(memoryDb, null, 2), 'utf-8');
       } catch (e) {}
-      if (remoteHadObsolete) {
-        syncDbToCloud(memoryDb).catch(() => {});
+      if (migratedFromLegacy || remoteHadObsolete) {
+        await syncDbToCloud(memoryDb);
       }
+      cleanupLegacyPublicState().catch(() => {});
       return memoryDb;
     }
   } catch (err) {
@@ -267,6 +312,7 @@ async function syncDbFromCloud(force = false) {
 async function syncDbToCloud(data) {
   if (!supabase || !data) return;
   try {
+    await ensurePrivateBucket();
     data._updatedAt = Date.now();
     memoryDb = normalizeData(data);
     lastCloudDownload = Date.now();
@@ -276,13 +322,15 @@ async function syncDbToCloud(data) {
     } catch (e) {}
 
     const jsonStr = JSON.stringify(memoryDb, null, 2);
-    const { error } = await supabase.storage.from('thumbnails').upload('videohub_db_state.json', jsonStr, {
+    const { error } = await supabase.storage.from(PRIVATE_STATE_BUCKET).upload(STATE_FILE_NAME, jsonStr, {
       contentType: 'application/json',
       cacheControl: '0',
       upsert: true
     });
     if (error) {
       console.error('[Database Cloud Upload Error]:', error.message);
+    } else {
+      cleanupLegacyPublicState().catch(() => {});
     }
   } catch (err) {
     console.error('[Database Cloud Save Error]:', err.message);
