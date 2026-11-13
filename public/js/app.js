@@ -4782,12 +4782,28 @@ async function approveVideo(id, evt) {
 
     showToast(data.message || 'Video validee et publiee sur le site !');
 
-    // Optimistically update card in UI
+    // Optimistically update card & counter in UI
     const card = btn?.closest('.pending-card');
     if (card) {
-      card.style.opacity = '0.4';
-      card.style.transition = 'opacity 0.3s ease';
-      setTimeout(() => { if (card && card.parentNode) card.remove(); }, 350);
+      card.remove();
+    }
+    const countEl = document.getElementById('adminPendingCountText');
+    if (countEl) {
+      const cur = parseInt(countEl.textContent, 10) || 0;
+      countEl.textContent = Math.max(0, cur - 1);
+    }
+    const listContainer = document.getElementById('adminPendingVideosList');
+    if (listContainer && !listContainer.querySelector('.pending-card')) {
+      listContainer.innerHTML = `
+        <div style="text-align:center;padding:34px;background:var(--bg-card);border-radius:12px;border:1px dashed var(--border-color);">
+          <p style="font-weight:700;color:var(--text-main);margin:0 0 6px;">Aucune vidéo en attente de modération.</p>
+          <p style="color:var(--text-muted);font-size:0.85rem;margin:0 0 16px;">Toutes les vidéos ont été traitées ou publiées.</p>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">
+            <button class="btn btn-sm btn-secondary" onclick="switchAdminSection('online')">Voir les vidéos en ligne</button>
+            <button class="btn btn-sm btn-primary" onclick="switchTab('accueil')">Voir le flux d'Accueil</button>
+          </div>
+        </div>
+      `;
     }
 
     await loadAdminStats();
