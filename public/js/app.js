@@ -1047,10 +1047,31 @@ async function loadVideos(cat = activeCategory, searchQuery = '') {
     const data = await res.json();
     allVideosList = data.videos || [];
 
+    renderDailySpotlight(allVideosList);
     renderVideoGrid(allVideosList);
   } catch (err) {
     console.error('Error loading videos', err);
   }
+}
+
+function renderDailySpotlight(videos) {
+  const container = document.getElementById('dailySpotlightSection');
+  const grid = document.getElementById('spotlightVideoGrid');
+  if (!container || !grid) return;
+
+  const featured = (videos || []).filter(v => v.status === 'approved' && v.isDailyFeatured);
+  if (featured.length === 0) {
+    container.classList.add('hidden');
+    grid.innerHTML = '';
+    return;
+  }
+
+  container.classList.remove('hidden');
+  const dateText = document.getElementById('spotlightDateText');
+  if (dateText) {
+    dateText.textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+  grid.innerHTML = featured.map(v => renderVideoCard(v)).join('');
 }
 
 
@@ -1167,8 +1188,11 @@ function renderVideoCard(v) {
         </span>
         ` : ''}
         <span class="video-duration-badge">${v.duration || '0:30'}</span>
-        ${v.status === 'pending' ? '<span class="video-pending-badge">En attente</span>' : ''}
-        ${v.isVipExclusive ? '<span class="vip-exclusive-badge">EXCLUSIF VIP</span>' : (v.isVipAuthor ? '<span class="vip-card-badge">VIP</span>' : '')}
+        <div class="card-badges-top-left">
+          ${v.isDailyFeatured ? '<span class="video-daily-badge">SÉLECTION DU JOUR</span>' : ''}
+          ${v.status === 'pending' ? '<span class="video-pending-badge">En attente</span>' : ''}
+          ${v.isVipExclusive ? '<span class="vip-exclusive-badge">EXCLUSIF VIP</span>' : (v.isVipAuthor ? '<span class="vip-card-badge">VIP</span>' : '')}
+        </div>
         <button type="button" class="card-fav-btn ${isFav ? 'active' : ''}" data-fav-btn="${v.id}" onclick="event.stopPropagation(); toggleFavorite('${v.id}')" title="${isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'}" aria-label="Favori">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="${isFav ? '#ef4444' : 'none'}" stroke="${isFav ? '#ef4444' : 'currentColor'}" stroke-width="2">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
@@ -4043,7 +4067,11 @@ function renderAdminOnlineVideos(videos) {
     <div style="background:var(--bg-card);border:1px solid var(--border-color);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
       <img src="${thumb}" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=300'" style="width:110px;height:70px;object-fit:cover;border-radius:8px;cursor:pointer;" onclick="openVideoPlayerModal('${v.id}')">
       <div style="flex:1;min-width:220px;">
-        <h4 style="margin:0 0 4px;font-size:0.95rem;color:var(--text-main);">${v.title}</h4>
+        <h4 style="margin:0 0 4px;font-size:0.95rem;color:var(--text-main);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          ${v.title}
+          ${v.isDailyFeatured ? '<span style="background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.4);padding:2px 8px;border-radius:999px;font-size:0.7rem;font-weight:800;">★ Sélection du Jour</span>' : ''}
+          ${v.isVipExclusive ? '<span style="background:rgba(236,72,153,0.2);color:#f43f5e;border:1px solid rgba(236,72,153,0.4);padding:2px 8px;border-radius:999px;font-size:0.7rem;font-weight:800;">VIP Exclusif</span>' : ''}
+        </h4>
         <div style="font-size:0.78rem;color:var(--text-muted);display:flex;gap:8px;flex-wrap:wrap;">
           <span>Par <strong>${v.authorName}</strong></span>
           <span>• ${v.region || 'France'}</span>
@@ -4052,6 +4080,7 @@ function renderAdminOnlineVideos(videos) {
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-sm ${v.isDailyFeatured ? 'btn-warning' : 'btn-secondary'}" onclick="toggleDailyFeatured('${v.id}')" title="Mettre en avant sur la page d'accueil">${v.isDailyFeatured ? 'Retirer du Jour' : 'Sélection du Jour'}</button>
         <button class="btn btn-sm btn-secondary" onclick="openVideoPlayerModal('${v.id}')">Voir</button>
         <button class="btn btn-sm btn-secondary" onclick="openAdminEditTagsModal('${v.id}')" style="border-color:#3b82f6;color:#3b82f6;font-weight:700;">Modifier les tags</button>
         <button class="btn btn-sm btn-secondary" onclick="openAdminEditModal('${v.id}')">Modifier</button>
@@ -4747,6 +4776,7 @@ async function toggleDailyFeatured(id) {
     const data = await res.json();
     showToast(data.message || 'Sélection mise à jour.');
     await loadAdminVideos();
+    if (typeof loadAdminOnlineVideos === 'function') await loadAdminOnlineVideos();
     await loadVideos();
   } catch (err) {
     showToast('Erreur de mise à jour.');
