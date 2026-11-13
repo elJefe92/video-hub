@@ -6108,6 +6108,10 @@ async function handleSaveProfile(e) {
   formData.append('bio', bio);
   if (avatarFile) {
     formData.append('avatarFile', avatarFile);
+    try {
+      const base64 = await compressImageToDataUrl(avatarFile, 400, 400, 0.85);
+      if (base64) formData.append('avatarBase64', base64);
+    } catch (e) {}
   }
 
   try {

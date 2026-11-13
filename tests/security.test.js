@@ -49,3 +49,10 @@ test('daily spotlight automatically resets when date changes', () => {
   assert.match(databaseSrc, /v\.isDailyFeatured && v\.featuredDate && v\.featuredDate !== todayStr/);
   assert.match(serverSrc, /video\.featuredDate = new Date\(\)\.toISOString\(\)\.split\('T'\)\[0\]/);
 });
+
+test('profile update persists changes to cloud database', () => {
+  const profileRouteMatch = serverSrc.match(/app\.put\('\/api\/user\/profile'[\s\S]*?^\}\);/m);
+  assert.ok(profileRouteMatch, 'profile route should exist');
+  assert.match(profileRouteMatch[0], /await syncDbToCloud\(db\)/);
+  assert.match(profileRouteMatch[0], /await syncDbFromCloud/);
+});

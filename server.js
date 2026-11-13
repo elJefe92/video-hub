@@ -1518,7 +1518,8 @@ app.get('/api/auth/me', authenticate, (req, res) => {
 
 // Update Profile (Nickname, Bio, Avatar)
 app.put('/api/user/profile', authenticate, upload.single('avatarFile'), async (req, res) => {
-  const { username, bio, avatarUrl } = req.body;
+  await syncDbFromCloud(true);
+  const { username, bio, avatarUrl, avatarBase64 } = req.body;
   const db = loadDb();
   const user = db.users.find(u => u.id === req.user.id);
 
@@ -1544,7 +1545,10 @@ app.put('/api/user/profile', authenticate, upload.single('avatarFile'), async (r
     user.bio = bio.trim().slice(0, 600);
   }
 
-  if (req.file) {
+  if (avatarBase64 && avatarBase64.startsWith('data:')) {
+    const uploadedAvatar = await uploadBase64ToSupabaseStorage('thumbnails', avatarBase64, 'avatar_' + user.id + '_' + Date.now());
+    if (uploadedAvatar) user.avatar = uploadedAvatar;
+  } else if (req.file) {
     const supabaseAvatar = await uploadToSupabaseStorage('thumbnails', req.file.path, req.file.filename, req.file.mimetype);
     user.avatar = supabaseAvatar || `/uploads/${req.file.filename}`;
   } else if (avatarUrl && avatarUrl.trim()) {
@@ -1560,6 +1564,7 @@ app.put('/api/user/profile', authenticate, upload.single('avatarFile'), async (r
   });
 
   saveDb(db);
+  await syncDbToCloud(db);
   addLog('Profil Modifié', `Utilisateur "${user.username}" a mis à jour son profil (avatar & bio)`);
 
   const { passwordHash: _, ...userSafe } = user;
