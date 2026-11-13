@@ -298,7 +298,7 @@ async function handleVideoUpload(e) {
       const bunnyData = await initRes.json();
       if (bunnyData && bunnyData.tusUploadUrl && bunnyData.tusSignature && bunnyData.videoId) {
         const fileToUpload = videoFileInput.files[0];
-        btnSubmit.innerHTML = 'Envoi vers Bunny Stream (0%)...';
+        btnSubmit.innerHTML = 'Téléchargement (0%)...';
 
         const tusHeaders = {
           'Tus-Resumable': '1.0.0',
@@ -336,7 +336,7 @@ async function handleVideoUpload(e) {
           xhr.upload.onprogress = (ev) => {
             if (ev.lengthComputable) {
               const pct = Math.round((ev.loaded / ev.total) * 100);
-              btnSubmit.innerHTML = `Envoi vers Bunny Stream (${pct}%)...`;
+              btnSubmit.innerHTML = `Téléchargement (${pct}%)...`;
             }
           };
 
