@@ -44,3 +44,8 @@ test('Bunny Stream upload uses signed TUS without exposing apiKey to browser', (
   assert.equal(uploadJsSrc.includes('bunnyData.apiKey'), false);
   assert.match(uploadJsSrc, /bunnyData\.tusSignature/);
 });
+
+test('daily spotlight automatically resets when date changes', () => {
+  assert.match(databaseSrc, /v\.isDailyFeatured && v\.featuredDate && v\.featuredDate !== todayStr/);
+  assert.match(serverSrc, /video\.featuredDate = new Date\(\)\.toISOString\(\)\.split\('T'\)\[0\]/);
+});

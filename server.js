@@ -3061,6 +3061,8 @@ app.post('/api/admin/videos/:id/toggle-daily', requireAdmin, async (req, res) =>
   video.isDailyFeatured = !video.isDailyFeatured;
   if (video.isDailyFeatured) {
     video.featuredDate = new Date().toISOString().split('T')[0];
+  } else {
+    video.featuredDate = null;
   }
 
   saveDb(db);

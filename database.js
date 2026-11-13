@@ -126,7 +126,13 @@ function normalizeData(db) {
     return true;
   });
 
+  const todayStr = new Date().toISOString().split('T')[0];
   db.videos.forEach(v => {
+    // Automatically reset daily spotlight when the calendar date changes
+    if (v.isDailyFeatured && v.featuredDate && v.featuredDate !== todayStr) {
+      v.isDailyFeatured = false;
+      v.featuredDate = null;
+    }
     if (!v.categories || !Array.isArray(v.categories)) {
       v.categories = v.category ? [v.category] : [];
     }

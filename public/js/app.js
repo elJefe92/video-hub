@@ -1059,7 +1059,8 @@ function renderDailySpotlight(videos) {
   const grid = document.getElementById('spotlightVideoGrid');
   if (!container || !grid) return;
 
-  const featured = (videos || []).filter(v => v.status === 'approved' && v.isDailyFeatured);
+  const todayStr = new Date().toISOString().split('T')[0];
+  const featured = (videos || []).filter(v => v.status === 'approved' && v.isDailyFeatured && (!v.featuredDate || v.featuredDate === todayStr));
   if (featured.length === 0) {
     container.classList.add('hidden');
     grid.innerHTML = '';
@@ -1189,7 +1190,7 @@ function renderVideoCard(v) {
         ` : ''}
         <span class="video-duration-badge">${v.duration || '0:30'}</span>
         <div class="card-badges-top-left">
-          ${v.isDailyFeatured ? '<span class="video-daily-badge">SÉLECTION DU JOUR</span>' : ''}
+          ${(v.isDailyFeatured && (!v.featuredDate || v.featuredDate === (new Date().toISOString().split('T')[0]))) ? '<span class="video-daily-badge">SÉLECTION DU JOUR</span>' : ''}
           ${v.status === 'pending' ? '<span class="video-pending-badge">En attente</span>' : ''}
           ${v.isVipExclusive ? '<span class="vip-exclusive-badge">EXCLUSIF VIP</span>' : (v.isVipAuthor ? '<span class="vip-card-badge">VIP</span>' : '')}
         </div>
