@@ -1792,21 +1792,43 @@ app.get('/api/videos', async (req, res) => {
     const normalize = str => (str || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
     const qNorm = normalize(qParam);
 
+    const getQueryVariants = term => {
+      const vars = [term];
+      if (term.includes('prono')) vars.push(term.replace(/prono/g, 'porno'));
+      if (term.includes('porno')) vars.push(term.replace(/porno/g, 'prono'));
+      if (term.includes('baise')) vars.push(term.replace(/baise/g, 'bz'));
+      if (/\bbz\b/.test(term)) vars.push(term.replace(/\bbz\b/g, 'baise'));
+      if (term.includes('sexe')) vars.push(term.replace(/sexe/g, 'sex'));
+      return Array.from(new Set(vars));
+    };
+
+    const queryVariants = getQueryVariants(qNorm);
+
     const scoreItem = (text, isTitle = false) => {
       const t = normalize(text);
       if (!t || !qNorm) return 0;
-      if (t === qNorm) return isTitle ? 100 : 80;
-      if (t.startsWith(qNorm)) return (isTitle ? 85 : 65) - Math.min(15, t.length - qNorm.length);
-      const words = t.split(/[\s\-_\/]+/);
-      for (let i = 0; i < words.length; i++) {
-        if (words[i].startsWith(qNorm)) {
-          return (isTitle ? 70 : 50) - Math.min(10, words[i].length - qNorm.length) - (i * 2);
+      let highest = 0;
+
+      for (const variant of queryVariants) {
+        let score = 0;
+        if (t === variant) {
+          score = isTitle ? 100 : 80;
+        } else if (t.startsWith(variant)) {
+          score = (isTitle ? 85 : 65) - Math.min(15, t.length - variant.length);
+        } else {
+          const words = t.split(/[\s\-_\/]+/);
+          for (let i = 0; i < words.length; i++) {
+            if (words[i].startsWith(variant)) {
+              score = Math.max(score, (isTitle ? 70 : 50) - Math.min(10, words[i].length - variant.length) - (i * 2));
+            }
+          }
+          if (score === 0 && variant.length >= 4 && t.includes(variant)) {
+            score = isTitle ? 30 : 15;
+          }
         }
+        if (score > highest) highest = score;
       }
-      if (qNorm.length >= 4 && t.includes(qNorm)) {
-        return isTitle ? 30 : 15;
-      }
-      return 0;
+      return highest;
     };
 
     const scored = [];
@@ -4237,8 +4259,8 @@ function renderSeoPage(req, res) {
     const siteUrl = SITE_URL;
     const db = loadDb();
 
-    let title = 'Vidéo Porno Amateur 100% Gratuit - Rêve de Q | Porno Français (18+)';
-    let description = 'Regardez les meilleures vidéos porno amateur 100% gratuites sur Rêve de Q (revedeq.fr). Streaming porno français, sexe amateur, sextape et vidéos X exclusives sans inscription.';
+    let title = 'Prono Amateur Gratuit & Vidéos Porno Françaises - Rêve de Q | Sexe & Baise Réelle (18+)';
+    let description = 'Regardez les meilleures vidéos de prono amateur, sexe réel et baise française 100% gratuites sur Rêve de Q (revedeq.fr). Streaming porno gratuit, sextape et vidéos X exclusives sans inscription.';
     let canonical = `${siteUrl}${req.path === '/' ? '' : req.path}`;
     let ogImage = `${siteUrl}/revedeq-banner.png`;
     let extraSchema = '';
@@ -4429,6 +4451,11 @@ app.get('/sitemap.xml', async (req, res) => {
       <video:player_loc>${playerUrl}</video:player_loc>${durationTag}
       <video:publication_date>${pubDate}</video:publication_date>
       <video:family_friendly>no</video:family_friendly>
+      <video:tag>prono</video:tag>
+      <video:tag>prono amateur</video:tag>
+      <video:tag>sexe</video:tag>
+      <video:tag>baise</video:tag>
+      <video:tag>porno amateur</video:tag>
     </video:video>
   </url>`;
   });
