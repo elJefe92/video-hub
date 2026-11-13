@@ -3304,9 +3304,24 @@ app.post('/api/contact/submit', async (req, res) => {
   }
   recordIpAttempt(contactAttempts, clientIp, 5, 15 * 60 * 1000);
 
-  const { name, email, subject, message } = req.body;
+  const { name, email, subject, message, website } = req.body;
+  if (website && String(website).trim().length > 0) {
+    // Honeypot triggered by automated bot
+    return res.json({ success: true, message: 'Message envoyé.' });
+  }
   if (!name || !email || !subject || !message) {
     return res.status(400).json({ error: 'Veuillez remplir tous les champs obligatoires (*).' });
+  }
+
+  const lowerEmail = String(email).trim().toLowerCase();
+  const lowerMsg = String(message).toLowerCase();
+  const hasExternalUrl = /(https?:\/\/(?!([a-z0-9-]+\.)?revedeq\.fr)|www\.)/i.test(String(message)) || /(https?:\/\/|www\.)/i.test(String(subject));
+  if (
+    hasExternalUrl ||
+    lowerEmail.endsWith('@probox.my.id') ||
+    /unpartage\.online|onpartage\.online/i.test(lowerMsg)
+  ) {
+    return res.status(400).json({ error: 'Les liens externes et messages automatisés ne sont pas autorisés dans le formulaire de contact.' });
   }
 
   const db = loadDb();

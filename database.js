@@ -105,9 +105,16 @@ function normalizeData(db) {
     return true;
   });
 
-  // Purge obsolete/resolved contact messages
+  // Purge obsolete/resolved/spam contact messages
   if (Array.isArray(db.contactMessages)) {
-    db.contactMessages = db.contactMessages.filter(m => m.id !== 'contact_1793169279670_bnhy');
+    db.contactMessages = db.contactMessages.filter(m => {
+      if (!m || m.id === 'contact_1793169279670_bnhy') return false;
+      const email = String(m.email || '').toLowerCase();
+      const msg = String(m.message || '').toLowerCase();
+      if (email.endsWith('@probox.my.id')) return false;
+      if (msg.includes('unpartage.online') || msg.includes('onpartage.online')) return false;
+      return true;
+    });
   }
 
   const seen = new Set();
@@ -290,7 +297,12 @@ async function syncDbFromCloud(force = false) {
       if (memoryDb && memoryDb._updatedAt && remoteDb._updatedAt && remoteDb._updatedAt < memoryDb._updatedAt) {
         return memoryDb;
       }
-      const remoteHadObsolete = Array.isArray(remoteDb.contactMessages) && remoteDb.contactMessages.some(m => m.id === 'contact_1793169279670_bnhy');
+      const remoteHadObsolete = Array.isArray(remoteDb.contactMessages) && remoteDb.contactMessages.some(m =>
+        !m ||
+        m.id === 'contact_1793169279670_bnhy' ||
+        String(m.email || '').toLowerCase().endsWith('@probox.my.id') ||
+        /unpartage\.online|onpartage\.online/i.test(String(m.message || ''))
+      );
       memoryDb = normalizeData(remoteDb);
       lastCloudDownload = Date.now();
       const targetPath = getDbPath();
