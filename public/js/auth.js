@@ -90,9 +90,11 @@ const AUTH = {
     if (this.user) {
       // Header status
       if (authBtn) {
+        const displayLabel = isAdmin ? 'Admin' : (this.user.username || 'Compte');
+        authBtn.title = isAdmin ? 'Administration & Profil' : (this.user.username || 'Mon Profil');
         authBtn.innerHTML = `
-          <img src="${this.user.avatar}" class="avatar-sm" style="border-radius:50%;width:24px;height:24px;object-fit:cover;">
-          <span class="header-auth-label">${this.user.username} ${isAdmin ? '(Admin)' : ''}</span>
+          <img src="${this.user.avatar}" class="avatar-sm" style="border-radius:50%;width:24px;height:24px;object-fit:cover;" alt="Avatar">
+          <span class="header-auth-label">${displayLabel}</span>
         `;
       }
 

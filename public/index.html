@@ -41,8 +41,8 @@
         "@type": "WebSite",
         "@id": "https://www.revedeq.fr/#website",
         "url": "https://www.revedeq.fr/",
-        "name": "Rêve de Q - Vidéos Prono Amateur, Porno & Baise Réelle",
-        "alternateName": ["revedeq", "revedeq.fr", "Reve de Q", "ReveDeQ", "Prono", "Prono Amateur", "Porno Amateur Gratuit", "Porno Français", "Sexe Amateur", "Baise"],
+        "name": "Rêve de Q",
+        "alternateName": ["Reve de Q", "revedeq.fr", "revedeq", "ReveDeQ"],
         "description": "Plateforme française de vidéos de prono amateur, porno, sexe et baise réelle 100% gratuites (18+)",
         "inLanguage": "fr-FR",
         "potentialAction": {
@@ -55,7 +55,7 @@
         "@type": "Organization",
         "@id": "https://www.revedeq.fr/#organization",
         "name": "Rêve de Q",
-        "alternateName": ["revedeq", "revedeq.fr", "Reve de Q"],
+        "alternateName": ["Reve de Q", "revedeq.fr", "revedeq"],
         "url": "https://www.revedeq.fr/",
         "logo": "https://www.revedeq.fr/revedeq-logo.png"
       }
@@ -69,7 +69,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=8.9">
+  <link rel="stylesheet" href="/css/style.css?v=8.12">
   <script>
     // Vérification immédiate anti-clignotement (1h de validité)
     (function() {
@@ -88,8 +88,10 @@
   <div id="adultWarningOverlay" class="adult-warning-backdrop">
     <div class="adult-warning-card">
       <div class="adult-warning-brand" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px;">
-        <span class="adult-brand-name" style="display:inline-flex;align-items:center;gap:8px;font-size:1.6rem;font-weight:800;color:#ffffff;letter-spacing:0.5px;">
-          Rêve de <img src="/revedeq-emblem.png" alt="Q" width="36" height="36" style="filter:drop-shadow(0 0 10px rgba(245,158,11,0.6));vertical-align:middle;">
+        <span class="adult-brand-name" style="display:inline-flex;align-items:center;gap:6px;font-size:1.6rem;font-weight:800;color:#ffffff;letter-spacing:0.5px;">
+          <span>Rêve&nbsp;de</span>
+          <span style="font-weight:900;background:linear-gradient(135deg,#fef08a 0%,#fbbf24 30%,#f97316 70%,#ea580c 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 8px rgba(249,115,22,0.65));">Q</span>
+          <img src="/revedeq-emblem.png" alt="Rêve de Q" width="36" height="36" style="filter:drop-shadow(0 0 10px rgba(245,158,11,0.6));vertical-align:middle;">
         </span>
       </div>
 
@@ -112,6 +114,7 @@
 
   <!-- TOP HEADER -->
   <header class="app-header">
+    <h1 class="visually-hidden">Rêve de Q - Vidéos Porno Amateur & Baise Réelle en France</h1>
     <div class="header-container">
       <div class="header-left">
         <!-- 3 lines hamburger menu button to open Navigation Principale drawer -->
@@ -122,12 +125,13 @@
             <line x1="3" y1="18" x2="21" y2="18"></line>
           </svg>
         </button>
-        <a href="/" class="brand-logo" onclick="navigateToTab('accueil'); return false;" style="text-decoration:none;">
+        <a href="/" class="brand-logo" onclick="navigateToTab('accueil'); return false;" style="text-decoration:none;" aria-label="Rêve de Q - Accueil">
           <span class="brand-text">
             <span class="brand-text-prefix">Rêve&nbsp;de</span>
+            <span class="text-orange">Q</span>
           </span>
           <div class="brand-emblem">
-            <img src="/revedeq-emblem.png" alt="Q" class="brand-emblem-svg" width="38" height="38">
+            <img src="/revedeq-emblem.png" alt="Rêve de Q" class="brand-emblem-svg" width="34" height="34">
           </div>
         </a>
       </div>
@@ -2494,7 +2498,11 @@
           <!-- Column 1: Brand & Presentation -->
           <div class="footer-col footer-col-brand">
             <div class="footer-logo">
-              <span class="logo-text" style="display:inline-flex;align-items:center;gap:6px;">Rêve de <img src="/revedeq-emblem.png" alt="Q" width="28" height="28" style="filter:drop-shadow(0 0 8px rgba(245,158,11,0.6));"></span>
+              <span class="logo-text" style="display:inline-flex;align-items:center;gap:6px;">
+                <span>Rêve&nbsp;de</span>
+                <span class="text-orange" style="font-weight:900;">Q</span>
+                <img src="/revedeq-emblem.png" alt="Rêve de Q" width="28" height="28" style="filter:drop-shadow(0 0 8px rgba(245,158,11,0.6));">
+              </span>
               <span class="logo-dot"></span>
             </div>
             <p class="footer-brand-desc">
@@ -3150,10 +3158,10 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-  <script src="/js/auth.js?v=8.10"></script>
-  <script src="/js/upload.js?v=8.10"></script>
-  <script src="/js/vip.js?v=8.10"></script>
-  <script src="/js/app.js?v=8.10"></script>
+  <script src="/js/auth.js?v=8.12"></script>
+  <script src="/js/upload.js?v=8.12"></script>
+  <script src="/js/vip.js?v=8.12"></script>
+  <script src="/js/app.js?v=8.12"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">

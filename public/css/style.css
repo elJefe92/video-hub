@@ -52,6 +52,12 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
 body {
   font-family: var(--font-body);
   background-color: var(--bg-main);
@@ -60,6 +66,18 @@ body {
   padding-bottom: 24px;
   padding-top: var(--header-height);
   -webkit-font-smoothing: antialiased;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
 }
 
 
@@ -5230,10 +5248,12 @@ body.theme-light #videoModal .similar-author {
 }
 
 /* ==================== MOBILE PHONE TOP HEADER & FILTER BAR ==================== */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .header-container {
-    padding: 0 10px !important;
+    padding: 0 8px !important;
     gap: 6px !important;
+    max-width: 100vw !important;
+    overflow: hidden !important;
   }
 
   .header-left {
@@ -5247,17 +5267,18 @@ body.theme-light #videoModal .similar-author {
   .brand-logo {
     display: inline-flex !important;
     align-items: center !important;
-    gap: 6px !important;
-    padding: 2px 2px !important;
+    gap: 5px !important;
+    padding: 2px 0 !important;
     white-space: nowrap !important;
     flex-shrink: 0 !important;
   }
 
   .brand-text {
-    font-size: 1.15rem !important;
+    font-size: 1.12rem !important;
     white-space: nowrap !important;
     display: inline-flex !important;
     align-items: center !important;
+    gap: 3px !important;
     flex-shrink: 0 !important;
   }
 
@@ -5266,9 +5287,14 @@ body.theme-light #videoModal .similar-author {
     display: inline-block !important;
   }
 
+  .brand-text .text-orange {
+    font-size: 1.25em !important;
+    line-height: 0.9 !important;
+  }
+
   .brand-emblem {
-    width: 32px !important;
-    height: 32px !important;
+    width: 28px !important;
+    height: 28px !important;
     flex-shrink: 0 !important;
   }
 
@@ -5288,15 +5314,15 @@ body.theme-light #videoModal .similar-author {
   .header-actions {
     display: flex !important;
     align-items: center !important;
-    gap: 8px !important;
+    gap: 6px !important;
     flex-shrink: 0 !important;
     margin-left: auto !important;
   }
 
   .btn-theme-toggle {
     display: inline-flex !important;
-    width: 36px !important;
-    height: 36px !important;
+    width: 34px !important;
+    height: 34px !important;
     padding: 0 !important;
     align-items: center !important;
     justify-content: center !important;
@@ -5307,27 +5333,56 @@ body.theme-light #videoModal .similar-author {
     color: var(--text-main) !important;
   }
 
-  #headerAuthBtn {
-    display: flex !important;
+  .btn-header-messages-mobile {
+    display: inline-flex !important;
+    position: relative !important;
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 50% !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-main) !important;
     align-items: center !important;
-    gap: 6px !important;
+    justify-content: center !important;
+    text-decoration: none !important;
+    flex-shrink: 0 !important;
+  }
+
+  #headerAuthBtn {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
     background: var(--primary) !important;
     color: #ffffff !important;
     border: none !important;
-    padding: 6px 13px !important;
+    padding: 5px 8px !important;
     border-radius: 999px !important;
-    font-size: 0.8rem !important;
+    font-size: 0.78rem !important;
     font-weight: 700 !important;
     flex-shrink: 0 !important;
     white-space: nowrap !important;
+    max-width: 95px !important;
     box-shadow: 0 2px 8px var(--primary-glow) !important;
     cursor: pointer !important;
+    box-sizing: border-box !important;
+  }
+
+  #headerAuthBtn img.avatar-sm {
+    width: 22px !important;
+    height: 22px !important;
+    border-radius: 50% !important;
+    flex-shrink: 0 !important;
   }
 
   #headerAuthBtn .header-auth-label {
     color: #ffffff !important;
-    font-size: 0.8rem !important;
+    font-size: 0.78rem !important;
     font-weight: 700 !important;
+    max-width: 55px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    display: inline-block !important;
   }
 
   body.theme-light #headerAuthBtn {
@@ -7705,8 +7760,8 @@ body.theme-light .chat-vip-paywall {
   .btn-header-messages-mobile {
     display: inline-flex !important;
     position: relative;
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -7718,15 +7773,19 @@ body.theme-light .chat-vip-paywall {
   }
 
   #headerAuthBtn {
-    max-width: 120px !important;
-    padding: 6px 10px !important;
+    max-width: 100px !important;
+    padding: 5px 8px !important;
+    font-size: 0.78rem !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
   }
 
   #headerAuthBtn .header-auth-label {
-    max-width: 75px !important;
+    max-width: 55px !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
+    display: inline-block !important;
   }
 
   #tab-messages {
@@ -8935,9 +8994,20 @@ body.is-admin .hidden.vip-admin-only {
   display: none !important;
 }
 
-body.is-admin a.vip-admin-only,
-body.is-admin .btn-header-vip-top.vip-admin-only {
-  display: inline-flex !important;
+@media (min-width: 769px) {
+  body.is-admin a.vip-admin-only,
+  body.is-admin .btn-header-vip-top.vip-admin-only {
+    display: inline-flex !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .btn-header-vip-top,
+  .btn-header-vip-top.vip-admin-only,
+  body.is-admin .btn-header-vip-top,
+  body.is-admin .btn-header-vip-top.vip-admin-only {
+    display: none !important;
+  }
 }
 
 body.is-admin li.vip-admin-only {
