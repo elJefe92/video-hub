@@ -274,6 +274,15 @@ async function cleanupLegacyPublicState() {
   } catch (e) {}
 }
 
+function getBundledSeedDb() {
+  if (fs.existsSync(LOCAL_DB_PATH)) {
+    try {
+      return JSON.parse(fs.readFileSync(LOCAL_DB_PATH, 'utf-8'));
+    } catch (e) {}
+  }
+  return null;
+}
+
 async function syncDbFromCloud(force = false) {
   if (!supabase) return null;
   const now = Date.now();
@@ -297,11 +306,17 @@ async function syncDbFromCloud(force = false) {
     const buf = Buffer.from(await data.arrayBuffer());
     const text = buf.toString('utf-8');
     if (!text || text.trim().length === 0) return null;
-    const remoteDb = JSON.parse(text);
+    let remoteDb = JSON.parse(text);
     if (remoteDb && Array.isArray(remoteDb.users) && remoteDb.users.length > 0) {
       // Guard against stale CDN cache overwriting newer in-memory local modifications
-      if (memoryDb && memoryDb._updatedAt && remoteDb._updatedAt && remoteDb._updatedAt < memoryDb._updatedAt) {
+      if (memoryDb && memoryDb._updatedAt && remoteDb._updatedAt && remoteDb._updatedAt < memoryDb._updatedAt && (memoryDb.videos || []).length >= (remoteDb.videos || []).length) {
         return memoryDb;
+      }
+      const bundled = getBundledSeedDb();
+      let mergedWithSeed = false;
+      if (bundled && Array.isArray(bundled.videos) && bundled.videos.length > 0 && (!Array.isArray(remoteDb.videos) || remoteDb.videos.length === 0)) {
+        remoteDb = mergeDbStates(bundled, remoteDb);
+        mergedWithSeed = true;
       }
       const remoteHadObsolete = Array.isArray(remoteDb.contactMessages) && remoteDb.contactMessages.some(m =>
         !m ||
@@ -315,7 +330,7 @@ async function syncDbFromCloud(force = false) {
       try {
         fs.writeFileSync(targetPath, JSON.stringify(memoryDb, null, 2), 'utf-8');
       } catch (e) {}
-      if (migratedFromLegacy || remoteHadObsolete) {
+      if (migratedFromLegacy || remoteHadObsolete || mergedWithSeed) {
         await syncDbToCloud(memoryDb);
       }
       cleanupLegacyPublicState().catch(() => {});
@@ -331,6 +346,10 @@ async function syncDbToCloud(data) {
   if (!supabase || !data) return;
   try {
     await ensurePrivateBucket();
+    const bundled = getBundledSeedDb();
+    if (bundled && Array.isArray(bundled.videos) && bundled.videos.length > 0 && (!Array.isArray(data.videos) || data.videos.length === 0)) {
+      data = mergeDbStates(bundled, data);
+    }
     data._updatedAt = Date.now();
     memoryDb = normalizeData(data);
     lastCloudDownload = Date.now();
@@ -356,26 +375,30 @@ async function syncDbToCloud(data) {
 }
 
 function loadDb() {
-  if (memoryDb) return memoryDb;
+  if (memoryDb && Array.isArray(memoryDb.videos) && memoryDb.videos.length > 0) {
+    return memoryDb;
+  }
 
   const targetPath = getDbPath();
+  const bundled = getBundledSeedDb();
 
-  // Try /tmp/data.json first on serverless
+  // Try /tmp/data.json first on serverless, merged with bundled seed if /tmp has 0 videos
   if (fs.existsSync(targetPath)) {
     try {
       const raw = fs.readFileSync(targetPath, 'utf-8');
-      const data = JSON.parse(raw);
+      let data = JSON.parse(raw);
+      if (bundled && Array.isArray(bundled.videos) && bundled.videos.length > 0 && (!Array.isArray(data.videos) || data.videos.length === 0)) {
+        data = mergeDbStates(bundled, data);
+      }
       memoryDb = normalizeData(data);
       return memoryDb;
     } catch (e) {}
   }
 
   // Check bundled data.json
-  if (fs.existsSync(LOCAL_DB_PATH)) {
+  if (bundled) {
     try {
-      const raw = fs.readFileSync(LOCAL_DB_PATH, 'utf-8');
-      const data = JSON.parse(raw);
-      memoryDb = normalizeData(data);
+      memoryDb = normalizeData(bundled);
       try {
         fs.writeFileSync(targetPath, JSON.stringify(memoryDb, null, 2), 'utf-8');
       } catch (err) {}
