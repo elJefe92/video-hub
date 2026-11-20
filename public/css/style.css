@@ -9003,3 +9003,77 @@ body.is-admin .hidden.vip-admin-only {
 }
 
 
+
+/* ==================== D11: SEO EDITORIAL BANNER & A3: HOVER PREVIEW ==================== */
+.seo-editorial-banner {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(15, 23, 42, 0.85) 100%);
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 18px;
+}
+
+.seo-editorial-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.seo-editorial-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: #fb923c;
+  background: rgba(249, 115, 22, 0.16);
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+
+.seo-editorial-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0 0 6px 0;
+}
+
+.seo-editorial-desc {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 780px;
+  line-height: 1.5;
+}
+
+.seo-editorial-cities {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 8px 0 0 0;
+  opacity: 0.85;
+}
+
+.video-hover-preview {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.video-hover-preview.is-visible {
+  opacity: 1;
+}
+
+.footer-regions-seo {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-color);
+}

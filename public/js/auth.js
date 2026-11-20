@@ -268,6 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let currentPendingRegistrationToken = null;
 let currentPendingEmail = '';
+let currentAdmin2FAToken = null;
 
 function switchAuthMode(mode) {
   const tabLogin = document.getElementById('tabLoginBtn');
@@ -275,6 +276,9 @@ function switchAuthMode(mode) {
   const loginForm = document.getElementById('loginForm');
   const registerForm = document.getElementById('registerForm');
   const verifyOtpForm = document.getElementById('verifyOtpForm');
+  const admin2faForm = document.getElementById('admin2faForm');
+
+  if (admin2faForm) admin2faForm.classList.add('hidden');
 
   if (mode === 'login') {
     if (tabLogin) tabLogin.classList.add('active');
@@ -282,6 +286,13 @@ function switchAuthMode(mode) {
     if (loginForm) loginForm.classList.remove('hidden');
     if (registerForm) registerForm.classList.add('hidden');
     if (verifyOtpForm) verifyOtpForm.classList.add('hidden');
+  } else if (mode === 'admin_2fa') {
+    if (tabLogin) tabLogin.classList.add('active');
+    if (tabRegister) tabRegister.classList.remove('active');
+    if (loginForm) loginForm.classList.add('hidden');
+    if (registerForm) registerForm.classList.add('hidden');
+    if (verifyOtpForm) verifyOtpForm.classList.add('hidden');
+    if (admin2faForm) admin2faForm.classList.remove('hidden');
   } else if (mode === 'verify_otp') {
     if (tabRegister) tabRegister.classList.add('active');
     if (tabLogin) tabLogin.classList.remove('active');
@@ -315,6 +326,18 @@ async function handleLogin(e) {
       return;
     }
 
+    if (data.requires2FA && data.twoFactorToken) {
+      currentAdmin2FAToken = data.twoFactorToken;
+      const emailDisplay = document.getElementById('admin2faEmailDisplay');
+      if (emailDisplay) emailDisplay.textContent = data.email || 'votre adresse admin';
+      const codeInput = document.getElementById('admin2faCode');
+      if (codeInput) codeInput.value = '';
+      switchAuthMode('admin_2fa');
+      showToast(data.message || 'Code de sécurité 2FA envoyé par e-mail.');
+      if (codeInput) setTimeout(() => codeInput.focus(), 100);
+      return;
+    }
+
     AUTH.setAuth(data.token, data.user);
     showToast('Bienvenue ' + data.user.username + (data.user.role === 'admin' ? ' (Mode Admin)' : '') + ' !');
     
@@ -330,15 +353,54 @@ async function handleLogin(e) {
   }
 }
 
-async function quickFillAdminLogin() {
-  const idInput = document.getElementById('loginIdentifier');
-  const pwInput = document.getElementById('loginPassword');
-  if (idInput && pwInput) {
-    idInput.value = 'ia.project.pro2k26@gmail.com';
-    pwInput.value = 'admin123';
+async function handleVerifyAdmin2FA(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const code = (document.getElementById('admin2faCode')?.value || '').trim();
+  if (!currentAdmin2FAToken || code.length !== 6) {
+    showToast('Veuillez saisir le code à 6 chiffres reçu par e-mail.');
+    return;
   }
-  await handleLogin({ preventDefault: () => {} });
+
+  const btn = document.getElementById('btnSubmitAdmin2FA');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Vérification...';
+  }
+
+  try {
+    const res = await fetch('/api/auth/verify-admin-2fa', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ twoFactorToken: currentAdmin2FAToken, code })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'Code 2FA invalide.');
+      return;
+    }
+
+    currentAdmin2FAToken = null;
+    AUTH.setAuth(data.token, data.user);
+    showToast(data.message || 'Bienvenue Administrateur !');
+    loadAdminStats();
+    loadAdminVideos();
+    switchTab('admin');
+  } catch (err) {
+    showToast('Erreur de vérification 2FA.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Valider et accéder à l'administration";
+    }
+  }
 }
+window.handleVerifyAdmin2FA = handleVerifyAdmin2FA;
+
+function handleCancelAdmin2FA() {
+  currentAdmin2FAToken = null;
+  switchAuthMode('login');
+}
+window.handleCancelAdmin2FA = handleCancelAdmin2FA;
 
 // Étape 1 : Envoi du code de vérification par e-mail
 async function handleRegister(e) {

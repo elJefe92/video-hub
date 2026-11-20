@@ -215,9 +215,24 @@ function handleUrlHash() {
         c.id && (c.id.toLowerCase() === rawSlug || c.id.toLowerCase().replace(/_/g, '-') === rawSlug)
       );
       filterByCategory(found ? found.id : rawSlug, false);
+      if (typeof renderSeoBanner === 'function') {
+        const catName = found ? found.name : rawSlug;
+        renderSeoBanner({
+          badge: 'CATÉGORIE',
+          title: `Vidéos Porno Amateur : ${catName}`,
+          description: `Découvrez notre sélection de vidéos porno amateur et sexe réel dans la catégorie « ${catName} », en streaming 100% gratuit et sans inscription sur Rêve de Q.`
+        });
+      }
     };
     if (allCategoriesList && allCategoriesList.length > 0) applyCat();
     else setTimeout(applyCat, 400);
+    return;
+  }
+
+  // 7b. /region/:slug or /regions/:slug (D11 - Dedicated Regional SEO Pages)
+  if ((pathParts[0] === 'region' || pathParts[0] === 'regions') && pathParts[1]) {
+    const regionSlug = decodeURIComponent(pathParts[1]).toLowerCase().replace(/_/g, '-');
+    navigateToRegion(regionSlug, false);
     return;
   }
 
@@ -511,6 +526,8 @@ function switchTab(tabName, shouldPushHistory = true) {
   if (tabName === 'profil' && AUTH.isLoggedIn()) {
     if (typeof loadMyVideos === 'function') loadMyVideos();
     if (typeof loadAndShowFavorites === 'function') loadAndShowFavorites();
+    if (typeof loadProfileHistory === 'function') loadProfileHistory();
+    if (typeof loadProfilePlaylists === 'function') loadProfilePlaylists();
     if (typeof loadCreatorDashboard === 'function') loadCreatorDashboard();
   }
 
@@ -1011,18 +1028,26 @@ function renderSkeletonCards(containerId = 'videoGrid', count = 8) {
   container.innerHTML = cards.join('');
 }
 
-async function loadVideos(cat = activeCategory, searchQuery = '') {
+let currentServerPage = 1;
+let currentServerHasMore = false;
+let isLoadingMoreVideos = false;
+const SERVER_PAGE_LIMIT = 24;
+
+async function loadVideos(cat = activeCategory, searchQuery = '', append = false) {
   try {
     const grid = document.getElementById('videoGrid');
-    if (grid && (!allVideosList || allVideosList.length === 0)) {
-      renderSkeletonCards('videoGrid', 8);
+    if (!append) {
+      currentServerPage = 1;
+      if (grid && (!allVideosList || allVideosList.length === 0)) {
+        renderSkeletonCards('videoGrid', 8);
+      }
     }
     let queryString = getAdvancedFilterParams(cat);
     // Legacy: support explicit searchQuery param
     if (searchQuery && !document.getElementById('searchInput')?.value) {
       queryString += `&q=${encodeURIComponent(searchQuery)}`;
     }
-    const res = await fetch(`/api/videos?${queryString}&_t=${Date.now()}`, {
+    const res = await fetch(`/api/videos?${queryString}&page=${currentServerPage}&limit=${SERVER_PAGE_LIMIT}&_t=${Date.now()}`, {
       cache: 'no-store',
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -1030,14 +1055,50 @@ async function loadVideos(cat = activeCategory, searchQuery = '') {
       }
     });
     const data = await res.json();
-    allVideosList = data.videos || [];
+    const fetched = data.videos || [];
+    currentServerHasMore = Boolean(data.hasMore);
 
-    renderDailySpotlight(allVideosList);
+    if (append) {
+      const existingIds = new Set(allVideosList.map(v => v.id));
+      allVideosList = [...allVideosList, ...fetched.filter(v => !existingIds.has(v.id))];
+    } else {
+      allVideosList = fetched;
+      renderDailySpotlight(allVideosList);
+    }
+
     renderVideoGrid(allVideosList);
+
+    const loadMoreWrap = document.getElementById('loadMoreVideosWrap');
+    const loadMoreBtn = document.getElementById('btnLoadMoreVideos');
+    if (loadMoreWrap) {
+      if (currentServerHasMore) {
+        loadMoreWrap.classList.remove('hidden');
+        if (loadMoreBtn) {
+          loadMoreBtn.disabled = false;
+          loadMoreBtn.textContent = `Charger plus de vidéos (${allVideosList.length} / ${data.total || allVideosList.length})`;
+        }
+      } else {
+        loadMoreWrap.classList.add('hidden');
+      }
+    }
   } catch (err) {
     console.error('Error loading videos', err);
   }
 }
+
+async function loadMoreVideos() {
+  if (isLoadingMoreVideos || !currentServerHasMore) return;
+  isLoadingMoreVideos = true;
+  const btn = document.getElementById('btnLoadMoreVideos');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Chargement...';
+  }
+  currentServerPage += 1;
+  await loadVideos(activeCategory, '', true);
+  isLoadingMoreVideos = false;
+}
+window.loadMoreVideos = loadMoreVideos;
 
 function renderDailySpotlight(videos) {
   const container = document.getElementById('dailySpotlightSection');
@@ -1159,9 +1220,10 @@ function renderVideoCard(v) {
   if (!thumbSrc) {
     thumbSrc = 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=640';
   }
+  const previewUrl = getBunnyPreviewUrl(v, thumbSrc);
 
   return `
-    <div class="video-card" onclick="openVideoPlayerModal('${v.id}')">
+    <div class="video-card" onclick="openVideoPlayerModal('${v.id}')" ${previewUrl ? `data-preview-url="${escapeHtml(previewUrl)}" onmouseenter="startCardHoverPreview(this)" onmouseleave="stopCardHoverPreview(this)"` : ''}>
       <div class="video-thumbnail-wrap">
         <img class="video-thumbnail" src="${thumbSrc}" alt="${escapeHtml(v.title)}" loading="lazy" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=640'">
         <div class="play-overlay-btn" aria-hidden="true">
@@ -1197,7 +1259,7 @@ function renderVideoCard(v) {
               <span class="video-creator-name" onclick="event.stopPropagation(); openPublicUserProfile('${v.authorId || v.authorName}')" title="Voir le profil de ${escapeHtml(v.authorName)}">
                 ${escapeHtml(v.authorName || 'Anonyme')} ${v.isVipAuthor ? '(VIP)' : ''}
               </span>
-              <span class="badge-region-pill" title="Région">${escapeHtml(regionName)}</span>
+              <span class="badge-region-pill" onclick="event.stopPropagation(); navigateToRegionByName('${escapeHtml(regionName)}')" title="Voir les vidéos en ${escapeHtml(regionName)}" style="cursor:pointer;">${escapeHtml(regionName)}</span>
             </div>
             ${v.creatorBadge ? `<span style="font-size:0.65rem;font-weight:700;color:${{'Bronze':'#cd7f32','Argent':'#a8a9ad','Or':'#ffd700','Platine':'#e5e4e2'}[v.creatorBadge]||'#94a3b8'};letter-spacing:0.3px;">Créateur ${v.creatorBadge}</span>` : ''}
           </div>
@@ -1857,6 +1919,7 @@ async function openVideoPlayerModal(videoId) {
   }
 
   currentPlayingVideo = video;
+  if (typeof recordWatchHistory === 'function') recordWatchHistory(video);
 
   // Switch to dedicated watch page tab
   switchTab('watch');
@@ -7080,3 +7143,427 @@ async function handleSaveAdminVideoTags(e) {
   }
 }
 
+
+// ==================== D11: DEDICATED REGIONAL SEO PAGES & BANNER ====================
+const SEO_REGIONS_CLIENT = [
+  { slug: 'ile-de-france', name: 'Île-de-France', cities: 'Paris, Boulogne-Billancourt, Saint-Denis, Nanterre, Versailles, Créteil' },
+  { slug: 'auvergne-rhone-alpes', name: 'Auvergne-Rhône-Alpes', cities: 'Lyon, Grenoble, Saint-Étienne, Clermont-Ferrand, Annecy, Chambéry' },
+  { slug: 'provence-alpes-cote-dazur', name: "Provence-Alpes-Côte d'Azur", cities: 'Marseille, Nice, Toulon, Aix-en-Provence, Avignon, Cannes' },
+  { slug: 'occitanie', name: 'Occitanie', cities: 'Toulouse, Montpellier, Nîmes, Perpignan, Béziers, Montauban' },
+  { slug: 'nouvelle-aquitaine', name: 'Nouvelle-Aquitaine', cities: 'Bordeaux, Limoges, Poitiers, Pau, La Rochelle, Bayonne' },
+  { slug: 'hauts-de-france', name: 'Hauts-de-France', cities: 'Lille, Amiens, Roubaix, Tourcoing, Dunkerque, Calais' },
+  { slug: 'grand-est', name: 'Grand Est', cities: 'Strasbourg, Reims, Metz, Mulhouse, Nancy, Colmar' },
+  { slug: 'bretagne', name: 'Bretagne', cities: 'Rennes, Brest, Quimper, Lorient, Vannes, Saint-Malo' },
+  { slug: 'normandie', name: 'Normandie', cities: 'Rouen, Le Havre, Caen, Cherbourg, Évreux, Dieppe' },
+  { slug: 'pays-de-la-loire', name: 'Pays de la Loire', cities: 'Nantes, Angers, Le Mans, Saint-Nazaire, La Roche-sur-Yon' },
+  { slug: 'bourgogne-franche-comte', name: 'Bourgogne-Franche-Comté', cities: 'Dijon, Besançon, Belfort, Chalon-sur-Saône, Auxerre' },
+  { slug: 'centre-val-de-loire', name: 'Centre-Val de Loire', cities: 'Tours, Orléans, Bourges, Blois, Chartres' },
+  { slug: 'corse', name: 'Corse', cities: 'Ajaccio, Bastia, Porto-Vecchio, Corte, Calvi' },
+  { slug: 'guadeloupe', name: 'Guadeloupe', cities: 'Pointe-à-Pitre, Les Abymes, Baie-Mahault, Le Gosier' },
+  { slug: 'martinique', name: 'Martinique', cities: 'Fort-de-France, Le Lamentin, Schoelcher, Le Robert' },
+  { slug: 'guyane', name: 'Guyane', cities: 'Cayenne, Saint-Laurent-du-Maroni, Kourou, Matoury' },
+  { slug: 'la-reunion', name: 'La Réunion', cities: 'Saint-Denis, Saint-Paul, Saint-Pierre, Le Tampon' }
+];
+
+function renderSeoBanner({ badge, title, description, cities }) {
+  const banner = document.getElementById('seoRegionCatBanner');
+  if (!banner) return;
+  banner.innerHTML = `
+    <div class="seo-editorial-top">
+      <div>
+        <span class="seo-editorial-badge">${escapeHtml(badge || 'SÉLECTION')}</span>
+        <h2 class="seo-editorial-title">${escapeHtml(title || '')}</h2>
+        <p class="seo-editorial-desc">${escapeHtml(description || '')}</p>
+        ${cities ? `<p class="seo-editorial-cities">Villes couvertes : ${escapeHtml(cities)}</p>` : ''}
+      </div>
+      <button type="button" class="btn btn-sm btn-secondary" onclick="clearSeoRegionView()">Voir toute la France</button>
+    </div>
+  `;
+  banner.classList.remove('hidden');
+}
+window.renderSeoBanner = renderSeoBanner;
+
+function hideSeoBanner() {
+  const banner = document.getElementById('seoRegionCatBanner');
+  if (banner) {
+    banner.classList.add('hidden');
+    banner.innerHTML = '';
+  }
+}
+window.hideSeoBanner = hideSeoBanner;
+
+function clearSeoRegionView() {
+  hideSeoBanner();
+  const regSelect = document.getElementById('filterRegion');
+  if (regSelect) regSelect.value = '';
+  activeCategory = 'all';
+  if (window.location.pathname !== '/') {
+    window.history.pushState({ tab: 'accueil' }, '', '/');
+  }
+  document.title = 'Prono Amateur Gratuit & Vidéos Porno Françaises - Rêve de Q | Sexe & Baise Réelle (18+)';
+  loadVideos('all');
+}
+window.clearSeoRegionView = clearSeoRegionView;
+
+function navigateToRegion(slug, pushUrl = true) {
+  const cleanSlug = (slug || '').toLowerCase().replace(/_/g, '-');
+  const region = SEO_REGIONS_CLIENT.find(r => r.slug === cleanSlug);
+  if (!region) {
+    switchTab('accueil', pushUrl);
+    return;
+  }
+
+  switchTab('accueil', false);
+  activeCategory = 'all';
+
+  const regSelect = document.getElementById('filterRegion');
+  if (regSelect) {
+    regSelect.value = region.name;
+  }
+
+  if (pushUrl) {
+    const targetUrl = `/region/${region.slug}`;
+    if (window.location.pathname !== targetUrl) {
+      window.history.pushState({ region: region.slug }, '', targetUrl);
+    }
+  }
+  document.title = `Vidéos Porno Amateur ${region.name} (18+) | Rêve de Q`;
+
+  renderSeoBanner({
+    badge: 'RÉGION DE FRANCE',
+    title: `Vidéos Porno Amateur en ${region.name}`,
+    description: `Découvrez les vidéos de sexe amateur, sextapes et baise réelle tournées en ${region.name}, en streaming 100% gratuit et sans inscription sur Rêve de Q.`,
+    cities: region.cities
+  });
+
+  loadVideos('all');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+window.navigateToRegion = navigateToRegion;
+
+function navigateToRegionByName(regionName) {
+  if (!regionName) return;
+  const norm = normalizeSearchText(regionName);
+  const found = SEO_REGIONS_CLIENT.find(r => normalizeSearchText(r.name) === norm || norm.includes(normalizeSearchText(r.name)));
+  if (found) {
+    navigateToRegion(found.slug, true);
+  }
+}
+window.navigateToRegionByName = navigateToRegionByName;
+
+// ==================== A3: ANIMATED HOVER PREVIEW (BUNNY WEBP) ====================
+function getBunnyPreviewUrl(v, thumbSrc) {
+  if (!v) return '';
+  if (v.bunnyVideoId) {
+    return `https://vz-26486efc-bfb.b-cdn.net/${v.bunnyVideoId}/preview.webp`;
+  }
+  if (thumbSrc && typeof thumbSrc === 'string' && thumbSrc.includes('b-cdn.net') && thumbSrc.includes('/thumbnail.jpg')) {
+    return thumbSrc.replace(/\/thumbnail\.jpg.*$/, '/preview.webp');
+  }
+  return '';
+}
+
+function startCardHoverPreview(cardEl) {
+  if (!cardEl || window.matchMedia('(hover: none)').matches) return;
+  const previewUrl = cardEl.getAttribute('data-preview-url');
+  if (!previewUrl) return;
+  const wrap = cardEl.querySelector('.video-thumbnail-wrap');
+  if (!wrap) return;
+
+  let img = wrap.querySelector('.video-hover-preview');
+  if (!img) {
+    img = document.createElement('img');
+    img.className = 'video-hover-preview';
+    img.alt = '';
+    img.setAttribute('aria-hidden', 'true');
+    img.onerror = () => {
+      img.remove();
+      cardEl.removeAttribute('data-preview-url');
+    };
+    img.onload = () => {
+      if (cardEl.matches(':hover')) {
+        img.classList.add('is-visible');
+      }
+    };
+    img.src = previewUrl;
+    wrap.insertBefore(img, wrap.querySelector('.play-overlay-btn') || null);
+  } else {
+    img.classList.add('is-visible');
+  }
+}
+window.startCardHoverPreview = startCardHoverPreview;
+
+function stopCardHoverPreview(cardEl) {
+  if (!cardEl) return;
+  const img = cardEl.querySelector('.video-hover-preview');
+  if (img) {
+    img.classList.remove('is-visible');
+  }
+}
+window.stopCardHoverPreview = stopCardHoverPreview;
+
+// ==================== B5: WATCH HISTORY & PRIVATE PLAYLISTS ====================
+const LOCAL_HISTORY_KEY = 'rdq_watch_history_v1';
+
+async function recordWatchHistory(video) {
+  if (!video || !video.id) return;
+  try {
+    let localIds = JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY) || '[]');
+    if (!Array.isArray(localIds)) localIds = [];
+    localIds = [video.id, ...localIds.filter(id => id !== video.id)].slice(0, 24);
+    localStorage.setItem(LOCAL_HISTORY_KEY, JSON.stringify(localIds));
+  } catch (e) {}
+
+  if (typeof AUTH !== 'undefined' && AUTH.isLoggedIn() && AUTH.token) {
+    try {
+      await fetch(`/api/user/history/${encodeURIComponent(video.id)}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${AUTH.token}` }
+      });
+    } catch (e) {}
+  }
+}
+window.recordWatchHistory = recordWatchHistory;
+
+async function loadProfileHistory() {
+  const grid = document.getElementById('profileHistoryGrid');
+  if (!grid) return;
+
+  let videos = [];
+  if (typeof AUTH !== 'undefined' && AUTH.isLoggedIn() && AUTH.token) {
+    try {
+      const res = await fetch('/api/user/history', {
+        headers: { 'Authorization': `Bearer ${AUTH.token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        videos = data.videos || [];
+      }
+    } catch (e) {}
+  }
+
+  if (videos.length === 0) {
+    try {
+      const localIds = JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY) || '[]');
+      if (Array.isArray(localIds) && localIds.length > 0 && Array.isArray(allVideosList)) {
+        const map = new Map(allVideosList.map(v => [v.id, v]));
+        videos = localIds.map(id => map.get(id)).filter(Boolean);
+      }
+    } catch (e) {}
+  }
+
+  if (videos.length === 0) {
+    grid.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;padding:8px 0;">Aucune vidéo regardée récemment.</p>';
+    return;
+  }
+  grid.innerHTML = videos.slice(0, 12).map(v => renderVideoCard(v)).join('');
+}
+window.loadProfileHistory = loadProfileHistory;
+
+async function clearWatchHistory() {
+  try { localStorage.removeItem(LOCAL_HISTORY_KEY); } catch (e) {}
+  if (typeof AUTH !== 'undefined' && AUTH.isLoggedIn() && AUTH.token) {
+    try {
+      await fetch('/api/user/history', {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${AUTH.token}` }
+      });
+    } catch (e) {}
+  }
+  showToast('Historique de visionnage effacé.');
+  loadProfileHistory();
+}
+window.clearWatchHistory = clearWatchHistory;
+
+let cachedUserPlaylists = [];
+let currentPlaylistPickerVideoId = null;
+
+async function loadProfilePlaylists() {
+  const container = document.getElementById('profilePlaylistsContainer');
+  if (!container) return;
+  if (typeof AUTH === 'undefined' || !AUTH.isLoggedIn() || !AUTH.token) {
+    container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;">Connectez-vous pour gérer vos playlists privées.</p>';
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/user/playlists', {
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    cachedUserPlaylists = data.playlists || [];
+
+    if (cachedUserPlaylists.length === 0) {
+      container.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;padding:8px 0;">Aucune playlist créée pour le moment. Cliquez sur « + Nouvelle playlist » ou sur le bouton Playlist d\'une vidéo.</p>';
+      return;
+    }
+
+    container.innerHTML = cachedUserPlaylists.map(pl => `
+      <div class="profile-playlist-block" style="background:var(--bg-subtle);border:1px solid var(--border-color);border-radius:12px;padding:14px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px;">
+          <strong style="font-size:0.92rem;color:var(--text-main);">${escapeHtml(pl.name)} <span style="color:var(--text-muted);font-weight:500;">(${(pl.videos || []).length})</span></strong>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="deletePlaylist('${pl.id}')" style="color:#ef4444;">Supprimer</button>
+        </div>
+        ${(pl.videos && pl.videos.length > 0)
+          ? `<div class="video-grid">${pl.videos.map(v => renderVideoCard(v)).join('')}</div>`
+          : '<p style="color:var(--text-muted);font-size:0.82rem;margin:0;">Playlist vide — ajoutez des vidéos depuis le lecteur.</p>'
+        }
+      </div>
+    `).join('');
+  } catch (e) {}
+}
+window.loadProfilePlaylists = loadProfilePlaylists;
+
+async function promptCreatePlaylist() {
+  if (typeof AUTH === 'undefined' || !AUTH.isLoggedIn()) {
+    showToast('Connectez-vous pour créer une playlist privée.');
+    switchTab('profil');
+    return;
+  }
+  const name = window.prompt('Nom de votre nouvelle playlist privée :');
+  if (!name || !name.trim()) return;
+  try {
+    const res = await fetch('/api/user/playlists', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${AUTH.token}`
+      },
+      body: JSON.stringify({ name: name.trim() })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'Impossible de créer la playlist.');
+      return;
+    }
+    showToast(`Playlist « ${name.trim()} » créée.`);
+    loadProfilePlaylists();
+  } catch (e) {
+    showToast('Erreur réseau.');
+  }
+}
+window.promptCreatePlaylist = promptCreatePlaylist;
+
+async function deletePlaylist(playlistId) {
+  if (!playlistId || typeof AUTH === 'undefined' || !AUTH.token) return;
+  try {
+    await fetch(`/api/user/playlists/${encodeURIComponent(playlistId)}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    showToast('Playlist supprimée.');
+    loadProfilePlaylists();
+  } catch (e) {}
+}
+window.deletePlaylist = deletePlaylist;
+
+async function openPlaylistPicker(videoId) {
+  if (!videoId) return;
+  if (typeof AUTH === 'undefined' || !AUTH.isLoggedIn() || !AUTH.token) {
+    showToast('Connectez-vous pour enregistrer des vidéos dans vos playlists privées.');
+    switchTab('profil');
+    return;
+  }
+  currentPlaylistPickerVideoId = videoId;
+  const modal = document.getElementById('playlistPickerModal');
+  const listEl = document.getElementById('playlistPickerList');
+  if (!modal || !listEl) return;
+
+  modal.classList.remove('hidden');
+  modal.style.display = 'flex';
+  listEl.innerHTML = '<p style="font-size:0.85rem;color:var(--text-muted);">Chargement de vos playlists...</p>';
+
+  try {
+    const res = await fetch('/api/user/playlists', {
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    const data = await res.json();
+    cachedUserPlaylists = data.playlists || [];
+    renderPlaylistPickerList();
+  } catch (e) {
+    listEl.innerHTML = '<p style="font-size:0.85rem;color:#ef4444;">Erreur de chargement.</p>';
+  }
+}
+window.openPlaylistPicker = openPlaylistPicker;
+
+function renderPlaylistPickerList() {
+  const listEl = document.getElementById('playlistPickerList');
+  if (!listEl) return;
+  if (cachedUserPlaylists.length === 0) {
+    listEl.innerHTML = '<p style="font-size:0.84rem;color:var(--text-muted);">Aucune playlist pour le moment. Créez-en une ci-dessous.</p>';
+    return;
+  }
+  listEl.innerHTML = cachedUserPlaylists.map(pl => {
+    const inPl = Array.isArray(pl.videoIds) && pl.videoIds.includes(currentPlaylistPickerVideoId);
+    return `
+      <button type="button" class="btn ${inPl ? 'btn-primary' : 'btn-secondary'}" onclick="toggleVideoInPlaylist('${pl.id}', '${currentPlaylistPickerVideoId}')" style="display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;padding:10px 14px;">
+        <span>${escapeHtml(pl.name)}</span>
+        <span style="font-size:0.78rem;font-weight:700;">${inPl ? 'Ajoutée' : '+ Ajouter'}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function closePlaylistPicker() {
+  const modal = document.getElementById('playlistPickerModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.style.display = 'none';
+  }
+  currentPlaylistPickerVideoId = null;
+}
+window.closePlaylistPicker = closePlaylistPicker;
+
+async function createPlaylistFromPicker() {
+  const input = document.getElementById('newPlaylistNameInput');
+  const name = (input?.value || '').trim();
+  if (!name) {
+    showToast('Saisissez un nom de playlist.');
+    return;
+  }
+  try {
+    const res = await fetch('/api/user/playlists', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${AUTH.token}`
+      },
+      body: JSON.stringify({ name })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'Erreur de création.');
+      return;
+    }
+    if (input) input.value = '';
+    if (data.playlist && currentPlaylistPickerVideoId) {
+      await toggleVideoInPlaylist(data.playlist.id, currentPlaylistPickerVideoId);
+    } else {
+      openPlaylistPicker(currentPlaylistPickerVideoId);
+    }
+  } catch (e) {}
+}
+window.createPlaylistFromPicker = createPlaylistFromPicker;
+
+async function toggleVideoInPlaylist(playlistId, videoId) {
+  if (!playlistId || !videoId || !AUTH.token) return;
+  try {
+    const res = await fetch(`/api/user/playlists/${encodeURIComponent(playlistId)}/videos/${encodeURIComponent(videoId)}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) return;
+    const pl = cachedUserPlaylists.find(p => p.id === playlistId);
+    if (pl && data.playlist) {
+      pl.videoIds = data.playlist.videoIds;
+    } else {
+      await openPlaylistPicker(videoId);
+      return;
+    }
+    renderPlaylistPickerList();
+    showToast(data.added ? 'Vidéo ajoutée à la playlist.' : 'Vidéo retirée de la playlist.');
+  } catch (e) {}
+}
+window.toggleVideoInPlaylist = toggleVideoInPlaylist;

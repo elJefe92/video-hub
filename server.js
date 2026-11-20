@@ -377,6 +377,51 @@ const contactAttempts = new Map();
 const reportAttempts = new Map();
 const messageSendAttempts = new Map();
 const commentAttempts = new Map();
+const admin2faAttempts = new Map();
+
+// Persistent lockout helper (survives Vercel serverless cold starts)
+function checkPersistentLock(db, key) {
+  if (!db || !db.rateLimits) return { allowed: true };
+  const entry = db.rateLimits[key];
+  if (!entry) return { allowed: true };
+  const now = Date.now();
+  if (entry.lockedUntil && now < entry.lockedUntil) {
+    return { allowed: false, remaining: Math.ceil((entry.lockedUntil - now) / 60000), retryAfter: entry.lockedUntil };
+  }
+  if (entry.firstAttempt && now - entry.firstAttempt > RATE_LIMIT_WINDOW_MS) {
+    delete db.rateLimits[key];
+  }
+  return { allowed: true };
+}
+
+function recordPersistentAttempt(db, key, maxAttempts = RATE_LIMIT_MAX, lockMs = RATE_LIMIT_LOCK_MS) {
+  if (!db) return;
+  if (!db.rateLimits) db.rateLimits = {};
+  const now = Date.now();
+  // Cleanup stale entries to keep state compact
+  Object.keys(db.rateLimits).forEach(k => {
+    const e = db.rateLimits[k];
+    if (!e || (e.lockedUntil && now > e.lockedUntil + 60000) || (!e.lockedUntil && now - (e.firstAttempt || 0) > RATE_LIMIT_WINDOW_MS)) {
+      delete db.rateLimits[k];
+    }
+  });
+  const cur = db.rateLimits[key] || { count: 0, firstAttempt: now };
+  if (now - (cur.firstAttempt || 0) > RATE_LIMIT_WINDOW_MS) {
+    cur.count = 0;
+    cur.firstAttempt = now;
+  }
+  cur.count += 1;
+  if (cur.count >= maxAttempts) {
+    cur.lockedUntil = now + lockMs;
+  }
+  db.rateLimits[key] = cur;
+}
+
+function clearPersistentAttempt(db, key) {
+  if (db && db.rateLimits && db.rateLimits[key]) {
+    delete db.rateLimits[key];
+  }
+}
 
 // Rate limiting & Client IP resolution
 function getClientIp(req) {
@@ -1189,39 +1234,94 @@ app.post('/api/auth/login', async (req, res) => {
 
   await syncDbFromCloud();
   const db = loadDb();
+  const persistentLockKey = `login_${clientIp}`;
+  const pLock = checkPersistentLock(db, persistentLockKey);
+  if (!pLock.allowed) {
+    return res.status(429).json({
+      error: `Trop de tentatives de connexion. Réessayez dans ${pLock.remaining} minute(s).`,
+      retryAfter: pLock.retryAfter
+    });
+  }
+
   const query = emailOrUsername.trim().toLowerCase();
   const user = db.users.find(u => u.email.toLowerCase() === query || u.username.toLowerCase() === query);
 
   if (!user) {
-    // Track failed attempts
+    // Track failed attempts (in-memory + persistent cloud)
     const cur = loginAttempts.get(clientIp) || { count: 0, firstAttempt: Date.now() };
     cur.count += 1;
     if (cur.count >= RATE_LIMIT_MAX) {
       cur.lockedUntil = Date.now() + RATE_LIMIT_LOCK_MS;
     }
     loginAttempts.set(clientIp, cur);
+    recordPersistentAttempt(db, persistentLockKey);
+    saveDb(db);
+    await syncDbToCloud(db);
     return res.status(400).json({ error: 'Identifiant ou mot de passe incorrect.' });
   }
 
   const isMatch = bcrypt.compareSync(password, user.passwordHash);
   if (!isMatch) {
-    // Track failed attempts
+    // Track failed attempts (in-memory + persistent cloud)
     const cur = loginAttempts.get(clientIp) || { count: 0, firstAttempt: Date.now() };
     cur.count += 1;
     if (cur.count >= RATE_LIMIT_MAX) {
       cur.lockedUntil = Date.now() + RATE_LIMIT_LOCK_MS;
     }
     loginAttempts.set(clientIp, cur);
+    recordPersistentAttempt(db, persistentLockKey);
+    saveDb(db);
+    await syncDbToCloud(db);
     return res.status(400).json({ error: 'Identifiant ou mot de passe incorrect.' });
   }
 
   loginAttempts.delete(clientIp);
+  clearPersistentAttempt(db, persistentLockKey);
 
-  if (user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com' || user.role === 'admin' || (user.username && user.username.toLowerCase() === 'administrateur')) {
+  const isAdminAccount = Boolean(
+    (user.email && user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') ||
+    user.role === 'admin' ||
+    (user.username && user.username.toLowerCase() === 'administrateur')
+  );
+
+  if (isAdminAccount) {
     user.role = 'admin';
     user.isVip = true;
     saveDb(db);
     await syncDbToCloud(db);
+
+    // Double authentification (2FA) par code e-mail pour l'administrateur
+    if (getMailTransporter() && user.email) {
+      const code2fa = crypto.randomInt(100000, 1000000).toString();
+      const codeHash = bcrypt.hashSync(code2fa, 8);
+      const emailSent = await sendRobustEmail({
+        to: user.email,
+        subject: 'Code de sécurité Administrateur (2FA) - Rêve de Q',
+        html: `<div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:24px;background:#0b1120;color:#f8fafc;border-radius:14px;border:1px solid #334155;">
+          <h2 style="color:#f97316;margin-top:0;">Vérification Administrateur (2FA)</h2>
+          <p>Une tentative de connexion au compte administrateur de <strong>Rêve de Q</strong> vient d'être initiée.</p>
+          <p>Voici votre code de sécurité à usage unique (valable 10 minutes) :</p>
+          <div style="font-size:32px;font-weight:800;letter-spacing:8px;text-align:center;padding:16px;background:#1e293b;border-radius:10px;color:#fbbf24;margin:18px 0;">${code2fa}</div>
+          <p style="font-size:13px;color:#94a3b8;">Si vous n'êtes pas à l'origine de cette connexion, ignorez cet e-mail et modifiez immédiatement votre mot de passe.</p>
+        </div>`,
+        category: 'SECURITY'
+      });
+
+      if (emailSent) {
+        const twoFactorToken = jwt.sign(
+          { userId: user.id, codeHash, type: 'admin_2fa' },
+          JWT_SECRET,
+          { expiresIn: '10m' }
+        );
+        addLog('2FA Admin Envoyé', `Code 2FA envoyé par e-mail à ${user.email}`);
+        return res.json({
+          requires2FA: true,
+          twoFactorToken,
+          email: user.email,
+          message: 'Un code de sécurité administrateur (2FA) à 6 chiffres a été envoyé sur votre e-mail.'
+        });
+      }
+    }
   }
 
   const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
@@ -1229,6 +1329,56 @@ app.post('/api/auth/login', async (req, res) => {
 
   res.json({
     message: 'Connexion réussie !',
+    token,
+    user: userSafe
+  });
+});
+
+// Verify Admin 2FA 6-digit code
+app.post('/api/auth/verify-admin-2fa', async (req, res) => {
+  const clientIp = getClientIp(req);
+  const limitCheck = checkIpRateLimit(admin2faAttempts, clientIp, 5, 15 * 60 * 1000, 15 * 60 * 1000);
+  if (!limitCheck.allowed) {
+    return res.status(429).json({
+      error: `Trop de tentatives 2FA. Veuillez réessayer dans ${limitCheck.remaining} minute(s).`
+    });
+  }
+
+  const { twoFactorToken, code } = req.body;
+  if (!twoFactorToken || !code) {
+    return res.status(400).json({ error: 'Code de sécurité 2FA requis.' });
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(twoFactorToken, JWT_SECRET);
+    if (decoded.type !== 'admin_2fa') {
+      return res.status(400).json({ error: 'Jeton 2FA invalide.' });
+    }
+  } catch (err) {
+    return res.status(400).json({ error: 'Le code 2FA a expiré (10 minutes). Veuillez vous reconnecter.' });
+  }
+
+  const cleanCode = code.toString().trim();
+  if (!bcrypt.compareSync(cleanCode, decoded.codeHash)) {
+    recordIpAttempt(admin2faAttempts, clientIp, 5, 15 * 60 * 1000);
+    return res.status(400).json({ error: 'Code de sécurité 2FA incorrect.' });
+  }
+  admin2faAttempts.delete(clientIp);
+
+  await syncDbFromCloud();
+  const db = loadDb();
+  const user = db.users.find(u => u.id === decoded.userId);
+  if (!user) {
+    return res.status(404).json({ error: 'Compte administrateur introuvable.' });
+  }
+
+  const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '30d' });
+  const { passwordHash: _, ...userSafe } = user;
+  addLog('Connexion Admin 2FA', `Administrateur ${user.username} connecté avec 2FA`);
+
+  res.json({
+    message: 'Vérification 2FA réussie ! Bienvenue Administrateur.',
     token,
     user: userSafe
   });
@@ -1449,6 +1599,120 @@ app.get('/api/user/favorites', authenticate, async (req, res) => {
     .filter(v => favoriteIds.includes(v.id))
     .map(v => sanitizePublicVideo(resolveVideoThumbnail(v)));
   res.json({ favorites: favoriteIds, videos: favoriteVideos });
+});
+
+// ---------------- WATCH HISTORY ("REGARDÉES RÉCEMMENT") ----------------
+app.get('/api/user/history', authenticate, async (req, res) => {
+  const db = loadDb();
+  const userRecord = db.users.find(u => u.id === req.user.id);
+  const historyIds = Array.isArray(userRecord?.watchHistory) ? userRecord.watchHistory : [];
+  const videoMap = new Map((db.videos || []).map(v => [v.id, v]));
+  const historyVideos = historyIds
+    .map(id => videoMap.get(id))
+    .filter(v => v && v.status !== 'pending' && v.status !== 'rejected')
+    .map(v => sanitizePublicVideo(resolveVideoThumbnail(v)));
+  res.json({ history: historyIds, videos: historyVideos });
+});
+
+app.post('/api/user/history/:videoId', authenticate, async (req, res) => {
+  const videoId = (req.params.videoId || '').trim();
+  if (!videoId) return res.status(400).json({ error: 'Identifiant vidéo manquant.' });
+  const db = loadDb();
+  const userRecord = db.users.find(u => u.id === req.user.id);
+  if (!userRecord) return res.status(404).json({ error: 'Utilisateur introuvable.' });
+
+  if (!Array.isArray(userRecord.watchHistory)) userRecord.watchHistory = [];
+  userRecord.watchHistory = [videoId, ...userRecord.watchHistory.filter(id => id !== videoId)].slice(0, 24);
+  saveDb(db);
+  await syncDbToCloud(db);
+  res.json({ success: true, history: userRecord.watchHistory });
+});
+
+app.delete('/api/user/history', authenticate, async (req, res) => {
+  const db = loadDb();
+  const userRecord = db.users.find(u => u.id === req.user.id);
+  if (userRecord) {
+    userRecord.watchHistory = [];
+    saveDb(db);
+    await syncDbToCloud(db);
+  }
+  res.json({ success: true, history: [] });
+});
+
+// ---------------- PRIVATE PLAYLISTS / FOLDERS ----------------
+app.get('/api/user/playlists', authenticate, async (req, res) => {
+  const db = loadDb();
+  const userRecord = db.users.find(u => u.id === req.user.id);
+  const playlists = Array.isArray(userRecord?.playlists) ? userRecord.playlists : [];
+  const videoMap = new Map((db.videos || []).map(v => [v.id, v]));
+  const enriched = playlists.map(pl => ({
+    ...pl,
+    videos: (pl.videoIds || [])
+      .map(id => videoMap.get(id))
+      .filter(v => v && v.status !== 'pending' && v.status !== 'rejected')
+      .map(v => sanitizePublicVideo(resolveVideoThumbnail(v)))
+  }));
+  res.json({ playlists: enriched });
+});
+
+app.post('/api/user/playlists', authenticate, async (req, res) => {
+  const name = (req.body.name || '').trim().slice(0, 60);
+  if (!name) return res.status(400).json({ error: 'Nom de playlist requis.' });
+  const db = loadDb();
+  const userRecord = db.users.find(u => u.id === req.user.id);
+  if (!userRecord) return res.status(404).json({ error: 'Utilisateur introuvable.' });
+
+  if (!Array.isArray(userRecord.playlists)) userRecord.playlists = [];
+  if (userRecord.playlists.length >= 20) {
+    return res.status(400).json({ error: 'Limite de 20 playlists privées atteinte.' });
+  }
+  const newPl = {
+    id: 'pl_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+    name,
+    videoIds: [],
+    createdAt: new Date().toISOString()
+  };
+  userRecord.playlists.unshift(newPl);
+  saveDb(db);
+  await syncDbToCloud(db);
+  res.status(201).json({ success: true, playlist: newPl, playlists: userRecord.playlists });
+});
+
+app.post('/api/user/playlists/:playlistId/videos/:videoId', authenticate, async (req, res) => {
+  const { playlistId, videoId } = req.params;
+  const db = loadDb();
+  const userRecord = db.users.find(u => u.id === req.user.id);
+  if (!userRecord || !Array.isArray(userRecord.playlists)) {
+    return res.status(404).json({ error: 'Playlist introuvable.' });
+  }
+  const pl = userRecord.playlists.find(p => p.id === playlistId);
+  if (!pl) return res.status(404).json({ error: 'Playlist introuvable.' });
+  if (!Array.isArray(pl.videoIds)) pl.videoIds = [];
+
+  const idx = pl.videoIds.indexOf(videoId);
+  let added = false;
+  if (idx === -1) {
+    pl.videoIds.unshift(videoId);
+    added = true;
+  } else {
+    pl.videoIds.splice(idx, 1);
+    added = false;
+  }
+  saveDb(db);
+  await syncDbToCloud(db);
+  res.json({ success: true, added, playlist: pl });
+});
+
+app.delete('/api/user/playlists/:playlistId', authenticate, async (req, res) => {
+  const { playlistId } = req.params;
+  const db = loadDb();
+  const userRecord = db.users.find(u => u.id === req.user.id);
+  if (userRecord && Array.isArray(userRecord.playlists)) {
+    userRecord.playlists = userRecord.playlists.filter(p => p.id !== playlistId);
+    saveDb(db);
+    await syncDbToCloud(db);
+  }
+  res.json({ success: true });
 });
 
 // GET notifications
@@ -1959,10 +2223,35 @@ app.get('/api/videos', async (req, res) => {
     };
   });
 
+  // Server-side pagination (backwards-compatible when page/limit omitted)
+  const total = list.length;
+  const hasPagination = req.query.page !== undefined || req.query.limit !== undefined;
+  let page = 1;
+  let limit = total || 24;
+  let totalPages = 1;
+  let hasMore = false;
+  let pagedVideos = list;
+
+  if (hasPagination) {
+    page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    limit = Math.min(60, Math.max(1, parseInt(req.query.limit, 10) || 24));
+    totalPages = Math.max(1, Math.ceil(total / limit));
+    const startIdx = (page - 1) * limit;
+    pagedVideos = list.slice(startIdx, startIdx + limit);
+    hasMore = startIdx + pagedVideos.length < total;
+  }
+
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
-  res.json({ videos: list });
+  res.json({
+    videos: pagedVideos,
+    total,
+    page,
+    limit,
+    totalPages,
+    hasMore
+  });
 });
 
 // Single video lookup
@@ -4344,6 +4633,133 @@ function escapeHtmlServer(str) {
     .replace(/'/g, '&#39;');
 }
 
+// Dedicated SEO Regional Directory (France & Outre-mer)
+const SEO_REGIONS = [
+  {
+    slug: 'ile-de-france',
+    name: 'Île-de-France',
+    cities: 'Paris, Boulogne-Billancourt, Saint-Denis, Nanterre, Versailles, Créteil',
+    seoTitle: 'Vidéos Porno Amateur Île-de-France & Paris (18+) | Rêve de Q',
+    seoDescription: 'Regardez les meilleures vidéos porno amateur et baise réelle en Île-de-France (Paris et banlieue) 100% gratuites sur Rêve de Q.'
+  },
+  {
+    slug: 'auvergne-rhone-alpes',
+    name: 'Auvergne-Rhône-Alpes',
+    cities: 'Lyon, Grenoble, Saint-Étienne, Clermont-Ferrand, Annecy, Chambéry',
+    seoTitle: 'Vidéos Porno Amateur Auvergne-Rhône-Alpes & Lyon (18+) | Rêve de Q',
+    seoDescription: 'Découvrez les vidéos de sexe amateur et sextapes françaises filmées en Auvergne-Rhône-Alpes (Lyon, Grenoble, Annecy) sur Rêve de Q.'
+  },
+  {
+    slug: 'provence-alpes-cote-dazur',
+    name: "Provence-Alpes-Côte d'Azur",
+    cities: 'Marseille, Nice, Toulon, Aix-en-Provence, Avignon, Cannes',
+    seoTitle: 'Vidéos Porno Amateur PACA, Marseille & Nice (18+) | Rêve de Q',
+    seoDescription: 'Streaming porno amateur gratuit en Provence-Alpes-Côte d\'Azur : vidéos sexe réel de Marseille, Nice, Toulon et Cannes sur Rêve de Q.'
+  },
+  {
+    slug: 'occitanie',
+    name: 'Occitanie',
+    cities: 'Toulouse, Montpellier, Nîmes, Perpignan, Béziers, Montauban',
+    seoTitle: 'Vidéos Porno Amateur Occitanie, Toulouse & Montpellier (18+) | Rêve de Q',
+    seoDescription: 'Toutes les vidéos porno amateur et baise réelle d\'Occitanie (Toulouse, Montpellier, Nîmes) en streaming 100% gratuit sur Rêve de Q.'
+  },
+  {
+    slug: 'nouvelle-aquitaine',
+    name: 'Nouvelle-Aquitaine',
+    cities: 'Bordeaux, Limoges, Poitiers, Pau, La Rochelle, Bayonne',
+    seoTitle: 'Vidéos Porno Amateur Nouvelle-Aquitaine & Bordeaux (18+) | Rêve de Q',
+    seoDescription: 'Explorez les meilleures vidéos X amateurs de Nouvelle-Aquitaine (Bordeaux, Biarritz, Poitiers, Limoges) gratuitement sur Rêve de Q.'
+  },
+  {
+    slug: 'hauts-de-france',
+    name: 'Hauts-de-France',
+    cities: 'Lille, Amiens, Roubaix, Tourcoing, Dunkerque, Calais',
+    seoTitle: 'Vidéos Porno Amateur Hauts-de-France & Lille (18+) | Rêve de Q',
+    seoDescription: 'Vidéos porno amateur et sextapes réelles des Hauts-de-France (Lille, Amiens, Dunkerque) en accès libre et gratuit sur Rêve de Q.'
+  },
+  {
+    slug: 'grand-est',
+    name: 'Grand Est',
+    cities: 'Strasbourg, Reims, Metz, Mulhouse, Nancy, Colmar',
+    seoTitle: 'Vidéos Porno Amateur Grand Est, Strasbourg & Metz (18+) | Rêve de Q',
+    seoDescription: 'Regardez des vidéos sexe amateur du Grand Est (Strasbourg, Nancy, Metz, Reims) en streaming gratuit et HD sur Rêve de Q.'
+  },
+  {
+    slug: 'bretagne',
+    name: 'Bretagne',
+    cities: 'Rennes, Brest, Quimper, Lorient, Vannes, Saint-Malo',
+    seoTitle: 'Vidéos Porno Amateur Bretagne, Rennes & Brest (18+) | Rêve de Q',
+    seoDescription: 'Sélection de vidéos porno amateur et baise réelle en Bretagne (Rennes, Brest, Vannes, Lorient) 100% gratuites sur Rêve de Q.'
+  },
+  {
+    slug: 'normandie',
+    name: 'Normandie',
+    cities: 'Rouen, Le Havre, Caen, Cherbourg, Évreux, Dieppe',
+    seoTitle: 'Vidéos Porno Amateur Normandie, Rouen & Caen (18+) | Rêve de Q',
+    seoDescription: 'Vidéos X amateurs de Normandie (Rouen, Le Havre, Caen) en streaming gratuit et sans inscription sur Rêve de Q.'
+  },
+  {
+    slug: 'pays-de-la-loire',
+    name: 'Pays de la Loire',
+    cities: 'Nantes, Angers, Le Mans, Saint-Nazaire, La Roche-sur-Yon',
+    seoTitle: 'Vidéos Porno Amateur Pays de la Loire & Nantes (18+) | Rêve de Q',
+    seoDescription: 'Découvrez les vidéos de sexe réel et porno amateur des Pays de la Loire (Nantes, Angers, Le Mans) sur Rêve de Q.'
+  },
+  {
+    slug: 'bourgogne-franche-comte',
+    name: 'Bourgogne-Franche-Comté',
+    cities: 'Dijon, Besançon, Belfort, Chalon-sur-Saône, Auxerre',
+    seoTitle: 'Vidéos Porno Amateur Bourgogne-Franche-Comté & Dijon (18+) | Rêve de Q',
+    seoDescription: 'Vidéos porno amateur filmées en Bourgogne-Franche-Comté (Dijon, Besançon, Belfort) en streaming gratuit sur Rêve de Q.'
+  },
+  {
+    slug: 'centre-val-de-loire',
+    name: 'Centre-Val de Loire',
+    cities: 'Tours, Orléans, Bourges, Blois, Chartres',
+    seoTitle: 'Vidéos Porno Amateur Centre-Val de Loire, Tours & Orléans (18+) | Rêve de Q',
+    seoDescription: 'Regardez les vidéos porno amateur du Centre-Val de Loire (Tours, Orléans, Bourges) gratuitement sur Rêve de Q.'
+  },
+  {
+    slug: 'corse',
+    name: 'Corse',
+    cities: 'Ajaccio, Bastia, Porto-Vecchio, Corte, Calvi',
+    seoTitle: 'Vidéos Porno Amateur Corse, Ajaccio & Bastia (18+) | Rêve de Q',
+    seoDescription: 'Vidéos sexe amateur et sextapes réelles de Corse (Ajaccio, Bastia) en streaming 100% gratuit sur Rêve de Q.'
+  },
+  {
+    slug: 'guadeloupe',
+    name: 'Guadeloupe',
+    cities: 'Pointe-à-Pitre, Les Abymes, Baie-Mahault, Le Gosier',
+    seoTitle: 'Vidéos Porno Amateur Guadeloupe (971) - Sexe Amateur (18+) | Rêve de Q',
+    seoDescription: 'Vidéos porno amateur et baise réelle de Guadeloupe (971) en streaming gratuit sur Rêve de Q.'
+  },
+  {
+    slug: 'martinique',
+    name: 'Martinique',
+    cities: 'Fort-de-France, Le Lamentin, Schoelcher, Le Robert',
+    seoTitle: 'Vidéos Porno Amateur Martinique (972) - Sexe Amateur (18+) | Rêve de Q',
+    seoDescription: 'Vidéos porno amateur et baise réelle de Martinique (972) en streaming 100% gratuit sur Rêve de Q.'
+  },
+  {
+    slug: 'guyane',
+    name: 'Guyane',
+    cities: 'Cayenne, Saint-Laurent-du-Maroni, Kourou, Matoury',
+    seoTitle: 'Vidéos Porno Amateur Guyane (973) - Sexe Amateur (18+) | Rêve de Q',
+    seoDescription: 'Vidéos porno amateur et sexe réel de Guyane (973) en streaming gratuit sur Rêve de Q.'
+  },
+  {
+    slug: 'la-reunion',
+    name: 'La Réunion',
+    cities: 'Saint-Denis, Saint-Paul, Saint-Pierre, Le Tampon',
+    seoTitle: 'Vidéos Porno Amateur La Réunion (974) - Sexe Amateur (18+) | Rêve de Q',
+    seoDescription: 'Vidéos porno amateur et sextapes de La Réunion (974) en streaming 100% gratuit sur Rêve de Q.'
+  }
+];
+
+app.get('/api/seo/regions', (req, res) => {
+  res.json({ regions: SEO_REGIONS });
+});
+
 // Dynamic Server-Side SEO & Open Graph Injection
 function renderSeoPage(req, res) {
   const indexHtmlPath = path.join(__dirname, 'public', 'index.html');
@@ -4422,12 +4838,52 @@ function renderSeoPage(req, res) {
         canonical = `${siteUrl}/categorie/${encodeURIComponent(cleanSlug)}`;
         const catSchema = {
           '@context': 'https://schema.org',
-          '@type': 'CollectionPage',
-          'name': `Vidéos Porno ${cat.name}`,
-          'description': description,
-          'url': canonical
+          '@graph': [
+            {
+              '@type': 'CollectionPage',
+              'name': `Vidéos Porno ${cat.name}`,
+              'description': description,
+              'url': canonical
+            },
+            {
+              '@type': 'BreadcrumbList',
+              'itemListElement': [
+                { '@type': 'ListItem', 'position': 1, 'name': 'Accueil', 'item': `${siteUrl}/` },
+                { '@type': 'ListItem', 'position': 2, 'name': 'Catégories', 'item': `${siteUrl}/categories` },
+                { '@type': 'ListItem', 'position': 3, 'name': cat.name, 'item': canonical }
+              ]
+            }
+          ]
         };
         extraSchema = `<script type="application/ld+json">${JSON.stringify(catSchema)}</script>`;
+      }
+    } else if (req.path.startsWith('/region/') || req.path.startsWith('/regions/')) {
+      const slug = decodeURIComponent(req.path.split('/')[2] || '').toLowerCase().replace(/_/g, '-');
+      const region = SEO_REGIONS.find(r => r.slug === slug);
+      if (region) {
+        title = region.seoTitle;
+        description = region.seoDescription;
+        canonical = `${siteUrl}/region/${encodeURIComponent(region.slug)}`;
+        const regionSchema = {
+          '@context': 'https://schema.org',
+          '@graph': [
+            {
+              '@type': 'CollectionPage',
+              'name': `Vidéos Porno Amateur ${region.name}`,
+              'description': description,
+              'url': canonical,
+              'spatialCoverage': { '@type': 'Place', 'name': `${region.name}, France` }
+            },
+            {
+              '@type': 'BreadcrumbList',
+              'itemListElement': [
+                { '@type': 'ListItem', 'position': 1, 'name': 'Accueil', 'item': `${siteUrl}/` },
+                { '@type': 'ListItem', 'position': 2, 'name': region.name, 'item': canonical }
+              ]
+            }
+          ]
+        };
+        extraSchema = `<script type="application/ld+json">${JSON.stringify(regionSchema)}</script>`;
       }
     } else if (req.path === '/vip' || req.path === '/abonnement') {
       title = 'Abonnement Club VIP Privé - Contenus Exclusifs | Rêve de Q';
@@ -4553,10 +5009,22 @@ app.get('/sitemap.xml', async (req, res) => {
   </url>`;
   });
 
+  const regionUrls = SEO_REGIONS.map(r => ({
+    loc: `${siteUrl}/region/${encodeURIComponent(r.slug)}`,
+    priority: '0.85',
+    changefreq: 'daily'
+  }));
+
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
 ${staticUrls.map(u => `  <url>
+    <loc>${u.loc}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>${u.changefreq}</changefreq>
+    <priority>${u.priority}</priority>
+  </url>`).join('\n')}
+${regionUrls.map(u => `  <url>
     <loc>${u.loc}</loc>
     <lastmod>${today}</lastmod>
     <changefreq>${u.changefreq}</changefreq>
@@ -4596,6 +5064,8 @@ app.get([
   '/video/:id',
   '/categorie/:slug',
   '/categories/:slug',
+  '/region/:slug',
+  '/regions/:slug',
   '/contact',
   '/mentions-legales',
   '/cgu',

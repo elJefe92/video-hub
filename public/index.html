@@ -69,7 +69,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=8.14">
+  <link rel="stylesheet" href="/css/style.css?v=8.15">
   <script>
     // Vérification immédiate anti-clignotement (1h de validité)
     (function() {
@@ -464,9 +464,19 @@
             <button class="btn-reset-filters" onclick="resetAdvancedFilters()">Réinitialiser</button>
           </div>
 
+          <!-- Dynamic Regional / Category SEO Editorial Banner -->
+          <div id="seoRegionCatBanner" class="seo-editorial-banner hidden"></div>
+
           <!-- Video Grid -->
           <div class="video-grid" id="videoGrid">
             <!-- Dynamic Video Cards injected via JS -->
+          </div>
+
+          <!-- Server-Side Load More Button (A2) -->
+          <div id="loadMoreVideosWrap" class="hidden" style="text-align:center;margin:22px 0 8px;">
+            <button type="button" id="btnLoadMoreVideos" class="btn btn-secondary" onclick="loadMoreVideos()" style="padding:11px 28px;border-radius:999px;font-weight:700;">
+              Charger plus de vidéos
+            </button>
           </div>
 
           <!-- Pagination (10 vidéos par page) -->
@@ -916,6 +926,27 @@
               </button>
             </div>
           </form>
+
+          <!-- Admin 2FA Verification Form (C8) -->
+          <form id="admin2faForm" class="auth-form hidden" onsubmit="handleVerifyAdmin2FA(event)">
+            <div class="auth-header">
+              <h3>Vérification Administrateur (2FA)</h3>
+              <p>Un code de sécurité à 6 chiffres a été envoyé à <strong id="admin2faEmailDisplay" style="color: var(--primary);">votre adresse admin</strong>.</p>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Code de sécurité 2FA (6 chiffres) *</label>
+              <input type="text" id="admin2faCode" class="form-input" placeholder="000000" maxlength="6" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')" required autocomplete="one-time-code" style="text-align: center; font-size: 1.6rem; letter-spacing: 8px; font-weight: 800;">
+            </div>
+
+            <button type="submit" id="btnSubmitAdmin2FA" class="btn btn-primary btn-block">Valider et accéder à l'administration</button>
+
+            <div style="text-align:center;margin-top:14px;">
+              <button type="button" class="auth-switch-link" onclick="handleCancelAdmin2FA()" style="padding:0;color:var(--text-muted);font-size:0.84rem;">
+                Retour à la connexion
+              </button>
+            </div>
+          </form>
         </div>
 
         <!-- PROFILE VIEW (When user is logged in) -->
@@ -979,6 +1010,31 @@
             </div>
             <div class="video-grid" id="profileFavoritesGrid" style="min-height:60px;">
               <p style="color:var(--text-muted);font-size:0.85rem;padding:12px 0;">Chargement de vos favoris...</p>
+            </div>
+          </div>
+
+          <!-- Watch History Section (B5) -->
+          <div id="profileHistorySection" style="margin-top:24px;border-top:1px solid var(--border-color);padding-top:24px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
+              <h4 style="font-size:0.95rem;font-weight:700;margin:0;">Regardées récemment</h4>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-sm btn-secondary" onclick="loadProfileHistory()">Rafraîchir</button>
+                <button class="btn btn-sm btn-secondary" onclick="clearWatchHistory()" style="color:#ef4444;">Effacer l'historique</button>
+              </div>
+            </div>
+            <div class="video-grid" id="profileHistoryGrid" style="min-height:48px;">
+              <p style="color:var(--text-muted);font-size:0.85rem;padding:8px 0;">Aucune vidéo regardée récemment.</p>
+            </div>
+          </div>
+
+          <!-- Custom Private Playlists Section (B5) -->
+          <div id="profilePlaylistsSection" style="margin-top:24px;border-top:1px solid var(--border-color);padding-top:24px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
+              <h4 style="font-size:0.95rem;font-weight:700;margin:0;">Mes Playlists Privées</h4>
+              <button class="btn btn-sm btn-primary" onclick="promptCreatePlaylist()">+ Nouvelle playlist</button>
+            </div>
+            <div id="profilePlaylistsContainer">
+              <p style="color:var(--text-muted);font-size:0.85rem;padding:8px 0;">Créez des dossiers privés pour classer vos vidéos préférées.</p>
             </div>
           </div>
 
@@ -1781,6 +1837,11 @@
                   <span class="action-text">Favori</span>
                 </button>
 
+                <button type="button" id="modalPlaylistBtn" class="video-action-pill" onclick="openPlaylistPicker(currentPlayingVideo?.id)" title="Enregistrer dans une playlist privée">
+                  <svg class="action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                  <span class="action-text">Playlist</span>
+                </button>
+
                 <button type="button" id="modalFitBtn" class="video-action-pill" onclick="toggleVideoFit()" title="Ajuster le format (Adapté / Plein cadre)">
                   <svg class="action-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
                   <span class="action-text">Cadrage</span>
@@ -2572,12 +2633,35 @@
         <div class="footer-sub-strip">
           <span class="strip-label">CATÉGORIES POPULAIRES :</span>
           <div class="strip-tags">
-            <a href="/?cat=Amateur" onclick="filterVideosByCategory('Amateur'); return false;">Amateur</a> •
-            <a href="/?cat=Beurettes" onclick="filterVideosByCategory('Beurettes'); return false;">Beurettes</a> •
-            <span class="vip-admin-only"><a href="/?cat=Exclusif+VIP" onclick="filterVideosByCategory('Exclusif VIP'); return false;">Exclusif VIP</a> • </span>
-            <a href="/?cat=HD+1080p" onclick="filterVideosByCategory('HD 1080p'); return false;">HD 1080p</a> •
-            <a href="/?cat=Français" onclick="filterVideosByCategory('Français'); return false;">Français</a> •
-            <a href="/?cat=Tendances" onclick="filterVideosByCategory('Tendances'); return false;">Tendances</a>
+            <a href="/categorie/amateur" onclick="filterVideosByCategory('Amateur'); return false;">Amateur</a> •
+            <a href="/categorie/beurettes" onclick="filterVideosByCategory('Beurettes'); return false;">Beurettes</a> •
+            <span class="vip-admin-only"><a href="/categorie/exclusif-vip" onclick="filterVideosByCategory('Exclusif VIP'); return false;">Exclusif VIP</a> • </span>
+            <a href="/categorie/hd-1080p" onclick="filterVideosByCategory('HD 1080p'); return false;">HD 1080p</a> •
+            <a href="/categorie/francais" onclick="filterVideosByCategory('Français'); return false;">Français</a> •
+            <a href="/categorie/tendances" onclick="filterVideosByCategory('Tendances'); return false;">Tendances</a>
+          </div>
+        </div>
+
+        <!-- SEO Régions de France Internal Linking Strip (D11) -->
+        <div class="footer-sub-strip footer-regions-seo">
+          <span class="strip-label">VIDÉOS PAR RÉGION (FRANCE) :</span>
+          <div class="strip-tags">
+            <a href="/region/ile-de-france" onclick="navigateToRegion('ile-de-france'); return false;">Île-de-France (Paris)</a> •
+            <a href="/region/auvergne-rhone-alpes" onclick="navigateToRegion('auvergne-rhone-alpes'); return false;">Auvergne-Rhône-Alpes (Lyon)</a> •
+            <a href="/region/provence-alpes-cote-dazur" onclick="navigateToRegion('provence-alpes-cote-dazur'); return false;">PACA (Marseille / Nice)</a> •
+            <a href="/region/occitanie" onclick="navigateToRegion('occitanie'); return false;">Occitanie (Toulouse / Montpellier)</a> •
+            <a href="/region/nouvelle-aquitaine" onclick="navigateToRegion('nouvelle-aquitaine'); return false;">Nouvelle-Aquitaine (Bordeaux)</a> •
+            <a href="/region/hauts-de-france" onclick="navigateToRegion('hauts-de-france'); return false;">Hauts-de-France (Lille)</a> •
+            <a href="/region/grand-est" onclick="navigateToRegion('grand-est'); return false;">Grand Est (Strasbourg)</a> •
+            <a href="/region/bretagne" onclick="navigateToRegion('bretagne'); return false;">Bretagne (Rennes)</a> •
+            <a href="/region/normandie" onclick="navigateToRegion('normandie'); return false;">Normandie (Rouen)</a> •
+            <a href="/region/pays-de-la-loire" onclick="navigateToRegion('pays-de-la-loire'); return false;">Pays de la Loire (Nantes)</a> •
+            <a href="/region/bourgogne-franche-comte" onclick="navigateToRegion('bourgogne-franche-comte'); return false;">Bourgogne-Franche-Comté</a> •
+            <a href="/region/centre-val-de-loire" onclick="navigateToRegion('centre-val-de-loire'); return false;">Centre-Val de Loire</a> •
+            <a href="/region/corse" onclick="navigateToRegion('corse'); return false;">Corse</a> •
+            <a href="/region/guadeloupe" onclick="navigateToRegion('guadeloupe'); return false;">Guadeloupe</a> •
+            <a href="/region/martinique" onclick="navigateToRegion('martinique'); return false;">Martinique</a> •
+            <a href="/region/la-reunion" onclick="navigateToRegion('la-reunion'); return false;">La Réunion</a>
           </div>
         </div>
 
@@ -3162,12 +3246,28 @@
   <!-- Toast Notification -->
   <div id="toastNotification" class="toast hidden" onclick="this.classList.add('hidden')" style="cursor:pointer;" title="Cliquer pour fermer"></div>
 
+  <!-- PLAYLIST PICKER MODAL (B5) -->
+  <div id="playlistPickerModal" class="modal-overlay hidden" onclick="if(event.target===this) closePlaylistPicker()">
+    <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">
+      <button class="modal-close-btn" onclick="closePlaylistPicker()" title="Fermer" aria-label="Fermer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      <div class="modal-header-box">
+        <h3>Enregistrer dans une Playlist</h3>
+        <p style="font-size:0.84rem;color:var(--text-muted);margin-top:4px;">Classez cette vidéo dans vos dossiers privés.</p>
+      </div>
+      <div id="playlistPickerList" style="display:flex;flex-direction:column;gap:8px;margin:14px 0;max-height:240px;overflow-y:auto;"></div>
+      <div style="display:flex;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border-color);">
+        <input type="text" id="newPlaylistNameInput" class="form-input" placeholder="Nom d'une nouvelle playlist..." maxlength="60" style="flex:1;">
+        <button type="button" class="btn btn-primary" onclick="createPlaylistFromPicker()">Créer</button>
+      </div>
+    </div>
+  </div>
+
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-  <script src="/js/auth.js?v=8.14"></script>
-  <script src="/js/upload.js?v=8.14"></script>
-  <script src="/js/vip.js?v=8.14"></script>
-  <script src="/js/app.js?v=8.14"></script>
+  <script src="/js/auth.js?v=8.15"></script>
+  <script src="/js/upload.js?v=8.15"></script>
+  <script src="/js/vip.js?v=8.15"></script>
+  <script src="/js/app.js?v=8.15"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">
