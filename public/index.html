@@ -69,7 +69,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=8.12">
+  <link rel="stylesheet" href="/css/style.css?v=8.13">
   <script>
     // Vérification immédiate anti-clignotement (1h de validité)
     (function() {
@@ -88,10 +88,10 @@
   <div id="adultWarningOverlay" class="adult-warning-backdrop">
     <div class="adult-warning-card">
       <div class="adult-warning-brand" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px;">
-        <span class="adult-brand-name" style="display:inline-flex;align-items:center;gap:6px;font-size:1.6rem;font-weight:800;color:#ffffff;letter-spacing:0.5px;">
+        <span class="adult-brand-name" style="display:inline-flex;align-items:center;gap:8px;font-size:1.6rem;font-weight:800;color:#ffffff;letter-spacing:0.5px;">
           <span>Rêve&nbsp;de</span>
-          <span style="font-weight:900;background:linear-gradient(135deg,#fef08a 0%,#fbbf24 30%,#f97316 70%,#ea580c 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 8px rgba(249,115,22,0.65));">Q</span>
-          <img src="/revedeq-emblem.png" alt="Rêve de Q" width="36" height="36" style="filter:drop-shadow(0 0 10px rgba(245,158,11,0.6));vertical-align:middle;">
+          <span class="visually-hidden">&nbsp;Q</span>
+          <img src="/revedeq-emblem.png" alt="Q" width="36" height="36" style="filter:drop-shadow(0 0 10px rgba(245,158,11,0.6));vertical-align:middle;">
         </span>
       </div>
 
@@ -125,13 +125,13 @@
             <line x1="3" y1="18" x2="21" y2="18"></line>
           </svg>
         </button>
-        <a href="/" class="brand-logo" onclick="navigateToTab('accueil'); return false;" style="text-decoration:none;" aria-label="Rêve de Q - Accueil">
+        <a href="/" class="brand-logo" onclick="navigateToTab('accueil'); return false;" style="text-decoration:none;" aria-label="Rêve de Q - Accueil" title="Rêve de Q">
           <span class="brand-text">
             <span class="brand-text-prefix">Rêve&nbsp;de</span>
-            <span class="text-orange">Q</span>
+            <span class="visually-hidden">&nbsp;Q</span>
           </span>
           <div class="brand-emblem">
-            <img src="/revedeq-emblem.png" alt="Rêve de Q" class="brand-emblem-svg" width="34" height="34">
+            <img src="/revedeq-emblem.png" alt="Q" class="brand-emblem-svg" width="38" height="38">
           </div>
         </a>
       </div>
@@ -2500,8 +2500,8 @@
             <div class="footer-logo">
               <span class="logo-text" style="display:inline-flex;align-items:center;gap:6px;">
                 <span>Rêve&nbsp;de</span>
-                <span class="text-orange" style="font-weight:900;">Q</span>
-                <img src="/revedeq-emblem.png" alt="Rêve de Q" width="28" height="28" style="filter:drop-shadow(0 0 8px rgba(245,158,11,0.6));">
+                <span class="visually-hidden">&nbsp;Q</span>
+                <img src="/revedeq-emblem.png" alt="Q" width="28" height="28" style="filter:drop-shadow(0 0 8px rgba(245,158,11,0.6));">
               </span>
               <span class="logo-dot"></span>
             </div>
@@ -3158,10 +3158,10 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-  <script src="/js/auth.js?v=8.12"></script>
-  <script src="/js/upload.js?v=8.12"></script>
-  <script src="/js/vip.js?v=8.12"></script>
-  <script src="/js/app.js?v=8.12"></script>
+  <script src="/js/auth.js?v=8.13"></script>
+  <script src="/js/upload.js?v=8.13"></script>
+  <script src="/js/vip.js?v=8.13"></script>
+  <script src="/js/app.js?v=8.13"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">

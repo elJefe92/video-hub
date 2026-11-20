@@ -19,9 +19,12 @@ test('Schema.org WebSite site name is cleanly defined as Rêve de Q', () => {
   assert.ok(website.alternateName.includes('Reve de Q'));
 });
 
-test('Homepage contains accessible H1 and brand logo with textual Q for Google crawlers', () => {
+test('Homepage contains accessible H1 and brand logo with single camera emblem Q (no duplicate glowing Q)', () => {
   assert.match(indexHtmlSrc, /<h1 class="visually-hidden"[^>]*>Rêve de Q/);
-  assert.match(indexHtmlSrc, /class="brand-logo"[\s\S]*?<span class="brand-text-prefix">Rêve&nbsp;de<\/span>[\s\S]*?<span class="text-orange">Q<\/span>/);
+  assert.match(indexHtmlSrc, /class="brand-logo"[\s\S]*?<span class="brand-text-prefix">Rêve&nbsp;de<\/span>[\s\S]*?class="visually-hidden">&nbsp;Q<\/span>[\s\S]*?<img src="\/revedeq-emblem\.png" alt="Q"/);
+  // Ensure glowing text-orange Q is NOT present in brand-logo or adult warning to avoid duplicate Q
+  assert.equal(/class="brand-logo"[\s\S]*?class="text-orange">Q<\/span>/.test(indexHtmlSrc), false);
+  assert.equal(/class="adult-warning-brand"[\s\S]*?>Q<\/span>[\s\S]*?<img src="\/revedeq-emblem\.png"/.test(indexHtmlSrc), false);
 });
 
 test('Mobile header hides VIP button and caps auth label to avoid overflow', () => {
