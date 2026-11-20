@@ -183,11 +183,6 @@ function handleUrlHash() {
 
   // 5. /vip or /abonnement
   if (pathParts[0] === 'vip' || pathParts[0] === 'abonnement') {
-    if (typeof AUTH === 'undefined' || !AUTH.isAdmin || !AUTH.isAdmin()) {
-      window.history.replaceState(null, '', '/');
-      switchTab('accueil', false);
-      return;
-    }
     switchTab('vip', false);
     return;
   }
@@ -370,10 +365,6 @@ function navigateToTab(tabName) {
     navigateToAdmin();
     return;
   }
-  if (tabName === 'vip' && (typeof AUTH === 'undefined' || !AUTH.isAdmin || !AUTH.isAdmin())) {
-    showToast("L'espace VIP est temporairement suspendu le temps de configurer le mode de paiement.");
-    return;
-  }
   switchTab(tabName, true);
   toggleSidebar(false);
 }
@@ -404,14 +395,8 @@ function switchTab(tabName, shouldPushHistory = true) {
       }
     }
   } else if (tabName === 'vip') {
-    if (!AUTH.isAdmin()) {
-      showToast("L'espace VIP est temporairement suspendu le temps de configurer le mode de paiement.");
-      window.history.replaceState(null, '', '/');
-      tabName = 'accueil';
-    } else {
-      if (shouldPushHistory && window.location.pathname !== '/vip') {
-        window.history.pushState({ tab: 'vip' }, '', '/vip');
-      }
+    if (shouldPushHistory && window.location.pathname !== '/vip') {
+      window.history.pushState({ tab: 'vip' }, '', '/vip');
     }
   } else if (shouldPushHistory) {
     const targetUrl = TAB_URL_MAP[tabName] || (docPages.includes(tabName) ? `/${tabName}` : null);

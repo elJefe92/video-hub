@@ -69,7 +69,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/style.css?v=8.13">
+  <link rel="stylesheet" href="/css/style.css?v=8.14">
   <script>
     // Vérification immédiate anti-clignotement (1h de validité)
     (function() {
@@ -651,7 +651,7 @@
           
           <!-- VIP Hero Banner Card -->
           <div class="vip-premium-hero">
-            <div class="vip-hero-top-badge">OFFRE PRIVILÈGE VIP</div>
+            <div class="vip-hero-top-badge">CLUB VIP DISPONIBLE</div>
             <h2 class="vip-hero-title">Devenez Membre du Club VIP</h2>
             <p class="vip-hero-desc">
               Débloquez l'accès instantané à toutes les vidéos exclusives, profitez du badge certifié VIP, d'une priorité en tête de flux et d'une navigation sans aucune publicité.
@@ -663,17 +663,22 @@
                 <span class="amount">9,99</span>
                 <span class="period">/ mois</span>
               </div>
-              <span class="vip-no-commitment">Sans engagement · Annulation en 1 clic à tout moment</span>
+              <span class="vip-no-commitment">Offre disponible · Sans engagement · Annulation à tout moment</span>
+
+              <div class="vip-ticket-notice" style="margin:14px 0 18px;padding:12px 16px;border-radius:12px;background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.38);color:var(--text-main);font-size:0.88rem;line-height:1.5;text-align:left;">
+                <strong style="color:#fb923c;display:block;margin-bottom:4px;">Comment activer votre accès VIP ?</strong>
+                Le Club VIP est disponible dès maintenant. Pour souscrire, créez simplement un <strong>ticket (requête)</strong> dans <strong>Nous contacter</strong> : nous vous enverrons directement les <strong>modalités de paiement</strong> pour activer votre compte.
+              </div>
               
-              <button class="btn btn-vip-cta-gold" onclick="openVipCheckoutModal()">
-                S'abonner pour 9,99€ / mois
+              <button class="btn btn-vip-cta-gold" onclick="openVipTicketRequest()">
+                Créer un ticket pour devenir VIP (9,99€ / mois)
               </button>
             </div>
             
             <div class="vip-trust-badges">
-              <span>Paiement 100% Sécurisé</span>
-              <span>Activation Immédiate</span>
-              <span>Badge Certifié</span>
+              <span>Modalités envoyées par Ticket</span>
+              <span>Activation Rapide après Paiement</span>
+              <span>Badge Certifié VIP</span>
             </div>
           </div>
 
@@ -1959,6 +1964,7 @@
                   <label class="form-label" for="contactSubjectSelect">Objet du message <span style="color:var(--primary);">*</span></label>
                   <select id="contactSubjectSelect" class="form-input" required onchange="handleContactSubjectChange(this)">
                     <option value="" disabled selected>Sélectionnez un objet pré-enregistré...</option>
+                    <option value="Demande d'abonnement Club VIP (Modalités de paiement)">Demande d'abonnement Club VIP (Modalités de paiement)</option>
                     <option value="Question sur mon compte / Connexion">Question sur mon compte / Connexion</option>
                     <option value="Problème technique / Bug d'affichage">Problème technique / Bug d'affichage</option>
                     <option value="Question sur l'abonnement VIP (9,99€)">Question sur l'abonnement VIP (9,99€)</option>
@@ -3158,10 +3164,10 @@
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-  <script src="/js/auth.js?v=8.13"></script>
-  <script src="/js/upload.js?v=8.13"></script>
-  <script src="/js/vip.js?v=8.13"></script>
-  <script src="/js/app.js?v=8.13"></script>
+  <script src="/js/auth.js?v=8.14"></script>
+  <script src="/js/upload.js?v=8.14"></script>
+  <script src="/js/vip.js?v=8.14"></script>
+  <script src="/js/app.js?v=8.14"></script>
   <!-- DELETE ACCOUNT MODAL -->
   <div id="deleteAccountModal" class="modal-overlay hidden" onclick="closeDeleteAccountModal(event)">
     <div class="modal-card" onclick="event.stopPropagation()" style="max-width:420px;position:relative;">
