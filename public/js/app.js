@@ -5514,7 +5514,9 @@ async function openPublicUserProfile(userIdOrUsername) {
   if (!modal) return;
 
   try {
-    const res = await fetch(`/api/users/${encodeURIComponent(userIdOrUsername)}/profile`);
+    const res = await fetch(`/api/users/${encodeURIComponent(userIdOrUsername)}/profile`, {
+      headers: AUTH.token ? { 'Authorization': `Bearer ${AUTH.token}` } : {}
+    });
     if (!res.ok) {
       showToast('Profil introuvable.');
       return;
@@ -6723,7 +6725,9 @@ async function loadCreatorDashboard() {
   if (!container) return;
 
   try {
-    const res = await fetch(`/api/users/${encodeURIComponent(AUTH.user.id)}/profile`);
+    const res = await fetch(`/api/users/${encodeURIComponent(AUTH.user.id)}/profile`, {
+      headers: AUTH.token ? { 'Authorization': `Bearer ${AUTH.token}` } : {}
+    });
     if (!res.ok) return;
     const profile = await res.json();
 

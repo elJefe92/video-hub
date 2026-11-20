@@ -55,4 +55,50 @@ test('profile update persists changes to cloud database', () => {
   assert.ok(profileRouteMatch, 'profile route should exist');
   assert.match(profileRouteMatch[0], /await syncDbToCloud\(db\)/);
   assert.match(profileRouteMatch[0], /await syncDbFromCloud/);
+  assert.match(profileRouteMatch[0], /isSafeHttpOrUploadUrl\(avatarUrl\)/);
+});
+
+test('private messaging routes require strict authentication without query username IDOR', () => {
+  assert.match(serverSrc, /app\.get\('\/api\/messages\/conversations',\s*authenticate,/);
+  assert.match(serverSrc, /app\.get\('\/api\/messages\/with\/:username',\s*authenticate,/);
+  assert.match(serverSrc, /app\.post\('\/api\/messages\/send',\s*authenticate,/);
+  const convBlock = serverSrc.match(/app\.get\('\/api\/messages\/conversations'[\s\S]*?^\}\);/m);
+  assert.ok(convBlock);
+  assert.equal(convBlock[0].includes('req.query.username'), false);
+  const withBlock = serverSrc.match(/app\.get\('\/api\/messages\/with\/:username'[\s\S]*?^\}\);/m);
+  assert.ok(withBlock);
+  assert.equal(withBlock[0].includes('req.query.username'), false);
+});
+
+test('legacy /api/auth/register bypass is disabled and auth codes use crypto.randomInt with rate limits', () => {
+  const regBlock = serverSrc.match(/app\.post\('\/api\/auth\/register'[\s\S]*?^\}\);/m);
+  assert.ok(regBlock);
+  assert.match(regBlock[0], /status\(410\)/);
+  assert.match(serverSrc, /crypto\.randomInt\(100000,\s*1000000\)/);
+  assert.match(serverSrc, /checkIpRateLimit\(verifyCodeAttempts/);
+  assert.match(serverSrc, /checkIpRateLimit\(resendCodeAttempts/);
+  assert.match(serverSrc, /checkIpRateLimit\(resetConfirmAttempts/);
+  assert.match(serverSrc, /user\.resetCode\s*=\s*bcrypt\.hashSync\(code/);
+});
+
+test('public video and profile endpoints strip private PII (emails and visitor IPs)', () => {
+  assert.match(serverSrc, /function sanitizePublicVideo\(video\)/);
+  assert.match(serverSrc, /const \{ authorEmail, likedBy, ratings, viewedBy, \.\.\.safeVideo \} = video/);
+  const pubProfileBlock = serverSrc.match(/app\.get\('\/api\/users\/:id\/profile'[\s\S]*?^\}\);/m);
+  assert.ok(pubProfileBlock);
+  assert.match(pubProfileBlock[0], /isOwnerOrAdmin \? \{ email: user\.email/);
+});
+
+test('base64 uploads block SVG/HTML XSS and CORS restricts Vercel subdomains', () => {
+  assert.match(serverSrc, /ALLOWED_BASE64_IMAGE_MIMES/);
+  assert.equal(serverSrc.includes("'image/svg+xml'"), false);
+  assert.equal(serverSrc.includes('/^https:\\/\\/[a-z0-9-]+\\.vercel\\.app$/i'), false);
+  assert.match(serverSrc, /video-hub\|revedeq/);
+});
+
+test('Stripe verify-session validates session ownership and syncs cloud DB', () => {
+  const stripeBlock = serverSrc.match(/app\.post\('\/api\/vip\/verify-session'[\s\S]*?^\}\);/m);
+  assert.ok(stripeBlock);
+  assert.match(stripeBlock[0], /session\.client_reference_id !== req\.user\.id/);
+  assert.match(stripeBlock[0], /await syncDbToCloud\(db\)/);
 });

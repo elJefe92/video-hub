@@ -23,8 +23,30 @@ const JWT_SECRET = process.env.JWT_SECRET || (() => {
 const RAW_SITE_URL = process.env.SITE_URL || 'https://www.revedeq.fr';
 const SITE_URL = RAW_SITE_URL.replace('://revedeq.fr', '://www.revedeq.fr');
 
-// Security Hardening: Disable technology fingerprinting
+// Security Hardening: Disable technology fingerprinting & trust Vercel reverse proxy
 app.disable('x-powered-by');
+app.set('trust proxy', 1);
+
+// Security helpers: URL validation & public video PII stripping
+function isSafeHttpOrUploadUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  const trimmed = url.trim();
+  if (trimmed.startsWith('/uploads/') || trimmed.startsWith('/')) {
+    return !trimmed.startsWith('//') && !trimmed.includes('..');
+  }
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:';
+  } catch (e) {
+    return false;
+  }
+}
+
+function sanitizePublicVideo(video) {
+  if (!video || typeof video !== 'object') return video;
+  const { authorEmail, likedBy, ratings, viewedBy, ...safeVideo } = video;
+  return safeVideo;
+}
 
 // Security Hardening: HTTP Response Headers (OWASP)
 app.use((req, res, next) => {
@@ -32,7 +54,8 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader(
     'Content-Security-Policy',
     [
@@ -60,13 +83,16 @@ const ALLOWED_ORIGINS = new Set([
   'https://revedeq.fr',
   SITE_URL.replace(/\/$/, '')
 ]);
+if (process.env.VERCEL_URL) {
+  ALLOWED_ORIGINS.add(`https://${process.env.VERCEL_URL.replace(/^https?:\/\//, '').replace(/\/$/, '')}`);
+}
 
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
     if (
       ALLOWED_ORIGINS.has(origin) ||
-      /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin) ||
+      /^https:\/\/(?:video-hub|revedeq)[a-z0-9-]*\.vercel\.app$/i.test(origin) ||
       /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)
     ) {
       return callback(null, true);
@@ -75,8 +101,8 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+app.use(express.json({ limit: '15mb' }));
+app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
 // Automatically sync latest cloud state on every API request across all serverless lambdas
 app.use((req, res, next) => {
@@ -128,18 +154,36 @@ async function uploadToSupabaseStorage(bucket, localFilePath, filename, contentT
   }
 }
 
+const ALLOWED_BASE64_IMAGE_MIMES = new Map([
+  ['image/jpeg', 'jpg'],
+  ['image/jpg', 'jpg'],
+  ['image/png', 'png'],
+  ['image/webp', 'webp'],
+  ['image/gif', 'gif'],
+  ['image/avif', 'avif']
+]);
+
 async function uploadBase64ToSupabaseStorage(bucket, base64Data, filename) {
   if (!supabase || !base64Data || !base64Data.startsWith('data:')) return null;
   try {
-    const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+    const matches = base64Data.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
     if (!matches || matches.length !== 3) return null;
-    const contentType = matches[1];
+    const contentType = matches[1].toLowerCase();
+    const ext = ALLOWED_BASE64_IMAGE_MIMES.get(contentType);
+    if (!ext) {
+      console.warn(`[SECURITY] Blocked disallowed base64 MIME type: ${contentType}`);
+      return null;
+    }
     const buffer = Buffer.from(matches[2], 'base64');
-    const ext = contentType.split('/')[1] || 'jpg';
-    const cleanFilename = (filename || ('thumb-' + Date.now())) + '.' + ext;
+    if (buffer.length > 5 * 1024 * 1024) {
+      console.warn(`[SECURITY] Blocked oversized base64 image (${buffer.length} bytes)`);
+      return null;
+    }
+    const safeName = String(filename || ('thumb-' + Date.now())).replace(/[^a-zA-Z0-9_-]/g, '');
+    const cleanFilename = safeName + '.' + ext;
 
     const { data, error } = await supabase.storage.from(bucket).upload(cleanFilename, buffer, {
-      contentType: contentType,
+      contentType: contentType === 'image/jpg' ? 'image/jpeg' : contentType,
       upsert: true
     });
     if (error) {
@@ -324,8 +368,15 @@ const passwordResetCodes = new Map();
 // In-memory rate limiting maps
 const loginAttempts = new Map();
 const registerAttempts = new Map();
+const verifyCodeAttempts = new Map();
+const resendCodeAttempts = new Map();
+const welcomeEmailAttempts = new Map();
 const resetPwdAttempts = new Map();
+const resetConfirmAttempts = new Map();
 const contactAttempts = new Map();
+const reportAttempts = new Map();
+const messageSendAttempts = new Map();
+const commentAttempts = new Map();
 
 // Rate limiting & Client IP resolution
 function getClientIp(req) {
@@ -896,8 +947,8 @@ app.post('/api/auth/send-verification-code', async (req, res) => {
     return res.status(400).json({ error: `L'adresse e-mail "${trimmedEmail}" est déjà associée à un compte.` });
   }
 
-  // Génération du code à 6 chiffres
-  const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+  // Génération cryptographiquement sûre du code à 6 chiffres
+  const verificationCode = crypto.randomInt(100000, 1000000).toString();
   const codeHash = bcrypt.hashSync(verificationCode, 8);
   const salt = bcrypt.genSaltSync(10);
   const passwordHash = bcrypt.hashSync(password, salt);
@@ -912,13 +963,17 @@ app.post('/api/auth/send-verification-code', async (req, res) => {
 
   addLog('Code Vérification Envoyé', `Code d'inscription envoyé à ${trimmedEmail}`);
 
+  const safeAvatar = isSafeHttpOrUploadUrl(avatar)
+    ? avatar.trim()
+    : `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(trimmedUsername)}`;
+
   // Jeton sécurisé temporaire (15 minutes) contenant les données prêtes à être validées
   const pendingToken = jwt.sign(
     {
       username: trimmedUsername,
       email: trimmedEmail,
       passwordHash,
-      avatar: avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(trimmedUsername)}`,
+      avatar: safeAvatar,
       codeHash,
       type: 'registration_pending'
     },
@@ -936,6 +991,14 @@ app.post('/api/auth/send-verification-code', async (req, res) => {
 
 // 2. Étape 2 : Validation du code et création effective du compte
 app.post('/api/auth/verify-and-register', async (req, res) => {
+  const clientIp = getClientIp(req);
+  const limitCheck = checkIpRateLimit(verifyCodeAttempts, clientIp, 8, 15 * 60 * 1000, 15 * 60 * 1000);
+  if (!limitCheck.allowed) {
+    return res.status(429).json({
+      error: `Trop de tentatives de vérification. Veuillez réessayer dans ${limitCheck.remaining} minute(s).`
+    });
+  }
+
   const { pendingToken, code } = req.body;
   if (!pendingToken || !code) {
     return res.status(400).json({ error: 'Code de vérification requis.' });
@@ -955,8 +1018,10 @@ app.post('/api/auth/verify-and-register', async (req, res) => {
   const cleanCode = code.toString().trim();
   const isMatch = bcrypt.compareSync(cleanCode, decoded.codeHash);
   if (!isMatch) {
+    recordIpAttempt(verifyCodeAttempts, clientIp, 8, 15 * 60 * 1000);
     return res.status(400).json({ error: 'Code de vérification incorrect. Veuillez vérifier votre boîte e-mail.' });
   }
+  verifyCodeAttempts.delete(clientIp);
 
   await syncDbFromCloud();
   const db = loadDb();
@@ -1018,6 +1083,15 @@ app.post('/api/auth/verify-and-register', async (req, res) => {
 
 // 3. Renvoyer un nouveau code de confirmation
 app.post('/api/auth/resend-verification-code', async (req, res) => {
+  const clientIp = getClientIp(req);
+  const limitCheck = checkIpRateLimit(resendCodeAttempts, clientIp, 3, 15 * 60 * 1000, 15 * 60 * 1000);
+  if (!limitCheck.allowed) {
+    return res.status(429).json({
+      error: `Trop de renvois de code. Veuillez réessayer dans ${limitCheck.remaining} minute(s).`
+    });
+  }
+  recordIpAttempt(resendCodeAttempts, clientIp, 3, 15 * 60 * 1000);
+
   const { pendingToken } = req.body;
   if (!pendingToken) {
     return res.status(400).json({ error: 'Jeton de vérification manquant.' });
@@ -1026,11 +1100,14 @@ app.post('/api/auth/resend-verification-code', async (req, res) => {
   let decoded;
   try {
     decoded = jwt.verify(pendingToken, JWT_SECRET);
+    if (decoded.type !== 'registration_pending') {
+      return res.status(400).json({ error: 'Jeton de vérification invalide.' });
+    }
   } catch (err) {
     return res.status(400).json({ error: 'Session de vérification expirée. Veuillez recommencer.' });
   }
 
-  const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+  const newCode = crypto.randomInt(100000, 1000000).toString();
   const newCodeHash = bcrypt.hashSync(newCode, 8);
 
   const sent = await sendVerificationEmail(decoded.email, decoded.username, newCode);
@@ -1038,9 +1115,10 @@ app.post('/api/auth/resend-verification-code', async (req, res) => {
     return res.status(400).json({ error: "Impossible d'envoyer le nouvel e-mail. Veuillez réessayer plus tard." });
   }
 
+  const { exp, iat, ...cleanPayload } = decoded;
   const refreshedToken = jwt.sign(
     {
-      ...decoded,
+      ...cleanPayload,
       codeHash: newCodeHash
     },
     JWT_SECRET,
@@ -1054,87 +1132,24 @@ app.post('/api/auth/resend-verification-code', async (req, res) => {
   });
 });
 
-// Ancien endpoint d'inscription direct (redirige vers le nouveau flux avec code)
-app.post('/api/auth/register', async (req, res) => {
-  const { username, email, password, avatar } = req.body;
-  if (!username || !email || !password) {
-    return res.status(400).json({ error: 'Tous les champs sont requis.' });
-  }
-
-  const trimmedUsername = username.trim();
-  const trimmedEmail = email.trim().toLowerCase();
-
-  // 1. Reserved admin usernames check
-  if (isReservedAdminUsername(trimmedUsername, trimmedEmail)) {
-    return res.status(400).json({ 
-      error: `Le pseudo "${trimmedUsername}" et les termes associés à l'administration sont strictement réservés au compte administrateur officiel.` 
-    });
-  }
-
-  await syncDbFromCloud();
-  const db = loadDb();
-
-  // 2. Strict unique username check (case-insensitive)
-  const existingUsername = db.users.find(u => u.username && u.username.trim().toLowerCase() === trimmedUsername.toLowerCase());
-  if (existingUsername) {
-    return res.status(400).json({ error: `Le nom d'utilisateur "${trimmedUsername}" est déjà utilisé. Veuillez en choisir un autre.` });
-  }
-
-  // 3. Strict unique email check (case-insensitive)
-  const existingEmail = db.users.find(u => u.email && u.email.trim().toLowerCase() === trimmedEmail);
-  if (existingEmail) {
-    return res.status(400).json({ error: `L'adresse e-mail "${trimmedEmail}" est déjà associée à un compte.` });
-  }
-
-  const salt = bcrypt.genSaltSync(10);
-  const passwordHash = bcrypt.hashSync(password, salt);
-
-  const isAdminEmail = trimmedEmail === 'ia.project.pro2k26@gmail.com';
-
-  const newUser = {
-    id: 'user_' + Date.now(),
-    username: trimmedUsername,
-    email: trimmedEmail,
-    passwordHash,
-    role: isAdminEmail ? "admin" : "user",
-    isVip: isAdminEmail,
-    vipExpiry: isAdminEmail ? "2030-01-01" : null,
-    avatar: avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(trimmedUsername)}`,
-    bio: 'Membre créateur sur la plateforme !',
-    emailVerified: true,
-    createdAt: new Date().toISOString()
-  };
-
-  db.users.push(newUser);
-  if (!db.logs) db.logs = [];
-  db.logs.unshift({
-    id: 'log_' + Date.now(),
-    action: 'Inscription Utilisateur',
-    details: `Nouveau compte: ${newUser.username} (${newUser.email})`,
-    date: new Date().toISOString()
-  });
-  if (db.logs.length > 50) db.logs.pop();
-  saveDb(db);
-  await syncDbToCloud(db);
-
-  try {
-    await sendWelcomeEmail(newUser.email, newUser.username);
-  } catch (err) {
-    console.error('Welcome email sending error:', err.message);
-  }
-
-  const token = jwt.sign({ userId: newUser.id }, JWT_SECRET, { expiresIn: '30d' });
-  const { passwordHash: _, ...userSafe } = newUser;
-
-  res.status(201).json({
-    message: 'Compte créé avec succès ! Un e-mail de bienvenue vous a été envoyé.',
-    token,
-    user: userSafe
+// Ancien endpoint d'inscription direct désactivé (faille de contournement de vérification e-mail)
+app.post('/api/auth/register', (req, res) => {
+  return res.status(410).json({
+    error: 'L\'inscription directe est désactivée pour votre sécurité. Veuillez utiliser la vérification par e-mail.'
   });
 });
 
 // Endpoint to send/resend welcome email to logged-in user
 app.post('/api/auth/send-welcome-email', authenticate, async (req, res) => {
+  const clientIp = getClientIp(req);
+  const limitCheck = checkIpRateLimit(welcomeEmailAttempts, clientIp, 3, 15 * 60 * 1000, 15 * 60 * 1000);
+  if (!limitCheck.allowed) {
+    return res.status(429).json({
+      error: `Trop de demandes d'e-mail de bienvenue. Veuillez réessayer dans ${limitCheck.remaining} minute(s).`
+    });
+  }
+  recordIpAttempt(welcomeEmailAttempts, clientIp, 3, 15 * 60 * 1000);
+
   try {
     const user = req.user;
     const ok = await sendWelcomeEmail(user.email, user.username);
@@ -1305,12 +1320,13 @@ app.post('/api/auth/forgot-password', async (req, res) => {
   const user = db.users.find(u => u.email && u.email.toLowerCase() === cleanEmail);
 
   if (user) {
-    // Generate 6-digit code valid for 15 minutes
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate cryptographically secure 6-digit code valid for 15 minutes
+    const code = crypto.randomInt(100000, 1000000).toString();
     const expiresAt = Date.now() + 15 * 60 * 1000;
 
-    user.resetCode = code;
+    user.resetCode = bcrypt.hashSync(code, 8);
     user.resetExpiresAt = expiresAt;
+    user.resetAttempts = 0;
     saveDb(db);
     await syncDbToCloud(db);
 
@@ -1327,7 +1343,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
 });
 
 // Profil public / membre avec statistiques et vidéos publiées
-app.get('/api/users/:id/profile', async (req, res) => {
+app.get('/api/users/:id/profile', optionalAuthenticate, async (req, res) => {
   await syncDbFromCloud();
   const db = loadDb();
   const targetIdOrUsername = (req.params.id || '').trim().toLowerCase();
@@ -1341,12 +1357,24 @@ app.get('/api/users/:id/profile', async (req, res) => {
     return res.status(404).json({ error: 'Membre introuvable.' });
   }
 
-  // Récupération des vidéos de l'utilisateur
-  const userVideos = (db.videos || []).filter(v => 
-    (v.authorId && v.authorId === user.id) || 
-    (v.authorName && v.authorName.toLowerCase() === user.username.toLowerCase()) ||
-    (v.authorEmail && v.authorEmail.toLowerCase() === user.email.toLowerCase())
+  const isOwnerOrAdmin = Boolean(
+    req.user && (
+      req.user.id === user.id ||
+      req.user.role === 'admin' ||
+      (req.user.email && req.user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com')
+    )
   );
+
+  // Récupération des vidéos de l'utilisateur (masquer les vidéos en attente/rejetées aux visiteurs publics)
+  const userVideos = (db.videos || []).filter(v => {
+    const matchesAuthor =
+      (v.authorId && v.authorId === user.id) ||
+      (v.authorName && v.authorName.toLowerCase() === user.username.toLowerCase()) ||
+      (v.authorEmail && user.email && v.authorEmail.toLowerCase() === user.email.toLowerCase());
+    if (!matchesAuthor) return false;
+    if (!isOwnerOrAdmin && (v.status === 'pending' || v.status === 'rejected')) return false;
+    return true;
+  });
 
   const totalViews = userVideos.reduce((sum, v) => sum + (v.views || 0), 0);
   const totalLikes = userVideos.reduce((sum, v) => sum + (v.likes || 0), 0);
@@ -1361,12 +1389,11 @@ app.get('/api/users/:id/profile', async (req, res) => {
   res.json({
     id: user.id,
     username: user.username,
-    email: user.email,
+    ...(isOwnerOrAdmin ? { email: user.email, vipExpiry: user.vipExpiry } : {}),
     avatar: user.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.username)}`,
     bio: user.bio || 'Membre createur sur la plateforme Rêve de Q.',
     role: user.role || 'user',
     isVip: Boolean(user.isVip),
-    vipExpiry: user.vipExpiry,
     createdAt: user.createdAt || new Date().toISOString(),
     videosCount: userVideos.length,
     totalViews,
@@ -1418,7 +1445,9 @@ app.get('/api/user/favorites', authenticate, async (req, res) => {
   const db = loadDb();
   const userRecord = db.users.find(u => u.id === user.id);
   const favoriteIds = userRecord?.favorites || [];
-  const favoriteVideos = (db.videos || []).filter(v => favoriteIds.includes(v.id)).map(v => resolveVideoThumbnail(v));
+  const favoriteVideos = (db.videos || [])
+    .filter(v => favoriteIds.includes(v.id))
+    .map(v => sanitizePublicVideo(resolveVideoThumbnail(v)));
   res.json({ favorites: favoriteIds, videos: favoriteVideos });
 });
 
@@ -1457,6 +1486,14 @@ app.put('/api/user/notifications/:notifId/read', authenticate, async (req, res) 
 
 // Reset Password - Verify 6-digit code and set new password
 app.post('/api/auth/reset-password', async (req, res) => {
+  const clientIp = getClientIp(req);
+  const limitCheck = checkIpRateLimit(resetConfirmAttempts, clientIp, 5, 15 * 60 * 1000, 15 * 60 * 1000);
+  if (!limitCheck.allowed) {
+    return res.status(429).json({
+      error: `Trop de tentatives de réinitialisation. Veuillez réessayer dans ${limitCheck.remaining} minute(s).`
+    });
+  }
+
   const { email, code, newPassword } = req.body;
   if (!email || !code || !newPassword) {
     return res.status(400).json({ error: 'Veuillez renseigner tous les champs obligatoires.' });
@@ -1469,34 +1506,54 @@ app.post('/api/auth/reset-password', async (req, res) => {
   const cleanEmail = email.trim().toLowerCase();
   const cleanCode = code.toString().trim();
 
+  await syncDbFromCloud(true);
   const db = loadDb();
   const user = db.users.find(u => u.email && u.email.toLowerCase() === cleanEmail);
 
-  if (!user) {
-    return res.status(404).json({ error: 'Utilisateur introuvable.' });
-  }
-
-  if (!user.resetCode || !user.resetExpiresAt) {
-    return res.status(400).json({ error: 'Aucune demande de réinitialisation active pour ce compte.' });
+  if (!user || !user.resetCode || !user.resetExpiresAt) {
+    recordIpAttempt(resetConfirmAttempts, clientIp, 5, 15 * 60 * 1000);
+    return res.status(400).json({ error: 'Code invalide ou aucune demande de réinitialisation active.' });
   }
 
   if (Date.now() > user.resetExpiresAt) {
     user.resetCode = null;
     user.resetExpiresAt = null;
+    user.resetAttempts = 0;
     saveDb(db);
+    await syncDbToCloud(db);
     return res.status(400).json({ error: 'Ce code a expiré. Veuillez refaire une demande.' });
   }
 
-  if (user.resetCode !== cleanCode) {
+  const isCodeValid = user.resetCode.startsWith('$2')
+    ? bcrypt.compareSync(cleanCode, user.resetCode)
+    : user.resetCode === cleanCode;
+
+  if (!isCodeValid) {
+    recordIpAttempt(resetConfirmAttempts, clientIp, 5, 15 * 60 * 1000);
+    user.resetAttempts = (user.resetAttempts || 0) + 1;
+    if (user.resetAttempts >= 5) {
+      user.resetCode = null;
+      user.resetExpiresAt = null;
+      user.resetAttempts = 0;
+      saveDb(db);
+      await syncDbToCloud(db);
+      return res.status(429).json({ error: 'Trop de codes erronés. Ce code a été invalidé, veuillez en demander un nouveau.' });
+    }
+    saveDb(db);
+    await syncDbToCloud(db);
     return res.status(400).json({ error: 'Code de sécurité incorrect. Vérifiez vos e-mails.' });
   }
+
+  resetConfirmAttempts.delete(clientIp);
 
   // Hash new password and save
   const salt = bcrypt.genSaltSync(10);
   user.passwordHash = bcrypt.hashSync(newPassword, salt);
   user.resetCode = null;
   user.resetExpiresAt = null;
+  user.resetAttempts = 0;
   saveDb(db);
+  await syncDbToCloud(db);
 
   addLog('Mot de Passe Réinitialisé', `Nouveau mot de passe défini pour ${user.email}`);
 
@@ -1552,6 +1609,9 @@ app.put('/api/user/profile', authenticate, upload.single('avatarFile'), async (r
     const supabaseAvatar = await uploadToSupabaseStorage('thumbnails', req.file.path, req.file.filename, req.file.mimetype);
     user.avatar = supabaseAvatar || `/uploads/${req.file.filename}`;
   } else if (avatarUrl && avatarUrl.trim()) {
+    if (!isSafeHttpOrUploadUrl(avatarUrl)) {
+      return res.status(400).json({ error: 'URL d\'avatar invalide.' });
+    }
     user.avatar = avatarUrl.trim();
   }
 
@@ -1888,13 +1948,13 @@ app.get('/api/videos', async (req, res) => {
     }
   }
 
-  // Enrich videos with author's creator badge
+  // Enrich videos with author's creator badge and strip private PII (emails, visitor IPs)
   const userMap = {};
   (db.users || []).forEach(u => { if (u.id) userMap[u.id] = u; });
   list = list.map(v => {
     const author = v.authorId ? userMap[v.authorId] : null;
     return {
-      ...v,
+      ...sanitizePublicVideo(v),
       creatorBadge: author?.creatorBadge || v.creatorBadge || null
     };
   });
@@ -1934,7 +1994,7 @@ app.get('/api/videos/:id', optionalAuthenticate, async (req, res) => {
   res.set('Expires', '0');
   res.json({
     video: {
-      ...video,
+      ...sanitizePublicVideo(video),
       userRating,
       userLiked,
       creatorBadge: author?.creatorBadge || video.creatorBadge || null
@@ -2563,6 +2623,15 @@ app.get('/api/videos/:id/comments', async (req, res) => {
 
 // Post a comment on a video (AUTHENTICATED ONLY - requires account)
 app.post('/api/videos/:id/comments', authenticate, async (req, res) => {
+  const clientIp = getClientIp(req);
+  const limitCheck = checkIpRateLimit(commentAttempts, clientIp, 15, 10 * 60 * 1000, 10 * 60 * 1000);
+  if (!limitCheck.allowed) {
+    return res.status(429).json({
+      error: `Trop de commentaires envoyés. Veuillez réessayer dans ${limitCheck.remaining} minute(s).`
+    });
+  }
+  recordIpAttempt(commentAttempts, clientIp, 15, 10 * 60 * 1000);
+
   const { text } = req.body;
   if (!text || !text.trim()) {
     return res.status(400).json({ error: 'Veuillez saisir un texte de commentaire valide.' });
@@ -2647,13 +2716,13 @@ app.get('/api/admin/comments', requireAdmin, async (req, res) => {
 });
 
 // ---------------- INTERNAL MESSAGING SYSTEM (MESSAGERIE PRIVÉE) ----------------
-// Get conversations list
-app.get('/api/messages/conversations', optionalAuthenticate, async (req, res) => {
+// Get conversations list (STRICTLY AUTHENTICATED - prevents private message IDOR)
+app.get('/api/messages/conversations', authenticate, async (req, res) => {
   await syncDbFromCloud();
   const db = loadDb();
   db.messages = db.messages || [];
 
-  const myUsername = (req.user ? req.user.username : (req.query.username || '')).trim().toLowerCase();
+  const myUsername = (req.user.username || '').trim().toLowerCase();
   if (!myUsername) {
     return res.json({ conversations: [] });
   }
@@ -2716,13 +2785,13 @@ app.get('/api/messages/conversations', optionalAuthenticate, async (req, res) =>
   res.json({ conversations: list });
 });
 
-// Get messages with a specific user
-app.get('/api/messages/with/:username', optionalAuthenticate, async (req, res) => {
+// Get messages with a specific user (STRICTLY AUTHENTICATED - prevents private message IDOR)
+app.get('/api/messages/with/:username', authenticate, async (req, res) => {
   await syncDbFromCloud();
   const db = loadDb();
   db.messages = db.messages || [];
 
-  const myUsername = (req.user ? req.user.username : (req.query.username || '')).trim().toLowerCase();
+  const myUsername = (req.user.username || '').trim().toLowerCase();
   const targetUsername = req.params.username.trim().toLowerCase();
 
   if (!myUsername) {
@@ -2779,8 +2848,17 @@ app.get('/api/messages/with/:username', optionalAuthenticate, async (req, res) =
   });
 });
 
-// Send a direct message (2 free messages limit per conversation for non-VIP)
-app.post('/api/messages/send', optionalAuthenticate, async (req, res) => {
+// Send a direct message (STRICTLY AUTHENTICATED + rate-limited)
+app.post('/api/messages/send', authenticate, async (req, res) => {
+  const clientIp = getClientIp(req);
+  const limitCheck = checkIpRateLimit(messageSendAttempts, clientIp, 30, 5 * 60 * 1000, 10 * 60 * 1000);
+  if (!limitCheck.allowed) {
+    return res.status(429).json({
+      error: `Trop de messages envoyés. Veuillez patienter ${limitCheck.remaining} minute(s).`
+    });
+  }
+  recordIpAttempt(messageSendAttempts, clientIp, 30, 10 * 60 * 1000);
+
   const { recipientUsername, text } = req.body;
   if (!recipientUsername || !recipientUsername.trim()) {
     return res.status(400).json({ error: 'Destinataire manquant.' });
@@ -2788,12 +2866,8 @@ app.post('/api/messages/send', optionalAuthenticate, async (req, res) => {
   if (!text || !text.trim()) {
     return res.status(400).json({ error: 'Le message ne peut pas être vide.' });
   }
-
-  if (!req.user) {
-    return res.status(401).json({
-      error: 'Veuillez vous connecter pour envoyer un message privé et profiter de vos 2 messages offerts.',
-      requireLogin: true
-    });
+  if (text.trim().length > 2000) {
+    return res.status(400).json({ error: 'Le message ne peut pas dépasser 2000 caractères.' });
   }
 
   await syncDbFromCloud();
@@ -2976,7 +3050,8 @@ app.get('/api/videos/:id/similar', (req, res) => {
     scored.push(...recent);
   }
 
-  res.json({ videos: scored, similar: scored });
+  const safeScored = scored.map(sanitizePublicVideo);
+  res.json({ videos: safeScored, similar: safeScored });
 });
 
 
@@ -3261,6 +3336,15 @@ app.put('/api/admin/videos/:id', requireAdmin, async (req, res) => {
 
 // ---------------- CONTENT ABUSE REPORTS (SIGNALEMENTS DE CONTENU ABUSIF / DMCA) ----------------
 app.post('/api/reports/submit', async (req, res) => {
+  const clientIp = getClientIp(req);
+  const limitCheck = checkIpRateLimit(reportAttempts, clientIp, 5, 15 * 60 * 1000, 15 * 60 * 1000);
+  if (!limitCheck.allowed) {
+    return res.status(429).json({
+      error: `Trop de signalements envoyés. Veuillez réessayer dans ${limitCheck.remaining} minute(s).`
+    });
+  }
+  recordIpAttempt(reportAttempts, clientIp, 5, 15 * 60 * 1000);
+
   const { fullName, email, videoUrl, videoTitle, reason, details, signature } = req.body;
   if (!fullName || !email || !reason || !signature) {
     return res.status(400).json({ error: 'Veuillez remplir tous les champs obligatoires (*).' });
@@ -4157,8 +4241,11 @@ app.post('/api/vip/verify-session', authenticate, async (req, res) => {
   try {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
     if (session.payment_status === 'paid' || session.status === 'complete') {
+      if (session.client_reference_id && session.client_reference_id !== req.user.id) {
+        return res.status(403).json({ error: 'Cette session de paiement appartient à un autre compte.' });
+      }
       const db = loadDb();
-      const user = db.users.find(u => u.id === req.user.id || u.id === session.client_reference_id);
+      const user = db.users.find(u => u.id === req.user.id);
       if (user) {
         const expiry = new Date();
         expiry.setMonth(expiry.getMonth() + 1);
@@ -4170,6 +4257,7 @@ app.post('/api/vip/verify-session', authenticate, async (req, res) => {
         });
 
         saveDb(db);
+        await syncDbToCloud(db);
         addLog('Abonnement VIP Stripe', `${user.username} a souscrit au Pass VIP 9,99€ via Stripe`);
 
         const { passwordHash: _, ...userSafe } = user;
