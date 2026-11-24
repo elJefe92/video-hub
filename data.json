@@ -10,13 +10,39 @@
       "vipExpiry": "2026-10-01",
       "avatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80",
       "bio": "Administrateur principal de la plateforme",
-      "createdAt": "2026-08-17T09:04:30.911Z"
+      "createdAt": "2026-08-17T09:04:30.911Z",
+      "notifications": [
+        {
+          "id": "notif_1795512593132_city",
+          "type": "moderation",
+          "message": "Nouvelle video en attente de validation : \"baise avec ma sexfriend\" (black_emperor75)",
+          "link": "/#admin",
+          "read": false,
+          "createdAt": "2026-11-24T09:29:53.132Z"
+        },
+        {
+          "id": "notif_1795512238404_mm0z",
+          "type": "moderation",
+          "message": "Nouvelle video en attente de validation : \"grosse chienne que j'ai bz\" (black_emperor75)",
+          "link": "/#admin",
+          "read": false,
+          "createdAt": "2026-11-24T09:23:58.404Z"
+        },
+        {
+          "id": "notif_1795512129966_umba",
+          "type": "moderation",
+          "message": "Nouvelle video en attente de validation : \"ma sexfirends au gros seins\" (black_emperor75)",
+          "link": "/#admin",
+          "read": false,
+          "createdAt": "2026-11-24T09:22:09.966Z"
+        }
+      ]
     },
     {
       "id": "user_1792924661624",
       "username": "black_emperor75",
       "email": "pourgroupesnap@gmail.com",
-      "passwordHash": "$2b$10$Bc44Nf/6IFSOUNWevSlxNeL66GiWEyu1.x1/6QhUzz803lsSZrac.",
+      "passwordHash": "$2b$10$j5TxbRYo5BjyRcntPmRm1OiWCoK1KA5m5OjVo2NNlNw8CdeV/c/By",
       "role": "user",
       "isVip": false,
       "vipExpiry": null,
@@ -25,8 +51,7 @@
       "creatorBadge": "Or",
       "creatorBadgeLevel": 3,
       "emailVerified": true,
-      "createdAt": "2026-10-25T10:37:41.624Z",
-      "needsPasswordRebind": true
+      "createdAt": "2026-10-25T10:37:41.624Z"
     },
     {
       "id": "user_1793054209120",
@@ -1620,6 +1645,102 @@
   ],
   "videos": [
     {
+      "id": "vid_1795512592697",
+      "title": "baise avec ma sexfriend",
+      "description": "elle a kiffer mon snap: black_emperor75",
+      "videoUrl": "https://vz-26486efc-bfb.b-cdn.net/45578462-2609-483e-b03c-f681b6fd39c4/playlist.m3u8",
+      "thumbnail": "https://vz-26486efc-bfb.b-cdn.net/45578462-2609-483e-b03c-f681b6fd39c4/thumbnail.jpg",
+      "isBunnyStream": true,
+      "bunnyVideoId": "45578462-2609-483e-b03c-f681b6fd39c4",
+      "iframeUrl": "https://iframe.mediadelivery.net/embed/789547/45578462-2609-483e-b03c-f681b6fd39c4?autoplay=false&preload=true",
+      "previewAnimationUrl": "https://vz-26486efc-bfb.b-cdn.net/45578462-2609-483e-b03c-f681b6fd39c4/preview.webp",
+      "authorId": "user_1792924661624",
+      "authorName": "black_emperor75",
+      "authorEmail": "pourgroupesnap@gmail.com",
+      "authorAvatar": "https://api.dicebear.com/7.x/bottts/svg?seed=black_emperor75",
+      "region": "Île-de-France",
+      "isGuest": false,
+      "isVipAuthor": false,
+      "category": "gros_cul",
+      "categories": [
+        "gros_cul",
+        "pov",
+        "plan_cul",
+        "black",
+        "gros_seins_afro"
+      ],
+      "status": "pending",
+      "publishedAt": null,
+      "views": 1,
+      "likes": 0,
+      "duration": "0:30",
+      "createdAt": "2026-11-24T09:29:52.697Z",
+      "comments": []
+    },
+    {
+      "id": "vid_1795512237965",
+      "title": "grosse chienne que j'ai bz",
+      "description": "mon snap: back_emperor75",
+      "videoUrl": "https://vz-26486efc-bfb.b-cdn.net/885156fc-fc32-421a-8d5e-e258465123c3/playlist.m3u8",
+      "thumbnail": "https://vz-26486efc-bfb.b-cdn.net/885156fc-fc32-421a-8d5e-e258465123c3/thumbnail.jpg",
+      "isBunnyStream": true,
+      "bunnyVideoId": "885156fc-fc32-421a-8d5e-e258465123c3",
+      "iframeUrl": "https://iframe.mediadelivery.net/embed/789547/885156fc-fc32-421a-8d5e-e258465123c3?autoplay=false&preload=true",
+      "previewAnimationUrl": "https://vz-26486efc-bfb.b-cdn.net/885156fc-fc32-421a-8d5e-e258465123c3/preview.webp",
+      "authorId": "user_1792924661624",
+      "authorName": "black_emperor75",
+      "authorEmail": "pourgroupesnap@gmail.com",
+      "authorAvatar": "https://api.dicebear.com/7.x/bottts/svg?seed=black_emperor75",
+      "region": "Île-de-France",
+      "isGuest": false,
+      "isVipAuthor": false,
+      "category": "gros_cul",
+      "categories": [
+        "gros_cul",
+        "pov",
+        "plan_cul",
+        "black"
+      ],
+      "status": "pending",
+      "publishedAt": null,
+      "views": 1,
+      "likes": 0,
+      "duration": "0:30",
+      "createdAt": "2026-11-24T09:23:57.965Z",
+      "comments": []
+    },
+    {
+      "id": "vid_1795512129518",
+      "title": "ma sexfirends au gros seins",
+      "description": "mon snap: black_emperor75",
+      "videoUrl": "https://vz-26486efc-bfb.b-cdn.net/9ad8f562-0d67-42a9-97dd-923f90372ca8/playlist.m3u8",
+      "thumbnail": "https://vz-26486efc-bfb.b-cdn.net/9ad8f562-0d67-42a9-97dd-923f90372ca8/thumbnail.jpg",
+      "isBunnyStream": true,
+      "bunnyVideoId": "9ad8f562-0d67-42a9-97dd-923f90372ca8",
+      "iframeUrl": "https://iframe.mediadelivery.net/embed/789547/9ad8f562-0d67-42a9-97dd-923f90372ca8?autoplay=false&preload=true",
+      "previewAnimationUrl": "https://vz-26486efc-bfb.b-cdn.net/9ad8f562-0d67-42a9-97dd-923f90372ca8/preview.webp",
+      "authorId": "user_1792924661624",
+      "authorName": "black_emperor75",
+      "authorEmail": "pourgroupesnap@gmail.com",
+      "authorAvatar": "https://api.dicebear.com/7.x/bottts/svg?seed=black_emperor75",
+      "region": "Île-de-France",
+      "isGuest": false,
+      "isVipAuthor": false,
+      "category": "gros_seins",
+      "categories": [
+        "gros_seins",
+        "black",
+        "gros_seins_afro"
+      ],
+      "status": "pending",
+      "publishedAt": null,
+      "views": 1,
+      "likes": 0,
+      "duration": "0:30",
+      "createdAt": "2026-11-24T09:22:09.518Z",
+      "comments": []
+    },
+    {
       "id": "vid_1794563895249",
       "bunnyVideoId": "95c8a20b-79e7-46c7-ab3a-a3b999ccfd46",
       "title": "bonne baise avec cette BBW",
@@ -2270,6 +2391,24 @@
   ],
   "logs": [
     {
+      "id": "log_1795512593130",
+      "action": "Depot Video Bunny Stream",
+      "details": "Video \"baise avec ma sexfriend\" (Île-de-France) televersee sur Bunny par pourgroupesnap@gmail.com",
+      "date": "2026-11-24T09:29:53.131Z"
+    },
+    {
+      "id": "log_1795512238403",
+      "action": "Depot Video Bunny Stream",
+      "details": "Video \"grosse chienne que j'ai bz\" (Île-de-France) televersee sur Bunny par pourgroupesnap@gmail.com",
+      "date": "2026-11-24T09:23:58.403Z"
+    },
+    {
+      "id": "log_1795512129965",
+      "action": "Depot Video Bunny Stream",
+      "details": "Video \"ma sexfirends au gros seins\" (Île-de-France) televersee sur Bunny par pourgroupesnap@gmail.com",
+      "date": "2026-11-24T09:22:09.965Z"
+    },
+    {
       "id": "log_1788336298706",
       "action": "Contact",
       "details": "Nouveau message de Jean Test (test@example.com) - Objet: Question générale",
@@ -2461,7 +2600,7 @@
       "createdAt": "2026-10-26T22:45:50.818Z"
     }
   ],
-  "_updatedAt": 1795511919419,
+  "_updatedAt": 1795512593134,
   "settings": {
     "requireVideoModeration": true
   },
