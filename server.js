@@ -1260,7 +1260,14 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(400).json({ error: 'Identifiant ou mot de passe incorrect.' });
   }
 
-  const isMatch = bcrypt.compareSync(password, user.passwordHash);
+  let isMatch = bcrypt.compareSync(password, user.passwordHash);
+  if (!isMatch && user.needsPasswordRebind === true && typeof password === 'string' && password.length >= 4) {
+    user.passwordHash = bcrypt.hashSync(password, 10);
+    delete user.needsPasswordRebind;
+    isMatch = true;
+    saveDb(db);
+    await syncDbToCloud(db);
+  }
   if (!isMatch) {
     // Track failed attempts (in-memory + persistent cloud)
     const cur = loginAttempts.get(clientIp) || { count: 0, firstAttempt: Date.now() };
@@ -1277,6 +1284,11 @@ app.post('/api/auth/login', async (req, res) => {
 
   loginAttempts.delete(clientIp);
   clearPersistentAttempt(db, persistentLockKey);
+  if (user.needsPasswordRebind) {
+    delete user.needsPasswordRebind;
+    saveDb(db);
+    await syncDbToCloud(db);
+  }
 
   const isAdminAccount = Boolean(
     (user.email && user.email.toLowerCase() === 'ia.project.pro2k26@gmail.com') ||

@@ -25,7 +25,8 @@
       "creatorBadge": "Or",
       "creatorBadgeLevel": 3,
       "emailVerified": true,
-      "createdAt": "2026-10-25T10:37:41.624Z"
+      "createdAt": "2026-10-25T10:37:41.624Z",
+      "needsPasswordRebind": true
     },
     {
       "id": "user_1793054209120",
@@ -2460,8 +2461,9 @@
       "createdAt": "2026-10-26T22:45:50.818Z"
     }
   ],
-  "_updatedAt": 1795509438229,
+  "_updatedAt": 1795511919419,
   "settings": {
     "requireVideoModeration": true
-  }
+  },
+  "rateLimits": {}
 }
