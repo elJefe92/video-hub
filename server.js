@@ -1557,7 +1557,8 @@ app.get('/api/users/:id/profile', optionalAuthenticate, async (req, res) => {
       thumbnail: v.thumbnail,
       views: v.views || 0,
       likes: v.likes || 0,
-      createdAt: v.createdAt
+      publishedAt: v.publishedAt || v.createdAt,
+      createdAt: v.publishedAt || v.createdAt
     }))
   });
 });
@@ -2196,18 +2197,19 @@ app.get('/api/videos', async (req, res) => {
     }
     list = scored.map(item => item.video);
   } else {
-    // Sort: recent (default), views, rating
+    // Sort: recent (default = by admin validation/publication date publishedAt), views, rating
     const sort = req.query.sort || 'recent';
+    const getPubTime = v => new Date(v.publishedAt || v.createdAt || 0).getTime();
     if (sort === 'views') {
-      list.sort((a, b) => ((b.views || 0) - (a.views || 0)) || (new Date(b.createdAt) - new Date(a.createdAt)));
+      list.sort((a, b) => ((b.views || 0) - (a.views || 0)) || (getPubTime(b) - getPubTime(a)));
     } else if (sort === 'rating' || sort === 'likes') {
-      list.sort((a, b) => ((b.rating || 0) - (a.rating || 0)) || (new Date(b.createdAt) - new Date(a.createdAt)));
+      list.sort((a, b) => ((b.rating || 0) - (a.rating || 0)) || (getPubTime(b) - getPubTime(a)));
     } else {
-      // Default: VIP authors first, then by date
+      // Default: VIP authors first, then by publication date (publishedAt)
       list.sort((a, b) => {
         if (a.isVipAuthor && !b.isVipAuthor) return -1;
         if (!a.isVipAuthor && b.isVipAuthor) return 1;
-        return new Date(b.createdAt) - new Date(a.createdAt);
+        return getPubTime(b) - getPubTime(a);
       });
     }
   }
@@ -3325,7 +3327,7 @@ app.get('/api/videos/:id/similar', (req, res) => {
     return { ...v, _score: score };
   })
     .filter(v => v._score > 0)
-    .sort((a, b) => b._score - a._score || new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+    .sort((a, b) => b._score - a._score || new Date(b.publishedAt || b.createdAt || 0) - new Date(a.publishedAt || a.createdAt || 0))
     .slice(0, 6)
     .map(({ _score, ...v }) => v);
 
@@ -3334,7 +3336,7 @@ app.get('/api/videos/:id/similar', (req, res) => {
     const scoredIds = new Set([...scored.map(v => v.id), video.id]);
     const recent = approved
       .filter(v => !scoredIds.has(v.id))
-      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+      .sort((a, b) => new Date(b.publishedAt || b.createdAt || 0) - new Date(a.publishedAt || a.createdAt || 0))
       .slice(0, 6 - scored.length);
     scored.push(...recent);
   }
@@ -4796,7 +4798,7 @@ function renderSeoPage(req, res) {
           'name': video.title || 'Vidéo Porno Amateur Rêve de Q',
           'description': video.description || description,
           'thumbnailUrl': [ogImage],
-          'uploadDate': video.createdAt || new Date().toISOString(),
+          'uploadDate': video.publishedAt || video.createdAt || new Date().toISOString(),
           'contentUrl': video.videoUrl || canonical,
           'embedUrl': `${siteUrl}/?video=${encodeURIComponent(video.id)}`,
           'isFamilyFriendly': false,
@@ -4960,7 +4962,8 @@ app.get('/sitemap.xml', async (req, res) => {
   }));
 
   const videoEntries = (db.videos || []).filter(v => v.status !== 'pending').slice(0, 500).map(v => {
-    const pubDate = v.createdAt ? v.createdAt.split('T')[0] : today;
+    const rawPub = v.publishedAt || v.createdAt;
+    const pubDate = rawPub ? rawPub.split('T')[0] : today;
     
     // Ensure absolute thumbnail URL
     let fullThumb = v.thumbnail || `${siteUrl}/revedeq-banner.png`;

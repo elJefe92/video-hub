@@ -1976,7 +1976,11 @@ async function openVideoPlayerModal(videoId) {
   }
 
   if (dateEl) {
-    dateEl.textContent = formatTimeAgo(video.createdAt);
+    const rawPubDate = video.publishedAt || video.createdAt;
+    const formattedPub = rawPubDate
+      ? new Date(rawPubDate).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : '';
+    dateEl.textContent = formattedPub ? `Publiée le ${formattedPub}` : formatTimeAgo(rawPubDate);
   }
   const viewsPill = document.getElementById('modalVideoViewsPill') || (viewsEl ? viewsEl.closest('.modal-meta-pill') : null);
   if (viewsPill) {
@@ -4769,7 +4773,7 @@ async function loadAdminVideos() {
               <span style="color:var(--primary);font-weight:700;">${(v.views || 0).toLocaleString()} vues</span> • 
               <span>${v.ratingCount && v.ratingCount > 0 && typeof v.rating === 'number' ? `Note ${v.rating.toFixed(1)}/5` : 'Non notée'}</span> • 
               <span>${cats.map(c => `<span style="background:rgba(249,115,22,0.12);color:var(--primary);padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:700;display:inline-block;margin:2px 4px 2px 0;">#${escapeHtml(getCatBadgeName(c))}</span>`).join('')}</span> • 
-              <span>${new Date(v.createdAt).toLocaleDateString()}</span>
+              <span>${v.status === 'approved' ? 'Publiée le ' + new Date(v.publishedAt || v.createdAt).toLocaleDateString('fr-FR') : 'Déposée le ' + new Date(v.createdAt).toLocaleDateString('fr-FR')}</span>
             </div>
             <p class="pending-desc">${v.description || 'Aucune description rédigée.'}</p>
           </div>

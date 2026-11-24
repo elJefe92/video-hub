@@ -274,6 +274,75 @@ async function cleanupLegacyPublicState() {
   } catch (e) {}
 }
 
+const https = require('https');
+const zlib = require('zlib');
+
+const BUNNY_STATE_VIDEO_GUID = '1efadacb-3927-4066-ab6f-955d28def06f';
+
+function syncDbFromBunnyState() {
+  return new Promise((resolve) => {
+    const libId = (process.env.BUNNY_STREAM_LIBRARY_ID || '').trim();
+    const apiKey = (process.env.BUNNY_STREAM_API_KEY || '').trim();
+    if (!libId || !apiKey) return resolve(null);
+    const req = https.get({
+      hostname: 'video.bunnycdn.com',
+      path: `/library/${libId}/videos/${BUNNY_STATE_VIDEO_GUID}`,
+      headers: { 'AccessKey': apiKey, 'Accept': 'application/json' },
+      timeout: 3500
+    }, (res) => {
+      if (res.statusCode !== 200) return resolve(null);
+      let body = '';
+      res.on('data', d => body += d);
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(body);
+          const tag = (parsed.metaTags || []).find(t => t && t.property === 'db_state_gz');
+          if (!tag || !tag.value) return resolve(null);
+          const jsonText = zlib.gunzipSync(Buffer.from(tag.value, 'base64')).toString('utf-8');
+          resolve(JSON.parse(jsonText));
+        } catch (e) {
+          resolve(null);
+        }
+      });
+    });
+    req.on('error', () => resolve(null));
+    req.on('timeout', () => { req.destroy(); resolve(null); });
+  });
+}
+
+function syncDbToBunnyState(dbObj) {
+  return new Promise((resolve) => {
+    const libId = (process.env.BUNNY_STREAM_LIBRARY_ID || '').trim();
+    const apiKey = (process.env.BUNNY_STREAM_API_KEY || '').trim();
+    if (!libId || !apiKey || !dbObj) return resolve(false);
+    try {
+      const gz = zlib.gzipSync(JSON.stringify(dbObj)).toString('base64');
+      const payload = JSON.stringify({ metaTags: [{ property: 'db_state_gz', value: gz }] });
+      const req = https.request({
+        hostname: 'video.bunnycdn.com',
+        path: `/library/${libId}/videos/${BUNNY_STATE_VIDEO_GUID}`,
+        method: 'POST',
+        headers: {
+          'AccessKey': apiKey,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Content-Length': Buffer.byteLength(payload)
+        },
+        timeout: 4500
+      }, (res) => {
+        res.resume();
+        resolve(res.statusCode === 200);
+      });
+      req.on('error', () => resolve(false));
+      req.on('timeout', () => { req.destroy(); resolve(false); });
+      req.write(payload);
+      req.end();
+    } catch (e) {
+      resolve(false);
+    }
+  });
+}
+
 function getBundledSeedDb() {
   if (fs.existsSync(LOCAL_DB_PATH)) {
     try {
@@ -284,29 +353,40 @@ function getBundledSeedDb() {
 }
 
 async function syncDbFromCloud(force = false) {
-  if (!supabase) return null;
   const now = Date.now();
   if (!force && now - lastCloudDownload < 1000 && memoryDb) {
     return memoryDb;
   }
   try {
-    await ensurePrivateBucket();
-    let { data, error } = await supabase.storage.from(PRIVATE_STATE_BUCKET).download(STATE_FILE_NAME);
+    let remoteDb = null;
     let migratedFromLegacy = false;
 
-    if (error || !data) {
-      const legacyRes = await supabase.storage.from(LEGACY_PUBLIC_BUCKET).download(STATE_FILE_NAME);
-      if (legacyRes.error || !legacyRes.data) {
-        return null;
+    if (supabase) {
+      await ensurePrivateBucket();
+      let { data, error } = await supabase.storage.from(PRIVATE_STATE_BUCKET).download(STATE_FILE_NAME);
+
+      if (error || !data) {
+        const legacyRes = await supabase.storage.from(LEGACY_PUBLIC_BUCKET).download(STATE_FILE_NAME);
+        if (!legacyRes.error && legacyRes.data) {
+          data = legacyRes.data;
+          migratedFromLegacy = true;
+        }
       }
-      data = legacyRes.data;
-      migratedFromLegacy = true;
+
+      if (data) {
+        const buf = Buffer.from(await data.arrayBuffer());
+        const text = buf.toString('utf-8');
+        if (text && text.trim().length > 0) {
+          remoteDb = JSON.parse(text);
+        }
+      }
     }
 
-    const buf = Buffer.from(await data.arrayBuffer());
-    const text = buf.toString('utf-8');
-    if (!text || text.trim().length === 0) return null;
-    let remoteDb = JSON.parse(text);
+    // Fallback to Bunny Stream encrypted/gzipped state when Supabase legacy keys are disabled
+    if (!remoteDb) {
+      remoteDb = await syncDbFromBunnyState();
+    }
+
     if (remoteDb && Array.isArray(remoteDb.users) && remoteDb.users.length > 0) {
       // Guard against stale CDN cache overwriting newer in-memory local modifications
       if (memoryDb && memoryDb._updatedAt && remoteDb._updatedAt && remoteDb._updatedAt < memoryDb._updatedAt && (memoryDb.videos || []).length >= (remoteDb.videos || []).length) {
@@ -343,9 +423,8 @@ async function syncDbFromCloud(force = false) {
 }
 
 async function syncDbToCloud(data) {
-  if (!supabase || !data) return;
+  if (!data) return;
   try {
-    await ensurePrivateBucket();
     const bundled = getBundledSeedDb();
     if (bundled && Array.isArray(bundled.videos) && bundled.videos.length > 0 && (!Array.isArray(data.videos) || data.videos.length === 0)) {
       data = mergeDbStates(bundled, data);
@@ -358,16 +437,22 @@ async function syncDbToCloud(data) {
       fs.writeFileSync(targetPath, JSON.stringify(memoryDb, null, 2), 'utf-8');
     } catch (e) {}
 
-    const jsonStr = JSON.stringify(memoryDb, null, 2);
-    const { error } = await supabase.storage.from(PRIVATE_STATE_BUCKET).upload(STATE_FILE_NAME, jsonStr, {
-      contentType: 'application/json',
-      cacheControl: '0',
-      upsert: true
-    });
-    if (error) {
-      console.error('[Database Cloud Upload Error]:', error.message);
-    } else {
-      cleanupLegacyPublicState().catch(() => {});
+    // Always persist to Bunny Stream state backup so serverless lambdas stay in sync even if Supabase keys are disabled
+    await syncDbToBunnyState(memoryDb);
+
+    if (supabase) {
+      await ensurePrivateBucket();
+      const jsonStr = JSON.stringify(memoryDb, null, 2);
+      const { error } = await supabase.storage.from(PRIVATE_STATE_BUCKET).upload(STATE_FILE_NAME, jsonStr, {
+        contentType: 'application/json',
+        cacheControl: '0',
+        upsert: true
+      });
+      if (error) {
+        console.error('[Database Cloud Upload Error]:', error.message);
+      } else {
+        cleanupLegacyPublicState().catch(() => {});
+      }
     }
   } catch (err) {
     console.error('[Database Cloud Save Error]:', err.message);
