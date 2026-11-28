@@ -3466,6 +3466,21 @@ app.post('/api/admin/videos/:id/toggle-daily', requireAdmin, async (req, res) =>
   video.isDailyFeatured = !video.isDailyFeatured;
   if (video.isDailyFeatured) {
     video.featuredDate = new Date().toISOString().split('T')[0];
+    // Auto-approve and publish if the video was still in pending moderation
+    if (video.status === 'pending') {
+      video.status = 'approved';
+      if (!video.publishedAt) {
+        video.publishedAt = new Date().toISOString();
+      }
+      if (video.authorId) {
+        addNotificationToUser(db, video.authorId, {
+          type: 'moderation',
+          message: `Votre video "${video.title.slice(0, 40)}" a ete approuvee et selectionnee comme Video du Jour !`,
+          link: `/?video=${video.id}`
+        });
+        computeCreatorBadge(video.authorId, db);
+      }
+    }
   } else {
     video.featuredDate = null;
   }
