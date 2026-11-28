@@ -1881,10 +1881,20 @@ app.put('/api/user/profile', authenticate, upload.single('avatarFile'), async (r
 
   if (avatarBase64 && avatarBase64.startsWith('data:')) {
     const uploadedAvatar = await uploadBase64ToSupabaseStorage('thumbnails', avatarBase64, 'avatar_' + user.id + '_' + Date.now());
-    if (uploadedAvatar) user.avatar = uploadedAvatar;
+    user.avatar = uploadedAvatar || avatarBase64;
   } else if (req.file) {
     const supabaseAvatar = await uploadToSupabaseStorage('thumbnails', req.file.path, req.file.filename, req.file.mimetype);
-    user.avatar = supabaseAvatar || `/uploads/${req.file.filename}`;
+    if (supabaseAvatar) {
+      user.avatar = supabaseAvatar;
+    } else {
+      try {
+        const fileBuf = fs.readFileSync(req.file.path);
+        const mime = req.file.mimetype || 'image/jpeg';
+        user.avatar = `data:${mime};base64,${fileBuf.toString('base64')}`;
+      } catch (e) {
+        user.avatar = `/uploads/${req.file.filename}`;
+      }
+    }
   } else if (avatarUrl && avatarUrl.trim()) {
     if (!isSafeHttpOrUploadUrl(avatarUrl)) {
       return res.status(400).json({ error: 'URL d\'avatar invalide.' });

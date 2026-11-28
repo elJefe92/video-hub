@@ -56,6 +56,7 @@ test('profile update persists changes to cloud database', () => {
   assert.match(profileRouteMatch[0], /await syncDbToCloud\(db\)/);
   assert.match(profileRouteMatch[0], /await syncDbFromCloud/);
   assert.match(profileRouteMatch[0], /isSafeHttpOrUploadUrl\(avatarUrl\)/);
+  assert.match(profileRouteMatch[0], /user\.avatar = uploadedAvatar \|\| avatarBase64;/);
 });
 
 test('private messaging routes require strict authentication without query username IDOR', () => {
