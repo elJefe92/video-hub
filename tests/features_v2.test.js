@@ -51,3 +51,10 @@ test('C8 & C9: Admin 2FA by email and persistent cloud rate-limiting are active'
   assert.match(authJsSrc, /async function handleVerifyAdmin2FA\(/);
   assert.equal(authJsSrc.includes("'admin123'"), false);
 });
+
+test('Google Video XML Sitemap: player_loc and content_loc point to media/player distinct from HTML loc', () => {
+  assert.match(serverSrc, /<video:player_loc allow_embed="yes">/);
+  assert.match(serverSrc, /<video:content_loc>/);
+  assert.match(serverSrc, /const safePlayerLoc = playerEmbedUrl \? escapeHtmlServer\(playerEmbedUrl\) : '';/);
+  assert.match(serverSrc, /const safeContentLoc = v\.videoUrl \? escapeHtmlServer\(v\.videoUrl\) : '';/);
+});

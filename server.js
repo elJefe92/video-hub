@@ -4804,6 +4804,9 @@ function renderSeoPage(req, res) {
         canonical = `${siteUrl}/video/${encodeURIComponent(video.id)}`;
         ogImage = video.thumbnail || ogImage;
 
+        const libraryId = (process.env.BUNNY_STREAM_LIBRARY_ID || '789547').trim();
+        const embedUrl = video.iframeUrl || (video.bunnyVideoId ? `https://iframe.mediadelivery.net/embed/${libraryId}/${video.bunnyVideoId}?autoplay=false&preload=true` : `${siteUrl}/?video=${encodeURIComponent(video.id)}`);
+
         const videoSchema = {
           '@context': 'https://schema.org',
           '@type': 'VideoObject',
@@ -4812,7 +4815,7 @@ function renderSeoPage(req, res) {
           'thumbnailUrl': [ogImage],
           'uploadDate': video.publishedAt || video.createdAt || new Date().toISOString(),
           'contentUrl': video.videoUrl || canonical,
-          'embedUrl': `${siteUrl}/?video=${encodeURIComponent(video.id)}`,
+          'embedUrl': embedUrl,
           'isFamilyFriendly': false,
           'author': {
             '@type': 'Person',
@@ -4986,7 +4989,24 @@ app.get('/sitemap.xml', async (req, res) => {
 
     const cleanTitle = escapeHtmlServer(v.title || 'Vidéo Porno Amateur Rêve de Q');
     const cleanDesc = escapeHtmlServer((v.description || v.title || 'Vidéo porno amateur streaming 100% gratuit sur Rêve de Q.').substring(0, 1000));
-    const playerUrl = `${siteUrl}/video/${encodeURIComponent(v.id)}`;
+    const pageUrl = `${siteUrl}/video/${encodeURIComponent(v.id)}`;
+    const libraryId = (process.env.BUNNY_STREAM_LIBRARY_ID || '789547').trim();
+
+    // Player embed URL (must be distinct from the HTML landing page URL)
+    let playerEmbedUrl = v.iframeUrl;
+    if (!playerEmbedUrl && v.bunnyVideoId) {
+      playerEmbedUrl = `https://iframe.mediadelivery.net/embed/${libraryId}/${v.bunnyVideoId}?autoplay=false&preload=true`;
+    }
+    const safePlayerLoc = playerEmbedUrl ? escapeHtmlServer(playerEmbedUrl) : '';
+    const safeContentLoc = v.videoUrl ? escapeHtmlServer(v.videoUrl) : '';
+
+    let mediaTags = '';
+    if (safePlayerLoc) {
+      mediaTags += `\n      <video:player_loc allow_embed="yes">${safePlayerLoc}</video:player_loc>`;
+    }
+    if (safeContentLoc) {
+      mediaTags += `\n      <video:content_loc>${safeContentLoc}</video:content_loc>`;
+    }
 
     // Parse duration in seconds if available
     let durationTag = '';
@@ -5004,15 +5024,14 @@ app.get('/sitemap.xml', async (req, res) => {
     }
 
     return `  <url>
-    <loc>${playerUrl}</loc>
+    <loc>${pageUrl}</loc>
     <lastmod>${pubDate}</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
     <video:video>
       <video:thumbnail_loc>${fullThumb}</video:thumbnail_loc>
       <video:title>${cleanTitle}</video:title>
-      <video:description>${cleanDesc}</video:description>
-      <video:player_loc>${playerUrl}</video:player_loc>${durationTag}
+      <video:description>${cleanDesc}</video:description>${mediaTags}${durationTag}
       <video:publication_date>${pubDate}</video:publication_date>
       <video:family_friendly>no</video:family_friendly>
       <video:tag>prono</video:tag>
