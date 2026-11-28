@@ -1236,6 +1236,7 @@ function renderVideoCard(v) {
         </span>
         ` : ''}
         <span class="video-duration-badge">${v.duration || '0:30'}</span>
+        <span class="card-watermark-overlay" aria-hidden="true">revedeq<span class="wm-tld">.fr</span></span>
         <div class="card-badges-top-left">
           ${(v.isDailyFeatured && (!v.featuredDate || v.featuredDate === (new Date().toISOString().split('T')[0]))) ? '<span class="video-daily-badge">SÉLECTION DU JOUR</span>' : ''}
           ${v.status === 'pending' ? '<span class="video-pending-badge">En attente</span>' : ''}
@@ -4835,6 +4836,39 @@ async function toggleDailyFeatured(id) {
     showToast('Erreur de mise à jour.');
   }
 }
+
+async function triggerBunnyWatermarkReencode() {
+  if (!AUTH || !AUTH.isAdmin()) {
+    showToast('Action réservée à l\'administrateur.');
+    return;
+  }
+  const btn = document.getElementById('btnReencodeAllWatermark');
+  const origText = btn ? btn.textContent : 'Graver le filigrane Bunny (Toutes les vidéos)';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Lancement du ré-encodage Bunny...';
+  }
+  try {
+    const res = await fetch('/api/admin/videos/reencode-all', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${AUTH.token}` }
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.error || 'Erreur lors du ré-encodage Bunny.');
+      return;
+    }
+    showToast(data.message || 'Ré-encodage avec filigrane lancé sur toutes les vidéos Bunny Stream !');
+  } catch (err) {
+    showToast('Erreur de communication avec le serveur.');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = origText;
+    }
+  }
+}
+window.triggerBunnyWatermarkReencode = triggerBunnyWatermarkReencode;
 
 async function approveVideo(id, evt) {
   const btn = evt?.target || (typeof event !== 'undefined' ? event?.target : null) || document.querySelector(`button[onclick*="approveVideo('${id}')"]`);

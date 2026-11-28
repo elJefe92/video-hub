@@ -3508,6 +3508,45 @@ app.post('/api/admin/videos/:id/toggle-daily', requireAdmin, async (req, res) =>
   });
 });
 
+// Admin Batch Re-encode All Bunny Stream Videos to Burn Watermark into Video Files
+app.post('/api/admin/videos/reencode-all', requireAdmin, async (req, res) => {
+  await syncDbFromCloud(true);
+  const db = loadDb();
+  const libraryId = (process.env.BUNNY_STREAM_LIBRARY_ID || '').trim();
+  const apiKey = (process.env.BUNNY_STREAM_API_KEY || '').trim();
+
+  if (!libraryId || !apiKey) {
+    return res.status(400).json({ error: 'Configuration Bunny Stream manquante sur le serveur.' });
+  }
+
+  const bunnyVideos = (db.videos || []).filter(v => v.bunnyVideoId);
+  if (bunnyVideos.length === 0) {
+    return res.status(400).json({ error: 'Aucune vidéo Bunny Stream à ré-encoder.' });
+  }
+
+  let triggered = 0;
+  for (const v of bunnyVideos) {
+    try {
+      const resp = await fetch(`https://video.bunnycdn.com/library/${encodeURIComponent(libraryId)}/videos/${encodeURIComponent(v.bunnyVideoId)}/reencode`, {
+        method: 'POST',
+        headers: {
+          'AccessKey': apiKey,
+          'Accept': 'application/json'
+        }
+      });
+      if (resp.ok) triggered++;
+    } catch (e) {}
+  }
+
+  addLog('Filigrane Bunny Stream', `Ré-encodage avec filigrane lancé sur ${triggered}/${bunnyVideos.length} vidéos.`);
+  res.json({
+    success: true,
+    triggered,
+    total: bunnyVideos.length,
+    message: `Ré-encodage avec filigrane lancé sur ${triggered} vidéos Bunny Stream.`
+  });
+});
+
 // Admin Delete Video (POST /reject and DELETE /)
 app.post('/api/admin/videos/:id/reject', requireAdmin, async (req, res) => {
   await syncDbFromCloud(true);

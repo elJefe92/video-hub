@@ -1355,9 +1355,13 @@
             <div class="section-subheading" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
               <div>
                 <h3 style="margin:0;">Vidéos en Ligne sur la Plateforme</h3>
-                <p style="font-size:0.82rem; color:var(--text-muted); margin:4px 0 0;">Gestion des vidéos approuvées, mise en avant, modification et suppression.</p>
+                <p style="font-size:0.82rem; color:var(--text-muted); margin:4px 0 0;">Gestion des vidéos approuvées, filigrane revedeq.fr, mise en avant, modification et suppression.</p>
               </div>
-              <button class="btn btn-sm btn-secondary" onclick="loadAdminOnlineVideos(); loadAdminStats();">Actualiser</button>
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <a href="/revedeq-watermark.png" download="revedeq-watermark.png" class="btn btn-sm btn-secondary" style="text-decoration:none;">Télécharger le PNG Filigrane</a>
+                <button class="btn btn-sm btn-primary" id="btnReencodeAllWatermark" onclick="triggerBunnyWatermarkReencode()">Graver le filigrane Bunny (Toutes les vidéos)</button>
+                <button class="btn btn-sm btn-secondary" onclick="loadAdminOnlineVideos(); loadAdminStats();">Actualiser</button>
+              </div>
             </div>
             <div class="admin-filter-bar">
               <div class="filter-group search-filter" style="flex:1;">
@@ -1779,8 +1783,14 @@
           </div>
 
           <!-- Video Player Container (Cinema Format) -->
-          <div class="player-container watch-player-container">
-            <video id="modalVideoPlayer" controls autoplay playsinline webkit-playsinline preload="auto" ondblclick="toggleVideoFit()"></video>
+          <div class="player-container watch-player-container" oncontextmenu="return false;">
+            <video id="modalVideoPlayer" controls controlslist="nodownload" oncontextmenu="return false;" autoplay playsinline webkit-playsinline preload="auto" ondblclick="toggleVideoFit()"></video>
+            
+            <!-- Filigrane Officiel Rêve de Q incrusté sur toutes les vidéos -->
+            <div class="video-watermark-overlay" aria-hidden="true">
+              <img src="/revedeq-emblem.png" alt="" class="video-watermark-emblem">
+              <span class="video-watermark-domain">revedeq<span class="video-watermark-tld">.fr</span></span>
+            </div>
             
             <!-- Floating VIP Teaser Pill -->
             <div id="vipTeaserBadge" class="vip-teaser-badge hidden" style="position:absolute;top:16px;left:16px;z-index:10;background:rgba(11,17,32,0.85);backdrop-filter:blur(8px);border:1px solid #f59e0b;color:#fbbf24;padding:8px 16px;border-radius:999px;font-size:0.82rem;font-weight:700;display:flex;align-items:center;gap:8px;box-shadow:0 4px 20px rgba(0,0,0,0.6);">

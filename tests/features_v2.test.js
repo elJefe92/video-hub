@@ -58,3 +58,11 @@ test('Google Video XML Sitemap: player_loc and content_loc point to media/player
   assert.match(serverSrc, /const safePlayerLoc = playerEmbedUrl \? escapeHtmlServer\(playerEmbedUrl\) : '';/);
   assert.match(serverSrc, /const safeContentLoc = v\.videoUrl \? escapeHtmlServer\(v\.videoUrl\) : '';/);
 });
+
+test('Video watermark revedeq.fr is embedded on player, video cards, and Bunny batch re-encode route exists', () => {
+  assert.match(indexHtmlSrc, /class="video-watermark-overlay"/);
+  assert.match(indexHtmlSrc, /controlslist="nodownload"/);
+  assert.match(appJsSrc, /class="card-watermark-overlay"/);
+  assert.match(serverSrc, /app\.post\('\/api\/admin\/videos\/reencode-all',\s*requireAdmin/);
+  assert.equal(fs.existsSync(path.join(ROOT, 'public/revedeq-watermark.png')), true);
+});
